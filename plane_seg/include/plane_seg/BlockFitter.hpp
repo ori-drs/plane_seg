@@ -28,6 +28,8 @@ public:
 public:
   BlockFitter();
 
+  // iLookDir is a viewing normal in computer vision coordinates
+  // i.e. z is forward
   void setSensorPose(const Eigen::Vector3f& iOrigin,
                      const Eigen::Vector3f& iLookDir);
   void setBlockDimensions(const Eigen::Vector3f& iDimensions);

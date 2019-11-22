@@ -1,0 +1,8 @@
+<launch>
+  <node name="plane_seg_ros" pkg="plane_seg_ros" type="plane_seg_ros" output="screen">
+    <remap from="/plane_seg/pose" to="/state_estimator/pose_in_odom"/>
+<!--    <param name="target_frame_name" value="/odom" />
+    <param name="source_frame_name" value="/base" />
+    <param name="trajectory_publish_rate" value="10" />-->
+  </node>
+</launch>
