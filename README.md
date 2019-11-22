@@ -26,7 +26,7 @@ A series of planar convex hulls published at 1-2 Hz
 
 Segmenting the DARPA Robotics Challenge terrain:
 
-![drc terrain segmentation][./drc_terrain.png]
+![drc terrain segmentation](drc_terrain.png)
 
 ![drc terrain photo][drc_terrain_photo.jpg]
 
