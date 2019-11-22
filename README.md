@@ -16,8 +16,8 @@ Original Author: Matt Antone (then at MIT)**
 # Input
 
 Input should be a point cloud or elevation map in the robot's odometry frame as well as the pose of the robot
-in the odometry frame.
-sus
+in the odometry frame. The elevation map is assumed to be at a 1-2 Hz.
+
 # Output
 
 A series of planar convex hulls published at 1-2 Hz
@@ -26,7 +26,7 @@ A series of planar convex hulls published at 1-2 Hz
 
 Segmenting the DARPA Robotics Challenge terrain:
 
-![drc terrain segmentation][drc_terrain.png]
+![drc terrain segmentation][./drc_terrain.png]
 
 ![drc terrain photo][drc_terrain_photo.jpg]
 
