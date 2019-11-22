@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>plane_seg_ros</name>
+  <version>0.0.0</version>
+  <description>The plane seg package</description>
+
+  <maintainer email="mfallon@todo.todo">mfallon</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>eigen_conversions</depend>
+  <depend>pcl_conversions</depend>
+  <depend>tf_conversions</depend>
+  <depend>pcl_ros</depend>
+  <depend>plane_seg</depend>
+  <depend>grid_map_core</depend>
+  <depend>grid_map_ros</depend>
+  <depend>grid_map_msgs</depend>
+
+
+  <export>
+  </export>
+</package>

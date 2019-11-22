@@ -17,6 +17,7 @@ find_package(OpenCV 3.0 QUIET)
 catkin_package(
   INCLUDE_DIRS
     include
+  LIBRARIES plane_seg
   CATKIN_DEPENDS eigen_conversions pcl_conversions tf_conversions pcl_ros
 )
 
@@ -59,7 +60,8 @@ add_executable(${APP_NAME} src/plane_seg_test2.cpp)
 target_link_libraries(${APP_NAME} boost_system ${catkin_LIBRARIES} plane_seg ${OpenCV_LIBS})
 
 
-
-set(APP_NAME plane_seg_test_ros)
-add_executable(${APP_NAME} src/${APP_NAME}.cpp)
-target_link_libraries(${APP_NAME} boost_system ${catkin_LIBRARIES} plane_seg)
+# install
+install(TARGETS plane_seg
+        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
