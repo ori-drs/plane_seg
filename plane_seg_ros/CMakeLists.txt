@@ -31,6 +31,6 @@ include_directories(
 )
 
 
-set(APP_NAME plane_seg_test_ros)
+set(APP_NAME plane_seg_ros)
 add_executable(${APP_NAME} src/${APP_NAME}.cpp)
 target_link_libraries(${APP_NAME} boost_system ${catkin_LIBRARIES})

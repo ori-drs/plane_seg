@@ -6,9 +6,6 @@ add_compile_options(-std=c++1y -Wall)
 #add_definitions(-std=c++1y -Wall)
 
 find_package(catkin REQUIRED COMPONENTS
-  eigen_conversions
-  pcl_conversions
-  tf_conversions
   pcl_ros
 )
 
@@ -18,9 +15,8 @@ catkin_package(
   INCLUDE_DIRS
     include
   LIBRARIES plane_seg
-  CATKIN_DEPENDS eigen_conversions pcl_conversions tf_conversions pcl_ros
+  CATKIN_DEPENDS  pcl_ros
 )
-
 
 include_directories(
   include

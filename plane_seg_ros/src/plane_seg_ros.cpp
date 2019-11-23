@@ -44,7 +44,7 @@ class Pass{
     void robotPoseCallBack(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg);
 
     void processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f origin, Eigen::Vector3f lookDir);
-    void processFromFile();
+    void processFromFile(int test_example);
 
     void publishHullsAsCloud(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_ptrs,
                                  int secs, int nsecs);
@@ -122,30 +122,70 @@ void Pass::robotPoseCallBack(const geometry_msgs::PoseWithCovarianceStampedConst
   tf::poseMsgToEigen(msg->pose.pose, last_robot_pose_);
 }
 
-void Pass::processFromFile(){
 
-  sleep(2);
+void quat_to_euler(const Eigen::Quaterniond& q, double& roll, double& pitch, double& yaw) {
+  const double q0 = q.w();
+  const double q1 = q.x();
+  const double q2 = q.y();
+  const double q3 = q.z();
+  roll = atan2(2.0*(q0*q1+q2*q3), 1.0-2.0*(q1*q1+q2*q2));
+  pitch = asin(2.0*(q0*q2-q3*q1));
+  yaw = atan2(2.0*(q0*q3+q1*q2), 1.0-2.0*(q2*q2+q3*q3));
+}
+
+Eigen::Vector3f convertRobotPoseToSensorLookDir(Eigen::Isometry3d robot_pose){
+
+  Eigen::Quaterniond quat = Eigen::Quaterniond( robot_pose.rotation() );
+  double r,p,y;
+  quat_to_euler(quat, r, p, y);
+  //std::cout << r*180/M_PI << ", " << p*180/M_PI << ", " << y*180/M_PI << " rpy in Degrees\n";
+
+  double yaw = y;
+  double pitch = -p;
+  double xDir = cos(yaw)*cos(pitch);
+  double yDir = sin(yaw)*cos(pitch);
+  double zDir = sin(pitch);
+  return Eigen::Vector3f(xDir, yDir, zDir);
+}
 
 
-// transmit a static point cloud (mostly for testing)
+void Pass::elevationMapCallback(const grid_map_msgs::GridMap& msg){
+  //std::cout << "got grid map / ev map\n";
+
+  // convert message to GridMap, to PointCloud to LabeledCloud
+  grid_map::GridMap map;
+  grid_map::GridMapRosConverter::fromMessage(msg, map);
+  sensor_msgs::PointCloud2 pointCloud;
+  grid_map::GridMapRosConverter::toPointCloud(map, "elevation", pointCloud);
+  planeseg::LabeledCloud::Ptr inCloud(new planeseg::LabeledCloud());
+  pcl::fromROSMsg(pointCloud,*inCloud);
+
+  Eigen::Vector3f origin, lookDir;
+  origin << last_robot_pose_.translation().cast<float>();
+  lookDir = convertRobotPoseToSensorLookDir(last_robot_pose_);
+
+  processCloud(inCloud, origin, lookDir);
+}
+
+
+// process a point cloud 
+// This method is mostly for testing
+// To transmit a static point cloud:
 // rosrun pcl_ros pcd_to_pointcloud 06.pcd   _frame_id:=/odom /cloud_pcd:=/plane_seg/point_cloud_in
 void Pass::pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr &msg){
 
   planeseg::LabeledCloud::Ptr inCloud(new planeseg::LabeledCloud());
   pcl::fromROSMsg(*msg,*inCloud);
 
-  // Hard coded look direction:
   Eigen::Vector3f origin, lookDir;
-  origin << -0.028775, -0.005776, 0.987898;
-  lookDir << 0.999956, -0.005003, 0.007958;
+  origin << last_robot_pose_.translation().cast<float>();
+  lookDir = convertRobotPoseToSensorLookDir(last_robot_pose_);
 
   processCloud(inCloud, origin, lookDir);
-
 }
 
 
-void Pass::processFromFile(){
-  int test_example = 3;
+void Pass::processFromFile(int test_example){
 
   // to allow ros connections to register
   sleep(2);
@@ -153,23 +193,25 @@ void Pass::processFromFile(){
   std::string inFile;
   std::string home_dir = getenv("HOME");
   Eigen::Vector3f origin, lookDir;
-  if (test_example == 0){
+  if (test_example == 0){ // LIDAR example from Atlas during DRC
     inFile = home_dir + "/drs_testing_data/terrain/tilted-steps.pcd";
     origin <<0.248091, 0.012443, 1.806473;
     lookDir <<0.837001, 0.019831, -0.546842;
-  }else if (test_example == 1){
+  }else if (test_example == 1){ // LIDAR example from Atlas during DRC
     inFile = home_dir + "/drs_testing_data/terrain/terrain_med.pcd";
     origin << -0.028862, -0.007466, 0.087855;
     lookDir << 0.999890, -0.005120, -0.013947;
-  }else if (test_example == 2){
+  }else if (test_example == 2){ // LIDAR example from Atlas during DRC
     inFile = home_dir + "/drs_testing_data/terrain/terrain_close_rect.pcd";
     origin << -0.028775, -0.005776, 0.087898;
     lookDir << 0.999956, -0.005003, 0.007958;
-  }else if (test_example == 3){
-    inFile = home_dir + "/Dropbox/desktop/stair_climb/06.pcd";
+  }else if (test_example == 3){ // RGBD (Realsense D435) example from ANYmal
+    inFile = home_dir + "/drs_testing_data/terrain/anymal/ori_entrance_stair_climb/06.pcd";
     origin << -0.028775, -0.005776, 0.987898;
     lookDir << 0.999956, -0.005003, 0.007958;
   }
+  std::cout << "\nProcessing test example " << test_example << "\n";
+  std::cout << inFile << "\n";
 
   planeseg::LabeledCloud::Ptr inCloud(new planeseg::LabeledCloud());
   pcl::io::loadPCDFile(inFile, *inCloud);
@@ -183,8 +225,13 @@ void Pass::processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f or
   planeseg::BlockFitter fitter;
   fitter.setSensorPose(origin, lookDir);
   fitter.setCloud(inCloud);
-  fitter.setDebug(false); // MFALLON modification from default
+  fitter.setDebug(false); // MFALLON modification
   fitter.setRemoveGround(false); // MFALLON modification from default
+
+  // this was 5 for LIDAR. changing to 10 really improved elevation map segmentation
+  // I think its because the RGB-D map can be curved
+  fitter.setMaxAngleOfPlaneSegmenter(10);
+
   result_ = fitter.go();
 
 
@@ -393,15 +440,34 @@ void Pass::publishHullsAsMarkers(std::vector< pcl::PointCloud<pcl::PointXYZ>::Pt
 
 
 int main( int argc, char** argv ){
+  // Turn off warning message about labels
+  // TODO: look into how labels are used
+  pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS);
+
 
   ros::init(argc, argv, "plane_seg");
   ros::NodeHandle nh("~");
   Pass *app = new Pass(nh);
 
-  ROS_INFO_STREAM("=============================");
-  //app->processFromFile();
-
   ROS_INFO_STREAM("plane_seg ros ready");
+  ROS_INFO_STREAM("=============================");
+
+  bool run_test_program = false;
+  nh.param("/plane_seg/run_test_program", run_test_program, false); 
+  std::cout << "run_test_program: " << run_test_program << "\n";
+
+
+  // Enable this to run the test programs
+  if (run_test_program){
+    std::cout << "Running test examples\n";
+    app->processFromFile(0);
+    app->processFromFile(1);
+    app->processFromFile(2);
+    app->processFromFile(3);
+    exit(-1);
+  }
+
+  ROS_INFO_STREAM("Waiting for ROS messages");
   ros::spin();
 
   return 1;

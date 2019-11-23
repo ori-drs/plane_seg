@@ -39,6 +39,7 @@ public:
   void setHeightBand(const float iMinHeight, const float iMaxHeight);
   void setMaxRange(const float iRange);
   void setMaxAngleFromHorizontal(const float iDegrees);
+  void setMaxAngleOfPlaneSegmenter(const float iDegrees);
   void setAreaThresholds(const float iMin, const float iMax);
   void setRectangleFitAlgorithm(const RectangleFitAlgorithm iAlgo);
   void setDebug(const bool iVal);
@@ -58,6 +59,7 @@ protected:
   float mMaxHeightAboveGround;
   float mMaxRange;
   float mMaxAngleFromHorizontal;
+  float mMaxAngleOfPlaneSegmenter;
   float mAreaThreshMin;
   float mAreaThreshMax;
   RectangleFitAlgorithm mRectangleFitAlgorithm;
