@@ -25,6 +25,7 @@ BlockFitter() {
   setHeightBand(0.05, 1.0);
   setMaxRange(3.0);
   setMaxAngleFromHorizontal(45);
+  setMaxAngleOfPlaneSegmenter(5);
   setAreaThresholds(0.5, 1.5);
   setRectangleFitAlgorithm(RectangleFitAlgorithm::MinimumArea);
   setDebug(true);
@@ -73,6 +74,11 @@ setMaxRange(const float iRange) {
 void BlockFitter::
 setMaxAngleFromHorizontal(const float iDegrees) {
   mMaxAngleFromHorizontal = iDegrees;
+}
+
+void BlockFitter::
+setMaxAngleOfPlaneSegmenter(const float iDegrees) {
+  mMaxAngleOfPlaneSegmenter = iDegrees;
 }
 
 void BlockFitter::
@@ -276,7 +282,9 @@ go() {
   PlaneSegmenter segmenter;
   segmenter.setData(cloud, normals);
   segmenter.setMaxError(0.05);
-  segmenter.setMaxAngle(5);
+  // setMaxAngle was 5 for LIDAR. changing to 10 really improved elevation map segmentation
+  // I think its because the RGB-D map can be curved
+  segmenter.setMaxAngle(mMaxAngleOfPlaneSegmenter);
   segmenter.setMinPoints(100);
   PlaneSegmenter::Result segmenterResult = segmenter.go();
   if (mDebug) {
@@ -360,11 +368,15 @@ go() {
 
   for (int i = 0; i < (int)results.size(); ++i) {
     const auto& res = results[i];
-    if (mBlockDimensions.head<2>().norm() > 1e-5) {
-      float areaRatio = mBlockDimensions.head<2>().prod()/res.mConvexArea;
-      if ((areaRatio < mAreaThreshMin) ||
-          (areaRatio > mAreaThreshMax)) continue;
-    }
+
+    // These seems to filter out hulls which are not of similar size to the DRC
+    // blocks. I think this irrelevent for general use
+    // if (mBlockDimensions.head<2>().norm() > 1e-5) {
+    //   float areaRatio = mBlockDimensions.head<2>().prod()/res.mConvexArea;
+    //   // std::cout << mBlockDimensions.transpose() << " | " << res.mConvexArea << " | " << areaRatio << " " << i << "\n";
+    //   if ((areaRatio < mAreaThreshMin) ||
+    //       (areaRatio > mAreaThreshMax)) continue;
+    // }
 
     Block block;
     block.mSize << res.mSize[0], res.mSize[1], mBlockDimensions[2];
