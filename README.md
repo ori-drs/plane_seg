@@ -4,16 +4,18 @@
 
 *Plane Seg* is a library for fitting planes to LIDAR, depth camera data or elevation maps. It uses robust estimation to fit planes by clustering planar points with similar normals.
 
-We assume the ROS build system (e.g. Melodic). The core library (plane-seg) is only dependent on PCL. 
+We assume the ROS build system (e.g. Melodic). The core library (plane-seg) is only dependent on PCL. The ROS application (plane-seg-ros) can process PointCloud2 and GridMap data types.
 
-The ROS application (plane-seg-ros) can process PointCloud2 and GridMap data types. A sample application can be run and visualized (in ROS) as follows:
+# Using It
+
+**Run-Time Application:** A sample application (for ANYmal) can be run and visualized (in Rviz) as follows:
 
 ```python
 roslaunch plane_seg_ros anymal.launch
 roslaunch plane_seg_ros view_plane_seg.launch
 ```
 
-Run a test program which read example point clouds (PCDs), processes them and executes the fitting algorithm
+**Test program:** reads example point clouds (PCDs), processes them and executes the fitting algorithm:
 
 ```python
 roslaunch plane_seg_ros test.launch
