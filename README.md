@@ -13,6 +13,14 @@ roslaunch plane_seg_ros anymal.launch
 roslaunch plane_seg_ros view_plane_seg.launch
 ```
 
+Run a test program which read example point clouds (PCDs), processes them and executes the fitting algorithm
+
+```python
+roslaunch plane_seg_ros test.launch
+roslaunch plane_seg_ros view_plane_seg.launch
+```
+
+
 # Input
 
 Input should be a point cloud or elevation map in the robot's odometry frame as well as the pose of the robot
@@ -21,6 +29,8 @@ in the odometry frame. The elevation map is assumed to be at a 1-2 Hz.
 # Output
 
 A series of planar convex hulls published to ROS at 1-2 Hz
+
+* Nov 2019: Existing limitation is that the code searches for plane regions (which works fine), but that these regions are then assumed to be convex. However, they could be concave. We need to instead break concave regions into convex ones - a basic task.
 
 # Performance
 
