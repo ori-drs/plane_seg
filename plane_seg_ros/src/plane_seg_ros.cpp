@@ -5,6 +5,7 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/io/ply_io.h>
 
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -209,12 +210,34 @@ void Pass::processFromFile(int test_example){
     inFile = home_dir + "/drs_testing_data/terrain/anymal/ori_entrance_stair_climb/06.pcd";
     origin << -0.028775, -0.005776, 0.987898;
     lookDir << 0.999956, -0.005003, 0.007958;
+  }else if (test_example == 4){ // Leica map
+    inFile = home_dir + "/drs_testing_data/leica/race_arenas/RACE_crossplaneramps_sub1cm_cropped_meshlab_icp.ply";
+    origin << -0.028775, -0.005776, 0.987898;
+    lookDir << 0.999956, -0.005003, 0.007958;
+  }else if (test_example == 5){ // Leica map
+    inFile = home_dir + "/drs_testing_data/leica/race_arenas/RACE_stepfield_sub1cm_cropped_meshlab_icp.ply";
+    origin << -0.028775, -0.005776, 0.987898;
+    lookDir << 0.999956, -0.005003, 0.007958;
   }
+
   std::cout << "\nProcessing test example " << test_example << "\n";
   std::cout << inFile << "\n";
 
+  std::size_t found_ply = inFile.find(".ply");
+  std::size_t found_pcd = inFile.find(".pcd");
+
   planeseg::LabeledCloud::Ptr inCloud(new planeseg::LabeledCloud());
-  pcl::io::loadPCDFile(inFile, *inCloud);
+  if (found_ply!=std::string::npos){
+    std::cout << "readply\n";
+    pcl::io::loadPLYFile(inFile, *inCloud);
+  }else if (found_pcd!=std::string::npos){
+    std::cout << "readpcd\n";
+    pcl::io::loadPCDFile(inFile, *inCloud);
+  }else{
+    std::cout << "extension not understood\n";
+    return;
+  }
+
 
   processCloud(inCloud, origin, lookDir);
 }
@@ -464,6 +487,9 @@ int main( int argc, char** argv ){
     app->processFromFile(1);
     app->processFromFile(2);
     app->processFromFile(3);
+    // RACE examples don't work well
+    //app->processFromFile(4);
+    //app->processFromFile(5);
     exit(-1);
   }
 
