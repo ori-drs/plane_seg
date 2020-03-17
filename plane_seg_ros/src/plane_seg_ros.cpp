@@ -1,6 +1,8 @@
 #include <unistd.h>
 #include <ros/ros.h>
 #include <ros/console.h>
+#include <ros/package.h>
+
 
 #include <eigen_conversions/eigen_msg.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -192,30 +194,30 @@ void Pass::processFromFile(int test_example){
   sleep(2);
 
   std::string inFile;
-  std::string home_dir = getenv("HOME");
+  std::string home_dir = ros::package::getPath("plane_seg_ros");
   Eigen::Vector3f origin, lookDir;
   if (test_example == 0){ // LIDAR example from Atlas during DRC
-    inFile = home_dir + "/drs_testing_data/terrain/tilted-steps.pcd";
+    inFile = home_dir + "/data/terrain/tilted-steps.pcd";
     origin <<0.248091, 0.012443, 1.806473;
     lookDir <<0.837001, 0.019831, -0.546842;
   }else if (test_example == 1){ // LIDAR example from Atlas during DRC
-    inFile = home_dir + "/drs_testing_data/terrain/terrain_med.pcd";
+    inFile = home_dir + "/data/terrain/terrain_med.pcd";
     origin << -0.028862, -0.007466, 0.087855;
     lookDir << 0.999890, -0.005120, -0.013947;
   }else if (test_example == 2){ // LIDAR example from Atlas during DRC
-    inFile = home_dir + "/drs_testing_data/terrain/terrain_close_rect.pcd";
+    inFile = home_dir + "/data/terrain/terrain_close_rect.pcd";
     origin << -0.028775, -0.005776, 0.087898;
     lookDir << 0.999956, -0.005003, 0.007958;
   }else if (test_example == 3){ // RGBD (Realsense D435) example from ANYmal
-    inFile = home_dir + "/drs_testing_data/terrain/anymal/ori_entrance_stair_climb/06.pcd";
+    inFile = home_dir + "/data/terrain/anymal/ori_entrance_stair_climb/06.pcd";
     origin << -0.028775, -0.005776, 0.987898;
     lookDir << 0.999956, -0.005003, 0.007958;
   }else if (test_example == 4){ // Leica map
-    inFile = home_dir + "/drs_testing_data/leica/race_arenas/RACE_crossplaneramps_sub1cm_cropped_meshlab_icp.ply";
+    inFile = home_dir + "/data/leica/race_arenas/RACE_crossplaneramps_sub1cm_cropped_meshlab_icp.ply";
     origin << -0.028775, -0.005776, 0.987898;
     lookDir << 0.999956, -0.005003, 0.007958;
   }else if (test_example == 5){ // Leica map
-    inFile = home_dir + "/drs_testing_data/leica/race_arenas/RACE_stepfield_sub1cm_cropped_meshlab_icp.ply";
+    inFile = home_dir + "/data/leica/race_arenas/RACE_stepfield_sub1cm_cropped_meshlab_icp.ply";
     origin << -0.028775, -0.005776, 0.987898;
     lookDir << 0.999956, -0.005003, 0.007958;
   }
@@ -237,7 +239,6 @@ void Pass::processFromFile(int test_example){
     std::cout << "extension not understood\n";
     return;
   }
-
 
   processCloud(inCloud, origin, lookDir);
 }
@@ -490,6 +491,8 @@ int main( int argc, char** argv ){
     // RACE examples don't work well
     //app->processFromFile(4);
     //app->processFromFile(5);
+
+    std::cout << "Finished!\n";
     exit(-1);
   }
 
