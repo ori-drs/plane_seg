@@ -24,6 +24,10 @@ roslaunch plane_seg_ros test.launch
 roslaunch plane_seg_ros view_plane_seg.launch
 ```
 
+**Run edge detection:** 
+```python
+rosrun edge_detection_ros edge_detection_ros
+```
 
 # Input
 
