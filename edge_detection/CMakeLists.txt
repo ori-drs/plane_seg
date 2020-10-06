@@ -21,7 +21,6 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
   grid_map_core
   grid_map_filters
-  grid_map_pcl
   grid_map_cv
   locomotion_viewer
   message_generation
@@ -49,7 +48,6 @@ catkin_package(
   CATKIN_DEPENDS
   grid_map_core
   grid_map_filters
-  grid_map_pcl
   grid_map_cv
   message_runtime
   std_msgs
