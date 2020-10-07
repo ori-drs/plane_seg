@@ -8,6 +8,9 @@ namespace towr {
       elevation_map_sub_ = node_handle_.subscribe("elevation_mapping/elevation_map", 1, &towr::EdgeDetectionRos::UpdateEdges, this);
       anymal_state_sub_ = node_handle_.subscribe("/state_estimator/anymal_state", 1, &towr::EdgeDetectionRos::ReadAnymalState, this);
       edge_pub_ = node_handle_.advertise<edge_detection::EdgeArray>("/edge_detection/edge_array", 1000);
+
+      number_of_published_edges_ = 4;
+      std::cout<<"[EdgeDetection::detectEdges] number of published edges: "<<number_of_published_edges_<<std::endl;
       //state_world_yaw_prev_ = 0.0;
 
     }
@@ -28,20 +31,23 @@ namespace towr {
     void EdgeDetectionRos::UpdateEdges(const grid_map_msgs::GridMap&  grid_map_in) {
       advance(robot_state_, grid_map_in);
 
-      if(edgeFound()){
-
-        Eigen::Vector2d middle_point_wf = getPointAlongEdgeInWorldFrame();
-        edge_detection::EdgeArray edges_array;
-        edge_detection::Edge new_edge;
-        geometry_msgs::Pose2D edge_pose;
-        new_edge.step_height = getNextStepHeight();
-        edge_pose.x = middle_point_wf[0];
-        edge_pose.y = middle_point_wf[1];
-        edge_pose.theta = getEdgeYawAngleInWorldFrame();
-        new_edge.pose = edge_pose;
-        edges_array.edges.push_back(new_edge);
-        edge_pub_.publish(edges_array);
+      //if(numberOfDetectedEdges()!=0){
+      edge_detection::EdgeArray edges_array;
+      for(int j = 0; j<numberOfDetectedEdges(); j++){
+        if(j<number_of_published_edges_){
+          Eigen::Vector2d middle_point_wf = getPointAlongEdgeInWorldFrame(j);
+          edge_detection::Edge new_edge;
+          new_edge.index = j;
+          geometry_msgs::Pose2D edge_pose;
+          new_edge.step_height = getStepHeight(j);
+          edge_pose.x = middle_point_wf[0];
+          edge_pose.y = middle_point_wf[1];
+          edge_pose.theta = getEdgeYawAngleInWorldFrame(j);
+          new_edge.pose = edge_pose;
+          edges_array.edges.push_back(new_edge);
+        }
       }
+      edge_pub_.publish(edges_array);
 
       plotEdges();
     }

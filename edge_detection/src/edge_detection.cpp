@@ -17,7 +17,10 @@ namespace towr {
       edges_publisher_.reset(
                     new locomotion_viewer::LocomotionViewer("point_cloud_odom", "/edge_detection/detected_edges", node_handle_));
       max_height_ = 1.0;
+      max_length_ = 1.5;
+      std::cout<<"[EdgeDetection::detectEdges] Parameters: "<<std::endl;
       std::cout<<"[EdgeDetection::detectEdges] min length: "<<min_length_<<std::endl;
+      std::cout<<"[EdgeDetection::detectEdges] max length: "<<max_length_<<std::endl;
       std::cout<<"[EdgeDetection::detectEdges] min height: "<<min_height_<<std::endl;
       std::cout<<"[EdgeDetection::detectEdges] max height: "<<max_height_<<std::endl;
 
@@ -132,7 +135,7 @@ namespace towr {
         new_edge.point2_wf = convertImageToOdomFrame(gridMap_.getResolution(), gridMap_.getSize(), l[2], l[3]);
         //new_edge.middle_point_bf = (new_edge.point1_bf + new_edge.point2_bf) / 2.0;
         new_edge.length = computeLength(new_edge.point1_wf, new_edge.point2_wf);
-        if (new_edge.length > min_length_) {
+        if ((new_edge.length > min_length_)&&(new_edge.length < max_length_)) {
           //std::cout << "[EdgeDetection::detectEdges] new edge > 0.5 " << std::endl;
           double edge_yaw_bf = computeEdgeOrientation(new_edge.point1_wf, new_edge.point2_wf);
           new_edge.line_coeffs = Eigen::Vector2d(sin(edge_yaw_bf), cos(edge_yaw_bf));
@@ -343,8 +346,8 @@ namespace towr {
       return distance_from_base;
     }
 
-    Eigen::Vector2d EdgeDetection::getPointAlongEdgeInWorldFrame(){
-      Eigen::Vector2d middle_point_wf = (edges_.at(closest_orthogonal_edge_index_).point1_wf + edges_.at(closest_orthogonal_edge_index_).point2_wf)/2.0;
+    Eigen::Vector2d EdgeDetection::getPointAlongEdgeInWorldFrame(edge_idx idx){
+      Eigen::Vector2d middle_point_wf = (edges_.at(idx).point1_wf + edges_.at(idx).point2_wf)/2.0;
       return middle_point_wf;
     }
 
@@ -356,15 +359,15 @@ namespace towr {
       return edges_.at(closest_orthogonal_edge_index_).height;
     }
 
-    double EdgeDetection::getEdgeYawAngleInWorldFrame(){
-      return computeEdgeOrientation(edges_.at(closest_orthogonal_edge_index_).point1_wf, edges_.at(closest_orthogonal_edge_index_).point2_wf);
+    double EdgeDetection::getStepHeight(edge_idx idx){
+      return edges_.at(idx).height;
     }
 
-    bool EdgeDetection::edgeFound(){
-      if(edges_.size()==0){
-        return false;
-      }else{
-        return true;
-      }
+    double EdgeDetection::getEdgeYawAngleInWorldFrame(edge_idx idx){
+      return computeEdgeOrientation(edges_.at(idx).point1_wf, edges_.at(idx).point2_wf);
+    }
+
+    int EdgeDetection::numberOfDetectedEdges(){
+      return edges_.size();
     }
 }

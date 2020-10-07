@@ -43,7 +43,7 @@ namespace towr {
         /**
         * @brief get point in the middle of the edge.
         */
-        Eigen::Vector2d getPointAlongEdgeInWorldFrame();
+        Eigen::Vector2d getPointAlongEdgeInWorldFrame(edge_idx idx);
 
         /**
         * @brief get line coefficients of the edge with respect to odometry frame.
@@ -53,12 +53,12 @@ namespace towr {
         /**
         * @brief get yaw angle of the edge with respect to odometry frame.
         */
-        double getEdgeYawAngleInWorldFrame();
+        double getEdgeYawAngleInWorldFrame(edge_idx idx);
 
         /**
         * @brief get the number of detected edges.
         */
-        bool edgeFound();
+        int numberOfDetectedEdges();
 
     protected:
 
@@ -66,6 +66,11 @@ namespace towr {
         * @brief get height of step corresponding to the edge closest to the robot.
         */
         double getNextStepHeight();
+        /**
+        * @brief get height of the idx-th step in the array of stored edges (from closest to the robot to the furthest).
+        */
+        double getStepHeight(edge_idx idx);
+
 
     private:
 
@@ -99,6 +104,7 @@ namespace towr {
         Eigen::Vector2d middle_point_;
         double edge_distance_;
         double min_length_;
+        double max_length_;
         double min_height_;
         double max_height_;
         std::vector<edge_idx> orthogonal_edge_indices_;

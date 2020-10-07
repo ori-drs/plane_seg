@@ -33,6 +33,7 @@ namespace towr {
         ros::Subscriber anymal_state_sub_;
         ros::Publisher edge_pub_;
         Eigen::Vector3d robot_state_;
+        int number_of_published_edges_;
 
     };
 }
