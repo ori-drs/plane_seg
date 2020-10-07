@@ -28,10 +28,7 @@ namespace towr {
       robot_state_[2] = yaw;
     }
 
-    void EdgeDetectionRos::UpdateEdges(const grid_map_msgs::GridMap&  grid_map_in) {
-      advance(robot_state_, grid_map_in);
-
-      //if(numberOfDetectedEdges()!=0){
+    edge_detection::EdgeArray EdgeDetectionRos::createMessage(){
       edge_detection::EdgeArray edges_array;
       for(int j = 0; j<numberOfDetectedEdges(); j++){
         if(j<number_of_published_edges_){
@@ -47,6 +44,15 @@ namespace towr {
           edges_array.edges.push_back(new_edge);
         }
       }
+
+      return edges_array;
+    }
+
+    void EdgeDetectionRos::UpdateEdges(const grid_map_msgs::GridMap&  grid_map_in) {
+      advance(robot_state_, grid_map_in);
+
+      edge_detection::EdgeArray edges_array = createMessage();
+
       edge_pub_.publish(edges_array);
 
       plotEdges();

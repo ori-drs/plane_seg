@@ -60,16 +60,18 @@ namespace towr {
         */
         int numberOfDetectedEdges();
 
+        void setFakeEdges();
+        /**
+        * @brief get height of the idx-th step in the array of stored edges (from closest to the robot to the furthest).
+        */
+        double getStepHeight(edge_idx idx);
+
     protected:
 
         /**
         * @brief get height of step corresponding to the edge closest to the robot.
         */
         double getNextStepHeight();
-        /**
-        * @brief get height of the idx-th step in the array of stored edges (from closest to the robot to the furthest).
-        */
-        double getStepHeight(edge_idx idx);
 
 
     private:
@@ -83,9 +85,8 @@ namespace towr {
         bool isEdgeRedundant(const Eigen::Vector2d & p1_wf, const Eigen::Vector2d & p2_wf);
         void findNewEdges(const std::vector<cv::Vec4i> & lines);
         edge_idx findNextEdge(const Eigen::Vector3d & base_pose_so2);
-        void setFakeEdges();
-        void checkPreviousEdges();
-
+        void checkExistingEdges();
+        void sortEdgesFromClosestToFurthest(const Eigen::Vector3d & base_pose);
 
         /**
         * @brief compute distance point to line as in https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line

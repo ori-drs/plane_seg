@@ -22,6 +22,8 @@ namespace towr {
         EdgeDetectionRos(ros::NodeHandle & node_handle, double min_lenght, double height);
         ~EdgeDetectionRos();
 
+        edge_detection::EdgeArray createMessage();
+
     private:
 
         void UpdateEdges(const grid_map_msgs::GridMap& grid_map_in);

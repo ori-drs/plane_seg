@@ -53,7 +53,7 @@ namespace towr {
       //imwrite("image.png",image);
       //imwrite("edge_det.png",im_edges);
 
-      checkPreviousEdges();
+      checkExistingEdges();
 
       findNewEdges(lines);
       //setFakeEdges();
@@ -109,7 +109,7 @@ namespace towr {
       }
     }
 
-    void EdgeDetection::checkPreviousEdges(){
+    void EdgeDetection::checkExistingEdges(){
       if(edges_.size()>0){
         std::vector<towr::EdgeContainer> edges_tmp = edges_;
         edges_.clear();
@@ -120,8 +120,22 @@ namespace towr {
           }
         }
       }
+    }
 
+    void EdgeDetection::sortEdgesFromClosestToFurthest(const Eigen::Vector3d & base_pose){
+      if(edges_.size()>0){
+        double min_dist;
+        std::vector<towr::EdgeContainer> edges_tmp = edges_;
+        edges_.clear();
+        for( size_t i = 0; i < edges_tmp.size(); i++ ){
+          Eigen::Vector2d base_pos = Eigen::Vector2d(base_pose[0], base_pose[1]);
+          double distance_from_base = computeDistanceBtwEdgeAndBaseInWorldFrame(edges_.at(i).point1_wf, edges_.at(i).point2_wf, base_pos);
 
+          if(fabs(min_dist) > min_height_){
+            edges_.push_back(edges_tmp.at(i));
+          }
+        }
+      }
     }
 
     void EdgeDetection::findNewEdges(const std::vector<cv::Vec4i> & lines){

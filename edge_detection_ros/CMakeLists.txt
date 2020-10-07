@@ -64,6 +64,14 @@ target_link_libraries(${PROJECT_NAME}
         ${catkin_LIBRARIES}
         )
 
+add_executable(fake_edges_publisher
+        src/fake_edges_publisher.cpp
+        )
+
+target_link_libraries(fake_edges_publisher
+        ${catkin_LIBRARIES}
+        )
+
 #############
 ## Install ##
 #############
