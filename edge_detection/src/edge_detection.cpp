@@ -18,6 +18,7 @@ namespace towr {
                     new locomotion_viewer::LocomotionViewer("point_cloud_odom", "/edge_detection/detected_edges", node_handle_));
       max_height_ = 1.0;
       max_length_ = 1.5;
+      target_yaw_angle_ = 0.0;
       std::cout<<"[EdgeDetection::detectEdges] Parameters: "<<std::endl;
       std::cout<<"[EdgeDetection::detectEdges] min length: "<<min_length_<<std::endl;
       std::cout<<"[EdgeDetection::detectEdges] max length: "<<max_length_<<std::endl;
@@ -53,9 +54,9 @@ namespace towr {
       //imwrite("image.png",image);
       //imwrite("edge_det.png",im_edges);
 
-      checkExistingEdges();
+      checkExistingEdges(base_pose);
 
-      findNewEdges(lines);
+      findNewEdges(lines, base_pose);
       //setFakeEdges();
 
       closest_orthogonal_edge_index_ = findNextEdge(base_pose);
@@ -109,14 +110,17 @@ namespace towr {
       }
     }
 
-    void EdgeDetection::checkExistingEdges(){
+    void EdgeDetection::checkExistingEdges(const Eigen::Vector3d & base_pose){
       if(edges_.size()>0){
         std::vector<towr::EdgeContainer> edges_tmp = edges_;
         edges_.clear();
         for( size_t i = 0; i < edges_tmp.size(); i++ ){
           double height_check = computeStepHeight(edges_tmp.at(i).point1_wf, edges_tmp.at(i).point2_wf, edges_tmp.at(i).z);
           if(fabs(height_check) > min_height_){
-            edges_.push_back(edges_tmp.at(i));
+            double robot_yaw = base_pose[2];
+            if(isEdgeFacingRobot(edges_tmp.at(i).yaw, robot_yaw)){
+              edges_.push_back(edges_tmp.at(i));
+            }
           }
         }
       }
@@ -138,8 +142,9 @@ namespace towr {
       }
     }
 
-    void EdgeDetection::findNewEdges(const std::vector<cv::Vec4i> & lines){
+    void EdgeDetection::findNewEdges(const std::vector<cv::Vec4i> & lines, const Eigen::Vector3d & base_pose_so2){
       orthogonal_edge_indices_.clear();
+      double robot_yaw_angle = base_pose_so2[2];
 
       for( size_t i = 0; i < lines.size(); i++ ) {
         cv::Vec4i l = lines[i];
@@ -151,25 +156,25 @@ namespace towr {
         new_edge.length = computeLength(new_edge.point1_wf, new_edge.point2_wf);
         if ((new_edge.length > min_length_)&&(new_edge.length < max_length_)) {
           //std::cout << "[EdgeDetection::detectEdges] new edge > 0.5 " << std::endl;
-          double edge_yaw_bf = computeEdgeOrientation(new_edge.point1_wf, new_edge.point2_wf);
-          new_edge.line_coeffs = Eigen::Vector2d(sin(edge_yaw_bf), cos(edge_yaw_bf));
-          double delta_range = M_PI / 6.0;
-          //if ((edge_yaw_bf > M_PI / 2.0 - delta_range) && (edge_yaw_bf < M_PI / 2.0 + delta_range) ||
-          //    (edge_yaw_bf < -M_PI / 2.0 + delta_range) && (edge_yaw_bf > -M_PI / 2.0 - delta_range)) {
+          double edge_yaw_wf = computeEdgeOrientation(new_edge.point1_wf, new_edge.point2_wf);
+          new_edge.line_coeffs = Eigen::Vector2d(sin(edge_yaw_wf), cos(edge_yaw_wf));
             new_edge.height = computeStepHeight(new_edge.point1_wf, new_edge.point2_wf, new_edge.z);
             if ((fabs(new_edge.height) > min_height_)&&(fabs(new_edge.height) < max_height_)){
-              if (!isEdgeRedundant(new_edge.point1_wf, new_edge.point2_wf)) {
-                new_edge.yaw = computeEdgeOrientation(new_edge.point1_wf, new_edge.point2_wf);
-                new_edge.line_coeffs = Eigen::Vector2d(sin(new_edge.yaw), cos(new_edge.yaw));
-                //new_edge.distance_from_base = computeDistanceFromBase(new_edge.point1_bf, new_edge.point2_bf);
-                edges_.push_back(new_edge);
-                orthogonal_edge_indices_.push_back(i);
+              //if (fabs(edge_yaw_wf - robot_yaw_angle)< delta_range){
+              if (isEdgeFacingRobot(edge_yaw_wf, robot_yaw_angle)) {
+                if (!isEdgeRedundant(new_edge.point1_wf, new_edge.point2_wf)) {
+                  new_edge.yaw = edge_yaw_wf;
+                  new_edge.line_coeffs = Eigen::Vector2d(sin(new_edge.yaw), cos(new_edge.yaw));
+                  //new_edge.distance_from_base = computeDistanceFromBase(new_edge.point1_bf, new_edge.point2_bf);
+                  edges_.push_back(new_edge);
+                  orthogonal_edge_indices_.push_back(i);
 
-                //std::cout<<"[EdgeDetection::detectEdges] edge lenght: "<<new_edge.length<<std::endl;
-                //std::cout<<"[EdgeDetection::detectEdges] edge height: "<<new_edge.height<<std::endl;
-                //std::cout<<"[EdgeDetection::detectEdges] edge angle: "<<new_edge.yaw<<std::endl;
-                //std::cout<<"[EdgeDetection::detectEdges] min_dist: "<<new_edge.distance_from_base<<std::endl;
+                  //std::cout<<"[EdgeDetection::detectEdges] edge lenght: "<<new_edge.length<<std::endl;
+                  //std::cout<<"[EdgeDetection::detectEdges] edge height: "<<new_edge.height<<std::endl;
+                  //std::cout<<"[EdgeDetection::detectEdges] edge angle: "<<new_edge.yaw<<std::endl;
+                  //std::cout<<"[EdgeDetection::detectEdges] min_dist: "<<new_edge.distance_from_base<<std::endl;
 
+                }
               }
             }
           //}
@@ -292,8 +297,8 @@ namespace towr {
       }
     }
 
-    double EdgeDetection::computeEdgeOrientation(const Eigen::Vector2d & p1_bf, const Eigen::Vector2d & p2_bf){
-      double yaw_angle = atan2(p1_bf[1] - p2_bf[1], p1_bf[0] - p2_bf[0]);
+    double EdgeDetection::computeEdgeOrientation(const Eigen::Vector2d & p1, const Eigen::Vector2d & p2){
+      double yaw_angle = atan2(p1[1] - p2[1], p1[0] - p2[0]);
       return yaw_angle;
     }
 
@@ -350,6 +355,17 @@ namespace towr {
       }
       std::cout<<"[EdgeDetection::isEdgeRedundant] edge is not redundant!"<<std::endl;
       return false;
+    }
+
+    bool EdgeDetection::isEdgeFacingRobot(const double & edge_yaw_wf, const double & robot_yaw_angle){
+    double delta_range = M_PI / 6.0;
+    if((fabs(edge_yaw_wf - robot_yaw_angle) > M_PI / 2.0 - delta_range) && (fabs(edge_yaw_wf - robot_yaw_angle) < M_PI / 2.0 + delta_range) ||
+      (fabs(edge_yaw_wf - robot_yaw_angle) < -M_PI / 2.0 + delta_range) && (fabs(edge_yaw_wf - robot_yaw_angle) > -M_PI / 2.0 - delta_range)) {
+      return true;
+    }else{
+      return false;
+    }
+      
     }
 
     double EdgeDetection::getEdgeDistanceFromBase(const Eigen::Vector3d & base_pose){

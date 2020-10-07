@@ -83,9 +83,10 @@ namespace towr {
         bool isInsideEllipse(const double & edge_yaw, const Eigen::Vector2d & ellipse_center, const Eigen::Vector2d & p);
         double GetHeight(double & x, double & y);
         bool isEdgeRedundant(const Eigen::Vector2d & p1_wf, const Eigen::Vector2d & p2_wf);
-        void findNewEdges(const std::vector<cv::Vec4i> & lines);
+        bool isEdgeFacingRobot(const double & edge_yaw_wf, const double & robot_yaw_angle);
+        void findNewEdges(const std::vector<cv::Vec4i> & lines, const Eigen::Vector3d & base_pose_so2);
         edge_idx findNextEdge(const Eigen::Vector3d & base_pose_so2);
-        void checkExistingEdges();
+        void checkExistingEdges(const Eigen::Vector3d & base_pose);
         void sortEdgesFromClosestToFurthest(const Eigen::Vector3d & base_pose);
 
         /**
@@ -108,6 +109,7 @@ namespace towr {
         double max_length_;
         double min_height_;
         double max_height_;
+        double target_yaw_angle_;
         std::vector<edge_idx> orthogonal_edge_indices_;
         edge_idx closest_orthogonal_edge_index_;
 
