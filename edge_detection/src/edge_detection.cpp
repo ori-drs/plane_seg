@@ -5,6 +5,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <grid_map_cv/GridMapCvConverter.hpp>
 
+#include <numeric>
+
 #include <ros/ros.h>
 
 namespace towr {
@@ -123,22 +125,34 @@ namespace towr {
             }
           }
         }
+
+        sortEdgesFromClosestToFurthest(base_pose);
       }
     }
 
     void EdgeDetection::sortEdgesFromClosestToFurthest(const Eigen::Vector3d & base_pose){
       if(edges_.size()>0){
-        double min_dist;
+
         std::vector<towr::EdgeContainer> edges_tmp = edges_;
+        Eigen::VectorXd distances(edges_.size());
+        Eigen::Vector2d base_pos = Eigen::Vector2d(base_pose[0], base_pose[1]);
+        for( size_t i = 0; i < edges_.size(); i++ ){
+          distances[i] = computeDistanceBtwEdgeAndBaseInWorldFrame(edges_.at(i).point1_wf, edges_.at(i).point2_wf, base_pos);
+        }
+
+        std::cout<<"before sort"<<std::endl;
+        std::vector<int> V(edges_.size());
+        int x=0;
+        std::iota(V.begin(),V.end(),x++); //Initializing
+        std::sort( V.begin(),V.end(), [&](int i,int j){return distances[i]<distances[j];} );
+
         edges_.clear();
         for( size_t i = 0; i < edges_tmp.size(); i++ ){
-          Eigen::Vector2d base_pos = Eigen::Vector2d(base_pose[0], base_pose[1]);
-          double distance_from_base = computeDistanceBtwEdgeAndBaseInWorldFrame(edges_.at(i).point1_wf, edges_.at(i).point2_wf, base_pos);
-
-          if(fabs(min_dist) > min_height_){
-            edges_.push_back(edges_tmp.at(i));
-          }
+          std::cout<<"v "<<V.at(i)<<std::endl;
+          edges_.push_back(edges_tmp.at(V.at(i)));
         }
+
+        std::cout<<"edges size after sort"<<edges_.size()<<std::endl;
       }
     }
 
