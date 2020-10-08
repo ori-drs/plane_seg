@@ -79,7 +79,8 @@ namespace towr {
         Eigen::Vector2d convertImageToOdomFrame(const double & resolution, const Eigen::Array2i & grid_size, const int & p_x, const int & p_y);
         double computeLength(const Eigen::Vector2d & p1, const Eigen::Vector2d & p2);
         double computeEdgeOrientation(const Eigen::Vector2d & p1, const Eigen::Vector2d & p2);
-        double computeStepHeight(const Eigen::Vector2d & p1_bf, const Eigen::Vector2d & p2_bf, double & z);
+        double computeStepHeight(const Eigen::Vector2d & p1_bf, const Eigen::Vector2d & p2_bf, double & z_coordinate);
+        double computeHeight(const double & epsilon, const Eigen::Vector2d & edge_normal, const Eigen::Vector2d & point2check, double & z_coordinate);
         bool isInsideEllipse(const double & edge_yaw, const Eigen::Vector2d & ellipse_center, const Eigen::Vector2d & p);
         double GetHeight(double & x, double & y);
         bool isEdgeRedundant(const Eigen::Vector2d & p1_wf, const Eigen::Vector2d & p2_wf);

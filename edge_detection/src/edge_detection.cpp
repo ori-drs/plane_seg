@@ -316,22 +316,40 @@ namespace towr {
       return yaw_angle;
     }
 
-    double EdgeDetection::computeStepHeight(const Eigen::Vector2d & p1_wf, const Eigen::Vector2d & p2_wf, double & z){
-      Eigen::Vector2d middle_point_wf = (p1_wf + p2_wf)/2.0;
+    double EdgeDetection::computeStepHeight(const Eigen::Vector2d & p1_wf, const Eigen::Vector2d & p2_wf, double & z_coordinate){
+      Eigen::Vector2d p1 = p1_wf + (p2_wf - p1_wf)*0.333;
+      Eigen::Vector2d p2 = p1_wf + (p2_wf - p1_wf)*0.5;
+      Eigen::Vector2d p3 = p1_wf + (p2_wf - p1_wf)*0.666;
       double edge_yaw = computeEdgeOrientation(p1_wf, p2_wf);
       Eigen::Vector2d edge_normal = Eigen::Vector2d(sin(edge_yaw), cos(edge_yaw));
-      double epsilon = 0.15;
-      Eigen::Vector2d middle_point_wf_plus = middle_point_wf + edge_normal*epsilon;
-      Eigen::Vector2d middle_point_wf_minus = middle_point_wf - edge_normal*epsilon;
-      double z1 = GetHeight(middle_point_wf_plus[0], middle_point_wf_plus[1]);
-      double z2 = GetHeight(middle_point_wf_minus[0], middle_point_wf_minus[1]);
-      z = std::max(z1, z2);
+      //Eigen::Vector2d middle_point_wf_plus = middle_point_wf + edge_normal*epsilon;
+      //Eigen::Vector2d middle_point_wf_minus = middle_point_wf - edge_normal*epsilon;
+      //double z1 = GetHeight(middle_point_wf_plus[0], middle_point_wf_plus[1]);
+      //double z2 = GetHeight(middle_point_wf_minus[0], middle_point_wf_minus[1]);
+      //z = std::max(z1, z2);
+      //
+      double height0 = computeHeight(0.1, edge_normal, p1, z_coordinate);
+      double height1 = computeHeight(0.15, edge_normal, p2, z_coordinate);
+      double height2 = computeHeight(0.1, edge_normal, p3, z_coordinate);
       //std::cout<<"[EdgeDetection::computeStepHeight] edge_yaw: "<<edge_yaw<<std::endl;
       //std::cout<<"[EdgeDetection::computeStepHeight] edge_normal: "<<edge_normal.transpose()<<std::endl;
       //std::cout<<"[EdgeDetection::computeStepHeight] middle_point_wf_plus: "<<middle_point_wf_plus.transpose()<<std::endl;
       //std::cout<<"[EdgeDetection::computeStepHeight] middle_point_wf_minus: "<<middle_point_wf_minus.transpose()<<std::endl;
       //std::cout<<"[EdgeDetection::computeStepHeight] z1: "<<z1<<std::endl;
       //std::cout<<"[EdgeDetection::computeStepHeight] z2: "<<z2<<std::endl;
+      double height = (height0 + height1 + height2)/3.0;
+      return height;
+    }
+
+    double EdgeDetection::computeHeight(const double & epsilon,
+            const Eigen::Vector2d & edge_normal,
+            const Eigen::Vector2d & point2check,
+            double & z_coordinate){
+      Eigen::Vector2d middle_point_wf_plus = point2check + edge_normal*epsilon;
+      Eigen::Vector2d middle_point_wf_minus = point2check - edge_normal*epsilon;
+      double z1 = GetHeight(middle_point_wf_plus[0], middle_point_wf_plus[1]);
+      double z2 = GetHeight(middle_point_wf_minus[0], middle_point_wf_minus[1]);
+      z_coordinate = std::max(z1, z2);
       return z1 - z2;
     }
 
