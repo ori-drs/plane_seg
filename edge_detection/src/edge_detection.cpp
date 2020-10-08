@@ -118,7 +118,7 @@ namespace towr {
         edges_.clear();
         for( size_t i = 0; i < edges_tmp.size(); i++ ){
           double height_check = computeStepHeight(edges_tmp.at(i).point1_wf, edges_tmp.at(i).point2_wf, edges_tmp.at(i).z);
-          if(fabs(height_check) > min_height_){
+          if((fabs(height_check) > min_height_)&&(fabs(height_check)< max_height_)){
             double robot_yaw = base_pose[2];
             if(isEdgeFacingRobot(edges_tmp.at(i).yaw, robot_yaw)){
               edges_.push_back(edges_tmp.at(i));
@@ -274,14 +274,14 @@ namespace towr {
       grid_map::Position pos = {x,y};
       if (!gridMap_.isInside(pos)){
         //std::cout<<"pos: "<<pos<<" is NOT inside gridmap"<<std::endl;
-        return 0.;
+        return 1e9;
       }
       else {
         double height = static_cast<double>(gridMap_.atPosition("elevation", pos, grid_map::InterpolationMethods::INTER_NEAREST));
         //std::cout<<"pos: "<<pos<<" is inside gridmap"<<std::endl;
         //std::cout<<"terrain height is "<<height<<std::endl;
         if (std::isnan(height)) {
-          return 0.;
+          return 1e9;
         }
         return height;
       }
@@ -299,8 +299,8 @@ namespace towr {
       Eigen::Matrix3d rotationMatrix = q.matrix();
       Eigen::Vector2d point2d = p - ellipse_center;
       Eigen::Vector2d point = (rotationMatrix*Eigen::Vector3d(point2d[0], point2d[1], 0.0)).segment(0,2);
-      double d1 = min_length_/10.0;
-      double d2 = min_length_/2.0;
+      double d1 = .20;
+      double d2 = .50;
       double a2 = pow(d1,2);
       double b2 = pow(d2,2);
       double y = pow(point[0],2)/a2 + pow(point[1],2)/b2;
@@ -320,7 +320,7 @@ namespace towr {
       Eigen::Vector2d middle_point_wf = (p1_wf + p2_wf)/2.0;
       double edge_yaw = computeEdgeOrientation(p1_wf, p2_wf);
       Eigen::Vector2d edge_normal = Eigen::Vector2d(sin(edge_yaw), cos(edge_yaw));
-      double epsilon = 0.1;
+      double epsilon = 0.15;
       Eigen::Vector2d middle_point_wf_plus = middle_point_wf + edge_normal*epsilon;
       Eigen::Vector2d middle_point_wf_minus = middle_point_wf - edge_normal*epsilon;
       double z1 = GetHeight(middle_point_wf_plus[0], middle_point_wf_plus[1]);
