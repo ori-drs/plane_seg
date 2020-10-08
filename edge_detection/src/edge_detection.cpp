@@ -18,7 +18,7 @@ namespace towr {
     {
       edges_publisher_.reset(
                     new locomotion_viewer::LocomotionViewer("point_cloud_odom", "/edge_detection/detected_edges", node_handle_));
-      max_height_ = 1.0;
+      max_height_ = 0.35;
       max_length_ = 1.5;
       target_yaw_angle_ = 0.0;
       std::cout<<"[EdgeDetection::detectEdges] Parameters: "<<std::endl;
@@ -36,7 +36,7 @@ namespace towr {
     bool EdgeDetection::advance(const Eigen::Vector3d & base_pose, const grid_map_msgs::GridMap & message){
       grid_map::GridMapRosConverter::fromMessage(message, gridMap_);
 
-      cv::Mat image, im_edges, im_copy;
+      cv::Mat image, im_edges, image_filtered;
       grid_map::GridMapCvConverter::toImage<unsigned char, 1>(
               gridMap_, "elevation", CV_8UC1, image);
 
@@ -44,8 +44,10 @@ namespace towr {
       if(image.empty()){
         printf(" Error opening image\n");
       }
+
+      cv::medianBlur(image, image_filtered, 11);
       // Edge detection
-      cv::Canny(image, im_edges, 50, 200, 3);
+      cv::Canny(image_filtered, im_edges, 50, 100, 3);
       // Standard Hough Line Transform
       std::vector<cv::Vec4i> lines; // will hold the results of the detection
       //cv::HoughLines(im_edges, lines, 1, CV_PI/180, 150, 0, 0 ); // runs the actual detection
@@ -54,7 +56,8 @@ namespace towr {
       HoughLinesP(im_edges, lines, 1, CV_PI/180, 5, 5, 5 ); // runs the actual detection
 
       //imwrite("image.png",image);
-      //imwrite("edge_det.png",im_edges);
+      //imwrite("edge_edges.png",im_edges);
+      //imwrite("edge_filtered.png",image_filtered);
 
       checkExistingEdges(base_pose);
 
@@ -140,7 +143,7 @@ namespace towr {
           distances[i] = computeDistanceBtwEdgeAndBaseInWorldFrame(edges_.at(i).point1_wf, edges_.at(i).point2_wf, base_pos);
         }
 
-        std::cout<<"before sort"<<std::endl;
+        //std::cout<<"before sort"<<std::endl;
         std::vector<int> V(edges_.size());
         int x=0;
         std::iota(V.begin(),V.end(),x++); //Initializing
@@ -148,17 +151,18 @@ namespace towr {
 
         edges_.clear();
         for( size_t i = 0; i < edges_tmp.size(); i++ ){
-          std::cout<<"v "<<V.at(i)<<std::endl;
+          //std::cout<<"v "<<V.at(i)<<std::endl;
           edges_.push_back(edges_tmp.at(V.at(i)));
         }
 
-        std::cout<<"edges size after sort"<<edges_.size()<<std::endl;
+        //std::cout<<"edges size after sort"<<edges_.size()<<std::endl;
       }
     }
 
     void EdgeDetection::findNewEdges(const std::vector<cv::Vec4i> & lines, const Eigen::Vector3d & base_pose_so2){
       orthogonal_edge_indices_.clear();
       double robot_yaw_angle = base_pose_so2[2];
+      Eigen::Vector2d robot_pos = Eigen::Vector2d(base_pose_so2[0], base_pose_so2[1]);
 
       for( size_t i = 0; i < lines.size(); i++ ) {
         cv::Vec4i l = lines[i];
@@ -173,21 +177,23 @@ namespace towr {
           double edge_yaw_wf = computeEdgeOrientation(new_edge.point1_wf, new_edge.point2_wf);
           new_edge.line_coeffs = Eigen::Vector2d(sin(edge_yaw_wf), cos(edge_yaw_wf));
             new_edge.height = computeStepHeight(new_edge.point1_wf, new_edge.point2_wf, new_edge.z);
-            if ((fabs(new_edge.height) > min_height_)&&(fabs(new_edge.height) < max_height_)){
-              //if (fabs(edge_yaw_wf - robot_yaw_angle)< delta_range){
-              if (isEdgeFacingRobot(edge_yaw_wf, robot_yaw_angle)) {
-                if (!isEdgeRedundant(new_edge.point1_wf, new_edge.point2_wf)) {
-                  new_edge.yaw = edge_yaw_wf;
-                  new_edge.line_coeffs = Eigen::Vector2d(sin(new_edge.yaw), cos(new_edge.yaw));
-                  //new_edge.distance_from_base = computeDistanceFromBase(new_edge.point1_bf, new_edge.point2_bf);
-                  edges_.push_back(new_edge);
-                  orthogonal_edge_indices_.push_back(i);
+            if(isInsideEllipse(robot_yaw_angle, robot_pos, (new_edge.point1_wf+new_edge.point2_wf)/2.0, 1.0, 2.0)){
+              if ((fabs(new_edge.height) > min_height_)&&(fabs(new_edge.height) < max_height_)){
+                //if (fabs(edge_yaw_wf - robot_yaw_angle)< delta_range){
+                if (isEdgeFacingRobot(edge_yaw_wf, robot_yaw_angle)) {
+                  if (!isEdgeRedundant(new_edge.point1_wf, new_edge.point2_wf)) {
+                    new_edge.yaw = edge_yaw_wf;
+                    new_edge.line_coeffs = Eigen::Vector2d(sin(new_edge.yaw), cos(new_edge.yaw));
+                    //new_edge.distance_from_base = computeDistanceFromBase(new_edge.point1_bf, new_edge.point2_bf);
+                    edges_.push_back(new_edge);
+                    orthogonal_edge_indices_.push_back(i);
 
-                  //std::cout<<"[EdgeDetection::detectEdges] edge lenght: "<<new_edge.length<<std::endl;
-                  //std::cout<<"[EdgeDetection::detectEdges] edge height: "<<new_edge.height<<std::endl;
-                  //std::cout<<"[EdgeDetection::detectEdges] edge angle: "<<new_edge.yaw<<std::endl;
-                  //std::cout<<"[EdgeDetection::detectEdges] min_dist: "<<new_edge.distance_from_base<<std::endl;
+                    //std::cout<<"[EdgeDetection::detectEdges] edge lenght: "<<new_edge.length<<std::endl;
+                    //std::cout<<"[EdgeDetection::detectEdges] edge height: "<<new_edge.height<<std::endl;
+                    //std::cout<<"[EdgeDetection::detectEdges] edge angle: "<<new_edge.yaw<<std::endl;
+                    //std::cout<<"[EdgeDetection::detectEdges] min_dist: "<<new_edge.distance_from_base<<std::endl;
 
+                  }
                 }
               }
             }
@@ -291,7 +297,11 @@ namespace towr {
       return sqrt(pow(p1[0] - p2[0],2) + pow(p1[1] - p2[1],2));
     }
 
-    bool EdgeDetection::isInsideEllipse(const double & edge_yaw, const Eigen::Vector2d & ellipse_center, const Eigen::Vector2d & p){
+    bool EdgeDetection::isInsideEllipse(const double & edge_yaw,
+            const Eigen::Vector2d & ellipse_center,
+            const Eigen::Vector2d & p,
+            const double & d1,
+            const double & d2){
       Eigen::AngleAxisd rollAngle(0.0, Eigen::Vector3d::UnitX());
       Eigen::AngleAxisd pitchAngle(0.0, Eigen::Vector3d::UnitY());
       Eigen::AngleAxisd yawAngle(-edge_yaw + M_PI/2.0, Eigen::Vector3d::UnitZ());
@@ -299,8 +309,6 @@ namespace towr {
       Eigen::Matrix3d rotationMatrix = q.matrix();
       Eigen::Vector2d point2d = p - ellipse_center;
       Eigen::Vector2d point = (rotationMatrix*Eigen::Vector3d(point2d[0], point2d[1], 0.0)).segment(0,2);
-      double d1 = .20;
-      double d2 = .50;
       double a2 = pow(d1,2);
       double b2 = pow(d2,2);
       double y = pow(point[0],2)/a2 + pow(point[1],2)/b2;
@@ -328,16 +336,21 @@ namespace towr {
       //double z2 = GetHeight(middle_point_wf_minus[0], middle_point_wf_minus[1]);
       //z = std::max(z1, z2);
       //
-      double height0 = computeHeight(0.1, edge_normal, p1, z_coordinate);
-      double height1 = computeHeight(0.15, edge_normal, p2, z_coordinate);
-      double height2 = computeHeight(0.1, edge_normal, p3, z_coordinate);
+      Eigen::VectorXd heights(10);
+      std::random_device random_number;   // obtain a random number from hardware
+      std::mt19937 rng(random_number());  // seed the generator
+      std::uniform_real_distribution<> x_distribution(0.08, 0.12); // define the x range
+      for(int i = 0; i<10; i++){
+        heights(i) = computeHeight(x_distribution(rng), edge_normal, p1, z_coordinate);
+      }
+
       //std::cout<<"[EdgeDetection::computeStepHeight] edge_yaw: "<<edge_yaw<<std::endl;
       //std::cout<<"[EdgeDetection::computeStepHeight] edge_normal: "<<edge_normal.transpose()<<std::endl;
       //std::cout<<"[EdgeDetection::computeStepHeight] middle_point_wf_plus: "<<middle_point_wf_plus.transpose()<<std::endl;
       //std::cout<<"[EdgeDetection::computeStepHeight] middle_point_wf_minus: "<<middle_point_wf_minus.transpose()<<std::endl;
       //std::cout<<"[EdgeDetection::computeStepHeight] z1: "<<z1<<std::endl;
       //std::cout<<"[EdgeDetection::computeStepHeight] z2: "<<z2<<std::endl;
-      double height = (height0 + height1 + height2)/3.0;
+      double height = heights.sum()/heights.size();
       return height;
     }
 
@@ -376,10 +389,10 @@ namespace towr {
       {
         //std::cout<<"[EdgeDetection::isEdgeRedundant] edges_.at(i).point1_wf"<<edges_.at(i).point1_wf.transpose()<<std::endl;
         //std::cout<<"[EdgeDetection::isEdgeRedundant] edges_.at(i).point2_wf"<<edges_.at(i).point2_wf.transpose()<<std::endl;
-        bool d11 = isInsideEllipse(edges_.at(i).yaw, edges_.at(i).point1_wf, p1_wf);
-        bool d12 = isInsideEllipse(edges_.at(i).yaw, edges_.at(i).point2_wf, p1_wf);
-        bool d21 = isInsideEllipse(edges_.at(i).yaw, edges_.at(i).point1_wf, p2_wf);
-        bool d22 = isInsideEllipse(edges_.at(i).yaw, edges_.at(i).point2_wf, p2_wf);
+        bool d11 = isInsideEllipse(edges_.at(i).yaw, edges_.at(i).point1_wf, p1_wf, 0.2, min_length_);
+        bool d12 = isInsideEllipse(edges_.at(i).yaw, edges_.at(i).point2_wf, p1_wf, 0.2, min_length_);
+        bool d21 = isInsideEllipse(edges_.at(i).yaw, edges_.at(i).point1_wf, p2_wf, 0.2, min_length_);
+        bool d22 = isInsideEllipse(edges_.at(i).yaw, edges_.at(i).point2_wf, p2_wf, 0.2, min_length_);
         if((d11&&d22)||(d12&&d21)){
           //std::cout<<"[EdgeDetection::isEdgeRedundant] edge is redundant!"<<std::endl;
           return true;

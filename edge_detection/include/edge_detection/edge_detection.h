@@ -10,6 +10,8 @@
 #ifndef TOWR_EDGE_DETECTION_H
 #define TOWR_EDGE_DETECTION_H
 
+#include <random>
+
 #include <grid_map_core/grid_map_core.hpp>
 
 #include <grid_map_ros/grid_map_ros.hpp>
@@ -81,7 +83,7 @@ namespace towr {
         double computeEdgeOrientation(const Eigen::Vector2d & p1, const Eigen::Vector2d & p2);
         double computeStepHeight(const Eigen::Vector2d & p1_bf, const Eigen::Vector2d & p2_bf, double & z_coordinate);
         double computeHeight(const double & epsilon, const Eigen::Vector2d & edge_normal, const Eigen::Vector2d & point2check, double & z_coordinate);
-        bool isInsideEllipse(const double & edge_yaw, const Eigen::Vector2d & ellipse_center, const Eigen::Vector2d & p);
+        bool isInsideEllipse(const double & edge_yaw, const Eigen::Vector2d & ellipse_center, const Eigen::Vector2d & p, const double & d1, const double & d2);
         double GetHeight(double & x, double & y);
         bool isEdgeRedundant(const Eigen::Vector2d & p1_wf, const Eigen::Vector2d & p2_wf);
         bool isEdgeFacingRobot(const double & edge_yaw_wf, const double & robot_yaw_angle);
