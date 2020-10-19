@@ -47,7 +47,7 @@ namespace towr {
 
       cv::medianBlur(image, image_filtered, 11);
       // Edge detection
-      cv::Canny(image_filtered, im_edges, 50, 100, 3);
+      cv::Canny(image_filtered, im_edges, 50, 20, 3);
       // Standard Hough Line Transform
       std::vector<cv::Vec4i> lines; // will hold the results of the detection
       //cv::HoughLines(im_edges, lines, 1, CV_PI/180, 150, 0, 0 ); // runs the actual detection
