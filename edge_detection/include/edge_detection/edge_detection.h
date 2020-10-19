@@ -91,6 +91,7 @@ namespace towr {
         edge_idx findNextEdge(const Eigen::Vector3d & base_pose_so2);
         void checkExistingEdges(const Eigen::Vector3d & base_pose);
         void sortEdgesFromClosestToFurthest(const Eigen::Vector3d & base_pose);
+        bool hasSimilarLineCoefficients(const EdgeContainer & existing_edge, const Eigen::Vector2d & p1, const Eigen::Vector2d & p2, const Eigen::Vector2d & base_pos);
 
         /**
         * @brief compute distance point to line as in https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
@@ -117,6 +118,8 @@ namespace towr {
         edge_idx closest_orthogonal_edge_index_;
 
         std::vector<towr::EdgeContainer> edges_;
+
+        Eigen::Vector3d base_pose_;
 
 
     }; //end class EdgeDetection

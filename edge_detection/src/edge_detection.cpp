@@ -59,6 +59,8 @@ namespace towr {
       //imwrite("edge_edges.png",im_edges);
       //imwrite("edge_filtered.png",image_filtered);
 
+      base_pose_ = base_pose;
+
       checkExistingEdges(base_pose);
 
       findNewEdges(lines, base_pose);
@@ -319,6 +321,27 @@ namespace towr {
       }
     }
 
+    bool EdgeDetection::hasSimilarLineCoefficients(const EdgeContainer & existing_edge,
+            const Eigen::Vector2d & p1,
+            const Eigen::Vector2d & p2,
+            const Eigen::Vector2d & base_pos){
+      double new_adge_yaw = computeEdgeOrientation(p1, p2);
+      Eigen::Vector2d new_line_coeffs = Eigen::Vector2d(sin(new_adge_yaw), cos(new_adge_yaw));
+      std::cout<<"[EdgeDetection::hasSimilarLineCoefficients] base_pos "<<base_pos.transpose()<<std::endl;
+      double existing_edge_distance = computeDistanceBtwEdgeAndBaseInWorldFrame(existing_edge.point1_wf, existing_edge.point2_wf, base_pos);
+      double new_distance = computeDistanceBtwEdgeAndBaseInWorldFrame(p1, p2, base_pos);
+      if(fabs(existing_edge.line_coeffs(0)-new_line_coeffs(0))<5){
+        if(fabs(existing_edge.line_coeffs(1)-new_line_coeffs(1))<5){
+          std::cout<<"[EdgeDetection::hasSimilarLineCoefficients] lines are parallel! "<<std::endl;
+          if(fabs(existing_edge_distance - new_distance)< 0.1){
+            std::cout<<"[EdgeDetection::hasSimilarLineCoefficients] lines have similar coefficients! "<<std::endl;
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
     double EdgeDetection::computeEdgeOrientation(const Eigen::Vector2d & p1, const Eigen::Vector2d & p2){
       double yaw_angle = atan2(p1[1] - p2[1], p1[0] - p2[0]);
       return yaw_angle;
@@ -393,8 +416,28 @@ namespace towr {
         bool d12 = isInsideEllipse(edges_.at(i).yaw, edges_.at(i).point2_wf, p1_wf, 0.2, min_length_);
         bool d21 = isInsideEllipse(edges_.at(i).yaw, edges_.at(i).point1_wf, p2_wf, 0.2, min_length_);
         bool d22 = isInsideEllipse(edges_.at(i).yaw, edges_.at(i).point2_wf, p2_wf, 0.2, min_length_);
-        if((d11&&d22)||(d12&&d21)){
-          //std::cout<<"[EdgeDetection::isEdgeRedundant] edge is redundant!"<<std::endl;
+
+        Eigen::Vector2d base_pos = base_pose_.segment(0,2);
+
+        //if((d11&&d22)||(d12&&d21)){
+        if(hasSimilarLineCoefficients(edges_.at(i), p1_wf, p2_wf, base_pos)){
+          std::cout<<"[EdgeDetection::isEdgeRedundant] edge is redundant!"<<std::endl;
+          if(merge_redundant_edges){
+            std::cout<<"[EdgeDetection::isEdgeRedundant] merge redundant edges"<<std::endl;
+            if(d11&&d22){
+              edges_.at(i).point1_wf = (edges_.at(i).point1_wf + p1_wf)/2.0;
+              edges_.at(i).point2_wf = (edges_.at(i).point2_wf + p2_wf)/2.0;
+            }else{
+              edges_.at(i).point1_wf = (edges_.at(i).point1_wf + p2_wf)/2.0;
+              edges_.at(i).point2_wf = (edges_.at(i).point2_wf + p1_wf)/2.0;
+            }
+            edges_.at(i).length = computeLength(edges_.at(i).point1_wf, edges_.at(i).point2_wf);
+            edges_.at(i).yaw = computeEdgeOrientation(edges_.at(i).point1_wf, edges_.at(i).point2_wf);
+            edges_.at(i).line_coeffs = Eigen::Vector2d(sin(edges_.at(i).yaw), cos(edges_.at(i).yaw));
+            edges_.at(i).height = computeStepHeight(edges_.at(i).point1_wf, edges_.at(i).point2_wf, edges_.at(i).z);
+
+
+          }
           return true;
         }
       }
