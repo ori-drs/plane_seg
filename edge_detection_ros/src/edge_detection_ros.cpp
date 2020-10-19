@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 {
   ros::init(argc, argv, "edge_detection_ros");
   ros::NodeHandle node_handle;
-  towr::EdgeDetectionRos edge_detection_ros(node_handle, 0.5, 0.02);
+  towr::EdgeDetectionRos edge_detection_ros(node_handle, 0.4, 0.02);
   ros::MultiThreadedSpinner spinner(4);
   spinner.spin();
   return 0;

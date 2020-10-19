@@ -82,7 +82,7 @@ namespace towr {
         double computeLength(const Eigen::Vector2d & p1, const Eigen::Vector2d & p2);
         double computeEdgeOrientation(const Eigen::Vector2d & p1, const Eigen::Vector2d & p2);
         double computeStepHeight(const Eigen::Vector2d & p1_bf, const Eigen::Vector2d & p2_bf, double & z_coordinate);
-        double computeHeight(const double & epsilon, const Eigen::Vector2d & edge_normal, const Eigen::Vector2d & point2check, double & z_coordinate);
+        double computeHeight(const Eigen::Vector2d & edge_normal, const Eigen::Vector2d & point2check, double & z_coordinate);
         bool isInsideEllipse(const double & edge_yaw, const Eigen::Vector2d & ellipse_center, const Eigen::Vector2d & p, const double & d1, const double & d2);
         double GetHeight(double & x, double & y);
         bool isEdgeRedundant(const Eigen::Vector2d & p1_wf, const Eigen::Vector2d & p2_wf);
@@ -98,8 +98,9 @@ namespace towr {
         * @param (in) first point on the line (given in the base frame)
         * @param (in) second point on the line (given in the base frame)
         */
-        double computeDistanceFromBase(const Eigen::Vector2d & p1_bf, const Eigen::Vector2d & p2_bf);
+        double computeDistance(const Eigen::Vector2d & p1, const Eigen::Vector2d & p2);
         double computeDistanceBtwEdgeAndBaseInWorldFrame(const Eigen::Vector2d & p1_bf, const Eigen::Vector2d & p2_bf, const Eigen::Vector2d & base_pos);
+        double computeSignedDistanceBtwEdgeAndBaseInWorldFrame(const Eigen::Vector2d & p1_bf, const Eigen::Vector2d & p2_bf, const Eigen::Vector2d & base_pos);
 
         grid_map::GridMap gridMap_;
         double deltaFiniteDifferentiation_;

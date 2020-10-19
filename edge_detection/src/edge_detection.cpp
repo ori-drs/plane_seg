@@ -227,7 +227,7 @@ namespace towr {
 
     void EdgeDetection::plotEdges(){
       edges_publisher_->deleteAllMarkers();
-
+      
       for( size_t i = 0; i < edges_.size(); i++ )
       {
         Eigen::VectorXd x(5), y(5);
@@ -236,18 +236,18 @@ namespace towr {
         x[2] = edges_.at(i).point2_wf[0]; y[2] = edges_.at(i).point2_wf[1];
         x[3] = edges_.at(i).point1_wf[0]; y[3] = edges_.at(i).point1_wf[1];
         x[4] = edges_.at(i).point1_wf[0]; y[4] = edges_.at(i).point1_wf[1];
-
+      
         Eigen::VectorXd z(5);
         z[0] = edges_.at(i).z;
         z[1] = edges_.at(i).z;
         z[2] = edges_.at(i).z - fabs(edges_.at(i).height);
         z[3] = edges_.at(i).z - fabs(edges_.at(i).height);
         z[4] = edges_.at(i).z;
-
+      
         rviz_visual_tools::colors rviz_color;
         if(closest_orthogonal_edge_index_==i){
           rviz_color = rviz_visual_tools::GREEN;
-
+      
           //std::cout<<"[EdgeDetection::detectEdges] edge index: "<<i<<std::endl;
           //std::cout<<"[EdgeDetection::detectEdges] edge lenght: "<<edges_.at(i).length<<std::endl;
           //std::cout<<"[EdgeDetection::detectEdges] edge height: "<<edges_.at(i).height<<std::endl;
@@ -263,7 +263,7 @@ namespace towr {
         edges_publisher_->publishText(text_pose, std::to_string(i), rviz_visual_tools::WHITE, rviz_visual_tools::XLARGE, false);
         //edges_publisher_->publishText(text_pose, std::to_string(orthogonal_edge_indices_.at(next_i)));
       }
-
+      
       edges_publisher_->trigger();
     }
 
@@ -353,18 +353,17 @@ namespace towr {
       Eigen::Vector2d p3 = p1_wf + (p2_wf - p1_wf)*0.666;
       double edge_yaw = computeEdgeOrientation(p1_wf, p2_wf);
       Eigen::Vector2d edge_normal = Eigen::Vector2d(sin(edge_yaw), cos(edge_yaw));
-      //Eigen::Vector2d middle_point_wf_plus = middle_point_wf + edge_normal*epsilon;
-      //Eigen::Vector2d middle_point_wf_minus = middle_point_wf - edge_normal*epsilon;
-      //double z1 = GetHeight(middle_point_wf_plus[0], middle_point_wf_plus[1]);
-      //double z2 = GetHeight(middle_point_wf_minus[0], middle_point_wf_minus[1]);
-      //z = std::max(z1, z2);
-      //
+
+      double robot_dist_from_edge = computeSignedDistanceBtwEdgeAndBaseInWorldFrame(p1_wf, p2_wf, base_pose_.segment(0, 2));
+      //std::cout<<"[EdgeDetection::computeStepHeight] robot_dist_from_edge: "<<robot_dist_from_edge<<std::endl;
+      if(robot_dist_from_edge<0){
+        edge_normal = -edge_normal;
+      }
+
       Eigen::VectorXd heights(10);
-      std::random_device random_number;   // obtain a random number from hardware
-      std::mt19937 rng(random_number());  // seed the generator
-      std::uniform_real_distribution<> x_distribution(0.08, 0.12); // define the x range
+
       for(int i = 0; i<10; i++){
-        heights(i) = computeHeight(x_distribution(rng), edge_normal, p1, z_coordinate);
+        heights(i) = computeHeight(edge_normal, p2, z_coordinate);
       }
 
       //std::cout<<"[EdgeDetection::computeStepHeight] edge_yaw: "<<edge_yaw<<std::endl;
@@ -377,29 +376,41 @@ namespace towr {
       return height;
     }
 
-    double EdgeDetection::computeHeight(const double & epsilon,
-            const Eigen::Vector2d & edge_normal,
+    double EdgeDetection::computeHeight(const Eigen::Vector2d & edge_normal,
             const Eigen::Vector2d & point2check,
             double & z_coordinate){
-      Eigen::Vector2d middle_point_wf_plus = point2check + edge_normal*epsilon;
-      Eigen::Vector2d middle_point_wf_minus = point2check - edge_normal*epsilon;
+      std::random_device random_number;   // obtain a random number from hardware
+      std::mt19937 rng(random_number());  // seed the generator
+      std::uniform_real_distribution<> x_distribution_plus(0.15, 0.5); // define the x range
+      std::uniform_real_distribution<> x_distribution_minus(0.05, 0.1); // define the x range
+      double epsilon_plus = x_distribution_plus(rng);
+      double epsilon_minus = x_distribution_minus(rng);
+      Eigen::Vector2d middle_point_wf_plus = point2check + edge_normal*epsilon_plus;
+      Eigen::Vector2d middle_point_wf_minus = point2check - edge_normal*epsilon_minus;
+      //std::cout<<"[EdgeDetection::computeStepHeight] middle_point_wf_plus: "<<middle_point_wf_plus.transpose()<<std::endl;
+      //std::cout<<"[EdgeDetection::computeStepHeight] middle_point_wf_minus: "<<middle_point_wf_minus.transpose()<<std::endl;
       double z1 = GetHeight(middle_point_wf_plus[0], middle_point_wf_plus[1]);
       double z2 = GetHeight(middle_point_wf_minus[0], middle_point_wf_minus[1]);
       z_coordinate = std::max(z1, z2);
       return z1 - z2;
     }
 
-    double EdgeDetection::computeDistanceFromBase(const Eigen::Vector2d & p1_bf, const Eigen::Vector2d & p2_bf){
-      double num = fabs(p2_bf[0]*p1_bf[1] - p2_bf[1]*p1_bf[0]);
-      double denum = computeLength(p1_bf, p2_bf);
-      return num/denum;
+    double EdgeDetection::computeDistance(const Eigen::Vector2d & p1, const Eigen::Vector2d & p2){
+      return computeDistanceBtwEdgeAndBaseInWorldFrame(p1, p2, Eigen::Vector2d(0.0, 0.0));
     }
 
     double EdgeDetection::computeDistanceBtwEdgeAndBaseInWorldFrame(const Eigen::Vector2d & p1_wf,
             const Eigen::Vector2d & p2_wf,
             const Eigen::Vector2d & base_pos){
 
-      double num = fabs((p2_wf[1] - p1_wf[1])*base_pos[0] - (p2_wf[0] - p1_wf[0])*base_pos[1] + p2_wf[0]*p1_wf[1] - p2_wf[1]*p1_wf[0]);
+      return fabs(computeSignedDistanceBtwEdgeAndBaseInWorldFrame(p1_wf, p2_wf, base_pos));
+    }
+
+    double EdgeDetection::computeSignedDistanceBtwEdgeAndBaseInWorldFrame(const Eigen::Vector2d & p1_wf,
+                                                                    const Eigen::Vector2d & p2_wf,
+                                                                    const Eigen::Vector2d & base_pos){
+
+      double num = (p2_wf[1] - p1_wf[1])*base_pos[0] - (p2_wf[0] - p1_wf[0])*base_pos[1] + p2_wf[0]*p1_wf[1] - p2_wf[1]*p1_wf[0];
       double denum = computeLength(p1_wf, p2_wf);
       return num/denum;
     }
@@ -408,6 +419,9 @@ namespace towr {
       //std::cout<<"[EdgeDetection::isEdgeRedundant] edges_.size()"<<edges_.size()<<std::endl;
       //std::cout<<"[EdgeDetection::isEdgeRedundant] p1_wf"<<p1_wf.transpose()<<std::endl;
       //std::cout<<"[EdgeDetection::isEdgeRedundant] p2_wf"<<p2_wf.transpose()<<std::endl;
+
+      bool merge_redundant_edges = false;
+
       for( size_t i = 0; i < edges_.size(); i++ )
       {
         //std::cout<<"[EdgeDetection::isEdgeRedundant] edges_.at(i).point1_wf"<<edges_.at(i).point1_wf.transpose()<<std::endl;
