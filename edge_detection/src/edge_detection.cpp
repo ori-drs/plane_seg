@@ -359,9 +359,7 @@ namespace edge_detection {
     }
 
     double EdgeDetection::computeStepHeight(const Eigen::Vector2d & p1_wf, const Eigen::Vector2d & p2_wf, double & z_coordinate){
-      Eigen::Vector2d p1 = p1_wf + (p2_wf - p1_wf)*0.333;
-      Eigen::Vector2d p2 = p1_wf + (p2_wf - p1_wf)*0.5;
-      Eigen::Vector2d p3 = p1_wf + (p2_wf - p1_wf)*0.666;
+
       double edge_yaw = computeEdgeOrientation(p1_wf, p2_wf);
       Eigen::Vector2d edge_normal = Eigen::Vector2d(sin(edge_yaw), cos(edge_yaw));
 
@@ -374,7 +372,8 @@ namespace edge_detection {
       Eigen::VectorXd heights(10);
 
       for(int i = 0; i<10; i++){
-        heights(i) = computeHeight(edge_normal, p2, z_coordinate);
+        Eigen::Vector2d p = p1_wf + (p2_wf - p1_wf)*0.1*((double)i+0.5);
+        heights(i) = computeHeight(edge_normal, p, z_coordinate);
       }
 
       //std::cout<<"[EdgeDetection::computeStepHeight] edge_yaw: "<<edge_yaw<<std::endl;
