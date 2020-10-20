@@ -364,8 +364,12 @@ namespace edge_detection {
       Eigen::Vector2d edge_normal = Eigen::Vector2d(sin(edge_yaw), cos(edge_yaw));
 
       double robot_dist_from_edge = computeSignedDistanceBtwEdgeAndBaseInWorldFrame(p1_wf, p2_wf, base_pose_.segment(0, 2));
-      //std::cout<<"[EdgeDetection::computeStepHeight] robot_dist_from_edge: "<<robot_dist_from_edge<<std::endl;
-      if(robot_dist_from_edge<0){
+      Eigen::Vector2d robot_direction = Eigen::Vector2d(-cos(base_pose_(2)), -sin(base_pose_(2)));
+      std::cout<<"[EdgeDetection::computeStepHeight] edge_normal: "<<edge_normal.transpose()<<std::endl;
+      double project_robot_direction_on_edge_normal = robot_direction.dot(edge_normal);
+      std::cout<<"[EdgeDetection::computeStepHeight] robot_direction: "<<robot_direction.transpose()<<std::endl;
+      std::cout<<"[EdgeDetection::computeStepHeight] project_robot_direction_on_edge_normal: "<<project_robot_direction_on_edge_normal<<std::endl;
+      if(project_robot_direction_on_edge_normal<0){ //make sure that the edge normal is aligned with the robot to make code more robust against occlusions
         edge_normal = -edge_normal;
       }
 
@@ -393,8 +397,8 @@ namespace edge_detection {
       std::mt19937 rng(random_number());  // seed the generator
       std::uniform_real_distribution<> x_distribution_plus(0.15, 0.5); // define the x range
       std::uniform_real_distribution<> x_distribution_minus(0.05, 0.1); // define the x range
-      double epsilon_plus = x_distribution_plus(rng);
-      double epsilon_minus = x_distribution_minus(rng);
+      double epsilon_plus = 0.4; //x_distribution_plus(rng);
+      double epsilon_minus = 0.1; //x_distribution_minus(rng);
       Eigen::Vector2d middle_point_wf_plus = point2check + edge_normal*epsilon_plus;
       Eigen::Vector2d middle_point_wf_minus = point2check - edge_normal*epsilon_minus;
       //std::cout<<"[EdgeDetection::computeStepHeight] middle_point_wf_plus: "<<middle_point_wf_plus.transpose()<<std::endl;
