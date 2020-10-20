@@ -27,6 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
   locomotion_viewer
   message_generation
   edge_detection
+  xpp_msgs
   )
 
 ###################################
@@ -45,6 +46,7 @@ catkin_package(
   geometry_msgs
   locomotion_viewer
   edge_detection
+  xpp_msgs
   )
 
 ###########

@@ -2,16 +2,35 @@
 #include <edge_detection/Edge.h>
 #include <edge_detection/EdgeArray.h>
 
+#include <xpp_msgs/topic_names.h>
+#include <xpp_msgs/RobotStateCartesian.h>
+
+Eigen::Vector3d robot_pose_ = Eigen::Vector3d::Zero();
+
+void ReadXppState(const xpp_msgs::RobotStateCartesian & xpp_state_msg) {
+  robot_pose_[0] = xpp_state_msg.base.pose.position.x;
+  robot_pose_[1]= xpp_state_msg.base.pose.position.y;
+  
+  Eigen::Quaterniond state_world_q(xpp_state_msg.base.pose.orientation.w, xpp_state_msg.base.pose.orientation.x, xpp_state_msg.base.pose.orientation.y, xpp_state_msg.base.pose.orientation.z);
+  Eigen::Vector3d euler = state_world_q.toRotationMatrix().eulerAngles(2, 1, 0);
+  double yaw = euler[0]; //pitch = euler[1]; roll = euler[2];
+  robot_pose_[2] = yaw;
+
+  std::cout<<"[ReadXppState] robot_pose_: "<<robot_pose_.transpose()<<std::endl;
+}
+
 int main(int argc, char *argv[])
 {
   ros::init(argc, argv, "fake_edges_pub");
   ros::NodeHandle node_handle;
   double min_lenght = 0.8;
   double min_height = 0.3;
-  towr::EdgeDetection edge_det(node_handle, min_lenght, min_height);
+  std::string frame_name = "world";
+  towr::EdgeDetection edge_det(node_handle, frame_name, min_lenght, min_height);
 
   double number_of_published_edges = 4;
   ros::Publisher fake_edges_pub = node_handle.advertise<edge_detection::EdgeArray>("/edge_detection/edge_array", 1000);
+  ros::Subscriber xpp_state_sub_ = node_handle.subscribe("/xpp/state_des", 1, &ReadXppState);
 
   ros::Rate loop_rate(2.0);
 
@@ -23,7 +42,7 @@ int main(int argc, char *argv[])
   while (ros::ok())
   {
 
-    edge_det.setFakeEdges();
+    edge_det.setFakeEdges(robot_pose_);
     edge_detection::EdgeArray edges_array;
     for(int j = 0; j<edge_det.numberOfDetectedEdges(); j++){
       if(j<number_of_published_edges){

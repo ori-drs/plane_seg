@@ -19,7 +19,7 @@ namespace towr {
     class EdgeDetectionRos: public EdgeDetection
     {
     public:
-        EdgeDetectionRos(ros::NodeHandle & node_handle, double min_lenght, double height);
+        EdgeDetectionRos(ros::NodeHandle & node_handle, std::string & frame_name, double min_lenght, double height);
         ~EdgeDetectionRos();
 
         edge_detection::EdgeArray createMessage();

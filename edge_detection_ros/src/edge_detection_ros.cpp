@@ -2,8 +2,8 @@
 
 namespace towr {
 
-    EdgeDetectionRos::EdgeDetectionRos(ros::NodeHandle &node_handle, double min_length, double min_height) :
-            node_handle_(node_handle), EdgeDetection(node_handle, min_length, min_height) {
+    EdgeDetectionRos::EdgeDetectionRos(ros::NodeHandle &node_handle, std::string & frame_name, double min_length, double min_height) :
+            node_handle_(node_handle), EdgeDetection(node_handle, frame_name, min_length, min_height) {
 
       elevation_map_sub_ = node_handle_.subscribe("elevation_mapping/elevation_map", 1, &towr::EdgeDetectionRos::UpdateEdges, this);
       anymal_state_sub_ = node_handle_.subscribe("/state_estimator/anymal_state", 1, &towr::EdgeDetectionRos::ReadAnymalState, this);
@@ -63,7 +63,8 @@ int main(int argc, char *argv[])
 {
   ros::init(argc, argv, "edge_detection_ros");
   ros::NodeHandle node_handle;
-  towr::EdgeDetectionRos edge_detection_ros(node_handle, 0.4, 0.02);
+  std::string frame_name = "point_cloud_odom";
+  towr::EdgeDetectionRos edge_detection_ros(node_handle, frame_name, 0.4, 0.02);
   ros::MultiThreadedSpinner spinner(4);
   spinner.spin();
   return 0;

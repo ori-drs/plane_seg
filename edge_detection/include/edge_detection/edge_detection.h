@@ -24,7 +24,7 @@ namespace towr {
     class EdgeDetection {
     public:
 
-        EdgeDetection(ros::NodeHandle & node_handle, double & min_length, double & min_height);
+        EdgeDetection(ros::NodeHandle & node_handle, std::string & frame_name, double & min_length, double & min_height);
         virtual ~EdgeDetection();
 
         /**
@@ -62,7 +62,7 @@ namespace towr {
         */
         int numberOfDetectedEdges();
 
-        void setFakeEdges();
+        void setFakeEdges(const Eigen::Vector3d & base_pose);
         /**
         * @brief get height of the idx-th step in the array of stored edges (from closest to the robot to the furthest).
         */

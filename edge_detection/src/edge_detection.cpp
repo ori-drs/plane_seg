@@ -11,13 +11,13 @@
 
 namespace towr {
 
-    EdgeDetection::EdgeDetection (ros::NodeHandle& node_handle, double & min_length, double & min_height):
+    EdgeDetection::EdgeDetection (ros::NodeHandle& node_handle, std::string & frame_name, double & min_length, double & min_height):
     node_handle_(node_handle),
     min_length_(min_length),
     min_height_(min_height)
     {
       edges_publisher_.reset(
-                    new locomotion_viewer::LocomotionViewer("point_cloud_odom", "/edge_detection/detected_edges", node_handle_));
+                    new locomotion_viewer::LocomotionViewer(frame_name, "/edge_detection/detected_edges", node_handle_));
       max_height_ = 0.35;
       max_length_ = 1.5;
       target_yaw_angle_ = 0.0;
@@ -55,9 +55,9 @@ namespace towr {
       // Probabilistic Line Transform
       HoughLinesP(im_edges, lines, 1, CV_PI/180, 5, 5, 5 ); // runs the actual detection
 
-      //imwrite("image.png",image);
-      //imwrite("edge_edges.png",im_edges);
-      //imwrite("edge_filtered.png",image_filtered);
+      imwrite("image.png",image);
+      imwrite("edge_edges.png",im_edges);
+      imwrite("edge_filtered.png",image_filtered);
 
       base_pose_ = base_pose;
 
@@ -68,7 +68,11 @@ namespace towr {
 
       closest_orthogonal_edge_index_ = findNextEdge(base_pose);
 
-      std::cout<<"[EdgeDetection::detectEdges] number of detected edges: "<<edges_.size()<<std::endl;
+      std::cout<<"[EdgeDetection::advance] number of detected edges: "<<edges_.size()<<std::endl;
+      for(int j = 0; j < edges_.size(); j++){
+        std::cout<<"[EdgeDetection::advance] edge idx: "<<j<<std::endl;
+        std::cout<<"[EdgeDetection::advance] edge coeffs: "<<edges_.at(j).line_coeffs.transpose()<<std::endl;
+      }
 
       if(edges_.size()!=0){
         EdgeContainer next_edge = edges_.at(closest_orthogonal_edge_index_);
@@ -78,7 +82,9 @@ namespace towr {
       return true;
     }
 
-    void EdgeDetection::setFakeEdges(){
+    void EdgeDetection::setFakeEdges(const Eigen::Vector3d & base_pose){
+
+      base_pose_ = base_pose;
 
       Eigen::MatrixXd fake_points_wf(10,4);
       fake_points_wf << 0.74, 0.5, 0.74, -0.5,
@@ -103,6 +109,7 @@ namespace towr {
         new_edge.point2_wf[1] = fake_points_wf(i,3);
         new_edge.length = 1.0;
         new_edge.height = fake_height[i];
+        new_edge.z = fake_height[i];
         new_edge.yaw = 1.57;
         new_edge.line_coeffs = Eigen::Vector2d(sin(new_edge.yaw), cos(new_edge.yaw));
 
@@ -163,7 +170,7 @@ namespace towr {
 
     void EdgeDetection::findNewEdges(const std::vector<cv::Vec4i> & lines, const Eigen::Vector3d & base_pose_so2){
       orthogonal_edge_indices_.clear();
-      double robot_yaw_angle = base_pose_so2[2];
+      double robot_yaw_angle = base_pose_(2);
       Eigen::Vector2d robot_pos = Eigen::Vector2d(base_pose_so2[0], base_pose_so2[1]);
 
       for( size_t i = 0; i < lines.size(); i++ ) {
@@ -179,6 +186,10 @@ namespace towr {
           double edge_yaw_wf = computeEdgeOrientation(new_edge.point1_wf, new_edge.point2_wf);
           new_edge.line_coeffs = Eigen::Vector2d(sin(edge_yaw_wf), cos(edge_yaw_wf));
             new_edge.height = computeStepHeight(new_edge.point1_wf, new_edge.point2_wf, new_edge.z);
+            Eigen::Vector2d target_pos = robot_pos + 1.0*Eigen::Vector2d(cos(robot_yaw_angle), sin(robot_yaw_angle));
+            std::cout << "[EdgeDetection::detectEdges] target_pos " <<target_pos.transpose()<< std::endl;
+            std::cout << "[EdgeDetection::detectEdges] robot_pos " <<robot_pos.transpose()<< std::endl;
+            std::cout << "[EdgeDetection::detectEdges] robot_yaw_angle " <<robot_yaw_angle<< std::endl;
             if(isInsideEllipse(robot_yaw_angle, robot_pos, (new_edge.point1_wf+new_edge.point2_wf)/2.0, 1.0, 2.0)){
               if ((fabs(new_edge.height) > min_height_)&&(fabs(new_edge.height) < max_height_)){
                 //if (fabs(edge_yaw_wf - robot_yaw_angle)< delta_range){
@@ -327,14 +338,14 @@ namespace towr {
             const Eigen::Vector2d & base_pos){
       double new_adge_yaw = computeEdgeOrientation(p1, p2);
       Eigen::Vector2d new_line_coeffs = Eigen::Vector2d(sin(new_adge_yaw), cos(new_adge_yaw));
-      std::cout<<"[EdgeDetection::hasSimilarLineCoefficients] base_pos "<<base_pos.transpose()<<std::endl;
+      //std::cout<<"[EdgeDetection::hasSimilarLineCoefficients] base_pos "<<base_pos.transpose()<<std::endl;
       double existing_edge_distance = computeDistanceBtwEdgeAndBaseInWorldFrame(existing_edge.point1_wf, existing_edge.point2_wf, base_pos);
       double new_distance = computeDistanceBtwEdgeAndBaseInWorldFrame(p1, p2, base_pos);
       if(fabs(existing_edge.line_coeffs(0)-new_line_coeffs(0))<5){
         if(fabs(existing_edge.line_coeffs(1)-new_line_coeffs(1))<5){
-          std::cout<<"[EdgeDetection::hasSimilarLineCoefficients] lines are parallel! "<<std::endl;
+          //std::cout<<"[EdgeDetection::hasSimilarLineCoefficients] lines are parallel! "<<std::endl;
           if(fabs(existing_edge_distance - new_distance)< 0.1){
-            std::cout<<"[EdgeDetection::hasSimilarLineCoefficients] lines have similar coefficients! "<<std::endl;
+            //std::cout<<"[EdgeDetection::hasSimilarLineCoefficients] lines have similar coefficients! "<<std::endl;
             return true;
           }
         }
