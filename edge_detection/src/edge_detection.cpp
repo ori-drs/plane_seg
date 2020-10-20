@@ -154,7 +154,7 @@ namespace edge_detection {
         Eigen::VectorXd distances(edges_.size());
         Eigen::Vector2d base_pos = Eigen::Vector2d(base_pose[0], base_pose[1]);
         for( size_t i = 0; i < edges_.size(); i++ ){
-          distances[i] = computeDistanceBtwEdgeAndBaseInWorldFrame(edges_.at(i).point1_wf, edges_.at(i).point2_wf, base_pos);
+          distances[i] = computeSignedDistanceBtwEdgeAndBaseInWorldFrame(edges_.at(i).point1_wf, edges_.at(i).point2_wf, base_pos);
         }
 
         //std::cout<<"before sort"<<std::endl;
@@ -404,7 +404,7 @@ namespace edge_detection {
       std::uniform_real_distribution<> x_distribution_plus(0.15, 0.5); // define the x range
       std::uniform_real_distribution<> x_distribution_minus(0.05, 0.1); // define the x range
       double epsilon_plus = 0.4; //x_distribution_plus(rng);
-      double epsilon_minus = 0.1; //x_distribution_minus(rng);
+      double epsilon_minus = 0.07; //x_distribution_minus(rng);
       Eigen::Vector2d middle_point_wf_plus = point2check + edge_normal*epsilon_plus;
       Eigen::Vector2d middle_point_wf_minus = point2check - edge_normal*epsilon_minus;
       //std::cout<<"[EdgeDetection::computeStepHeight] middle_point_wf_plus: "<<middle_point_wf_plus.transpose()<<std::endl;
@@ -502,9 +502,9 @@ namespace edge_detection {
 
       Eigen::Vector2d p1 = edge.point1_wf;
       Eigen::Vector2d p2 = edge.point2_wf;
-      double yaw1 = computeEdgeOrientation(p1, Eigen::Vector2d::Zero());
-      double yaw2 = computeEdgeOrientation(p2, Eigen::Vector2d::Zero());
-      if(yaw1 > yaw2){
+      //double yaw1 = computeEdgeOrientation(p1, Eigen::Vector2d::Zero());
+      //double yaw2 = computeEdgeOrientation(p2, Eigen::Vector2d::Zero());
+      if(p1(0) > p2(0)){
         edge.point1_wf = p1;
         edge.point2_wf = p2;
       } else {
