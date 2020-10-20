@@ -18,7 +18,7 @@ namespace edge_detection {
     {
       edges_publisher_.reset(
                     new locomotion_viewer::LocomotionViewer(frame_name, "/edge_detection/detected_edges", node_handle_));
-      max_height_ = 0.35;
+      max_height_ = 10.35;
       max_length_ = 1.5;
       target_yaw_angle_ = 0.0;
       std::cout<<"[EdgeDetection::detectEdges] Parameters: "<<std::endl;
@@ -125,10 +125,14 @@ namespace edge_detection {
     }
 
     void EdgeDetection::checkExistingEdges(const Eigen::Vector3d & base_pose){
+      //::cout<<"[EdgeDetection::checkExistingEdges] start "<<std::endl;
+      //std::cout<<"[EdgeDetection::checkExistingEdges] edges_.size() "<<edges_.size()<<std::endl;
       if(edges_.size()>0){
         std::vector<edge_detection::EdgeContainer> edges_tmp = edges_;
+        //std::cout<<"[EdgeDetection::checkExistingEdges] edges_tmp.size() "<<edges_tmp.size()<<std::endl;
         edges_.clear();
         for( size_t i = 0; i < edges_tmp.size(); i++ ){
+          //std::cout<<"[EdgeDetection::checkExistingEdges] i "<<i<<std::endl;
           double height_check = computeStepHeight(edges_tmp.at(i).point1_wf, edges_tmp.at(i).point2_wf, edges_tmp.at(i).z);
           if((fabs(height_check) > min_height_)&&(fabs(height_check)< max_height_)){
             double robot_yaw = base_pose[2];
@@ -139,6 +143,7 @@ namespace edge_detection {
         }
 
         sortEdgesFromClosestToFurthest(base_pose);
+        //std::cout<<"[EdgeDetection::checkExistingEdges] end "<<std::endl;
       }
     }
 
@@ -179,6 +184,7 @@ namespace edge_detection {
         EdgeContainer new_edge;
         new_edge.point1_wf = convertImageToOdomFrame(gridMap_.getResolution(), gridMap_.getSize(), l[0], l[1]);
         new_edge.point2_wf = convertImageToOdomFrame(gridMap_.getResolution(), gridMap_.getSize(), l[2], l[3]);
+        clockwiseSort(new_edge);
         //new_edge.middle_point_bf = (new_edge.point1_bf + new_edge.point2_bf) / 2.0;
         new_edge.length = computeLength(new_edge.point1_wf, new_edge.point2_wf);
         if ((new_edge.length > min_length_)&&(new_edge.length < max_length_)) {
@@ -363,12 +369,12 @@ namespace edge_detection {
       double edge_yaw = computeEdgeOrientation(p1_wf, p2_wf);
       Eigen::Vector2d edge_normal = Eigen::Vector2d(sin(edge_yaw), cos(edge_yaw));
 
-      double robot_dist_from_edge = computeSignedDistanceBtwEdgeAndBaseInWorldFrame(p1_wf, p2_wf, base_pose_.segment(0, 2));
-      Eigen::Vector2d robot_direction = Eigen::Vector2d(-cos(base_pose_(2)), -sin(base_pose_(2)));
-      std::cout<<"[EdgeDetection::computeStepHeight] edge_normal: "<<edge_normal.transpose()<<std::endl;
+      //double robot_dist_from_edge = computeSignedDistanceBtwEdgeAndBaseInWorldFrame(p1_wf, p2_wf, base_pose_.segment(0, 2));
+      Eigen::Vector2d robot_direction = Eigen::Vector2d(cos(base_pose_(2)), sin(base_pose_(2)));
+      //std::cout<<"[EdgeDetection::computeStepHeight] edge_normal: "<<edge_normal.transpose()<<std::endl;
       double project_robot_direction_on_edge_normal = robot_direction.dot(edge_normal);
-      std::cout<<"[EdgeDetection::computeStepHeight] robot_direction: "<<robot_direction.transpose()<<std::endl;
-      std::cout<<"[EdgeDetection::computeStepHeight] project_robot_direction_on_edge_normal: "<<project_robot_direction_on_edge_normal<<std::endl;
+      //std::cout<<"[EdgeDetection::computeStepHeight] robot_direction: "<<robot_direction.transpose()<<std::endl;
+      //std::cout<<"[EdgeDetection::computeStepHeight] project_robot_direction_on_edge_normal: "<<project_robot_direction_on_edge_normal<<std::endl;
       if(project_robot_direction_on_edge_normal<0){ //make sure that the edge normal is aligned with the robot to make code more robust against occlusions
         edge_normal = -edge_normal;
       }
@@ -490,6 +496,22 @@ namespace edge_detection {
               edges_.at(closest_orthogonal_edge_index_).point2_wf,
               base_pos);
       return distance_from_base;
+    }
+
+    void EdgeDetection::clockwiseSort(EdgeContainer & edge){
+
+      Eigen::Vector2d p1 = edge.point1_wf;
+      Eigen::Vector2d p2 = edge.point2_wf;
+      double yaw1 = computeEdgeOrientation(p1, Eigen::Vector2d::Zero());
+      double yaw2 = computeEdgeOrientation(p2, Eigen::Vector2d::Zero());
+      if(yaw1 > yaw2){
+        edge.point1_wf = p1;
+        edge.point2_wf = p2;
+      } else {
+        edge.point1_wf = p2;
+        edge.point2_wf = p1;
+      }
+
     }
 
     Eigen::Vector2d EdgeDetection::getPointAlongEdgeInWorldFrame(edge_idx idx){
