@@ -440,7 +440,7 @@ namespace edge_detection {
       //std::cout<<"[EdgeDetection::isEdgeRedundant] p1_wf"<<p1_wf.transpose()<<std::endl;
       //std::cout<<"[EdgeDetection::isEdgeRedundant] p2_wf"<<p2_wf.transpose()<<std::endl;
 
-      bool merge_redundant_edges = false;
+      bool merge_redundant_edges = true;
 
       for( size_t i = 0; i < edges_.size(); i++ )
       {
@@ -459,12 +459,13 @@ namespace edge_detection {
           if(merge_redundant_edges){
             std::cout<<"[EdgeDetection::isEdgeRedundant] merge redundant edges"<<std::endl;
             if(d11&&d22){
-              edges_.at(i).point1_wf = (edges_.at(i).point1_wf + p1_wf)/2.0;
-              edges_.at(i).point2_wf = (edges_.at(i).point2_wf + p2_wf)/2.0;
-            }else{
-              edges_.at(i).point1_wf = (edges_.at(i).point1_wf + p2_wf)/2.0;
-              edges_.at(i).point2_wf = (edges_.at(i).point2_wf + p1_wf)/2.0;
+            edges_.at(i).point1_wf = (edges_.at(i).point1_wf + p1_wf)/2.0;
+            edges_.at(i).point2_wf = (edges_.at(i).point2_wf + p2_wf)/2.0;
             }
+            //else{
+            //  edges_.at(i).point1_wf = (edges_.at(i).point1_wf + p2_wf)/2.0;
+            //  edges_.at(i).point2_wf = (edges_.at(i).point2_wf + p1_wf)/2.0;
+            //}
             edges_.at(i).length = computeLength(edges_.at(i).point1_wf, edges_.at(i).point2_wf);
             edges_.at(i).yaw = computeEdgeOrientation(edges_.at(i).point1_wf, edges_.at(i).point2_wf);
             edges_.at(i).line_coeffs = Eigen::Vector2d(sin(edges_.at(i).yaw), cos(edges_.at(i).yaw));
