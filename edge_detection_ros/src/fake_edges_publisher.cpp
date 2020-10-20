@@ -46,8 +46,9 @@ int main(int argc, char *argv[])
 
     edge_detection::edge_idx next_edge_id = edge_det.findNextEdge();
     edge_detection::EdgeArray edges_array;
-    for(int j = 0; j<edge_det.numberOfDetectedEdges(); j++){
-      if(j<number_of_published_edges){
+    int last_edge_id = edge_det.numberOfDetectedEdges() - next_edge_id - number_of_published_edges >= 0? next_edge_id + number_of_published_edges: edge_det.numberOfDetectedEdges();
+    for(int j = next_edge_id; j<edge_det.numberOfDetectedEdges(); j++){
+      if(j<last_edge_id){
         Eigen::Vector2d middle_point_wf = edge_det.getPointAlongEdgeInWorldFrame(j);
         edge_detection::Edge new_edge;
         new_edge.index = j;
