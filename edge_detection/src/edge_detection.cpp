@@ -55,9 +55,9 @@ namespace edge_detection {
       // Probabilistic Line Transform
       HoughLinesP(im_edges, lines, 1, CV_PI/180, 5, 5, 5 ); // runs the actual detection
 
-      imwrite("image.png",image);
-      imwrite("edge_edges.png",im_edges);
-      imwrite("edge_filtered.png",image_filtered);
+      //imwrite("image.png",image);
+      //imwrite("edge_edges.png",im_edges);
+      //imwrite("edge_filtered.png",image_filtered);
 
       base_pose_ = base_pose;
 
@@ -69,10 +69,10 @@ namespace edge_detection {
       findNextEdge();
 
       std::cout<<"[EdgeDetection::advance] number of detected edges: "<<edges_.size()<<std::endl;
-      for(int j = 0; j < edges_.size(); j++){
-        std::cout<<"[EdgeDetection::advance] edge idx: "<<j<<std::endl;
-        std::cout<<"[EdgeDetection::advance] edge coeffs: "<<edges_.at(j).line_coeffs.transpose()<<std::endl;
-      }
+      //for(int j = 0; j < edges_.size(); j++){
+      //  std::cout<<"[EdgeDetection::advance] edge idx: "<<j<<std::endl;
+      //  std::cout<<"[EdgeDetection::advance] edge coeffs: "<<edges_.at(j).line_coeffs.transpose()<<std::endl;
+      //}
 
       if(edges_.size()!=0){
         EdgeContainer next_edge = edges_.at(closest_orthogonal_edge_index_);
@@ -193,10 +193,10 @@ namespace edge_detection {
           new_edge.line_coeffs = Eigen::Vector2d(sin(edge_yaw_wf), cos(edge_yaw_wf));
             new_edge.height = computeStepHeight(new_edge.point1_wf, new_edge.point2_wf, new_edge.z);
             Eigen::Vector2d target_pos = robot_pos + 1.0*Eigen::Vector2d(cos(robot_yaw_angle), sin(robot_yaw_angle));
-            std::cout << "[EdgeDetection::detectEdges] target_pos " <<target_pos.transpose()<< std::endl;
-            std::cout << "[EdgeDetection::detectEdges] robot_pos " <<robot_pos.transpose()<< std::endl;
-            std::cout << "[EdgeDetection::detectEdges] robot_yaw_angle " <<robot_yaw_angle<< std::endl;
-            if(isInsideEllipse(robot_yaw_angle, robot_pos, (new_edge.point1_wf+new_edge.point2_wf)/2.0, 1.0, 2.0)){
+            //std::cout << "[EdgeDetection::detectEdges] target_pos " <<target_pos.transpose()<< std::endl;
+            //std::cout << "[EdgeDetection::detectEdges] robot_pos " <<robot_pos.transpose()<< std::endl;
+            //std::cout << "[EdgeDetection::detectEdges] robot_yaw_angle " <<robot_yaw_angle<< std::endl;
+            if(isInsideEllipse(robot_yaw_angle, target_pos, (new_edge.point1_wf+new_edge.point2_wf)/2.0, 1.0, 2.0)){
               if ((fabs(new_edge.height) > min_height_)&&(fabs(new_edge.height) < max_height_)){
                 //if (fabs(edge_yaw_wf - robot_yaw_angle)< delta_range){
                 if (isEdgeFacingRobot(edge_yaw_wf, robot_yaw_angle)) {
@@ -457,7 +457,7 @@ namespace edge_detection {
         if(hasSimilarLineCoefficients(edges_.at(i), p1_wf, p2_wf, base_pos)){
           //std::cout<<"[EdgeDetection::isEdgeRedundant] edge is redundant!"<<std::endl;
           if(merge_redundant_edges){
-            std::cout<<"[EdgeDetection::isEdgeRedundant] merge redundant edges"<<std::endl;
+            //std::cout<<"[EdgeDetection::isEdgeRedundant] merge redundant edges"<<std::endl;
             if(d11&&d22){
             edges_.at(i).point1_wf = (edges_.at(i).point1_wf + p1_wf)/2.0;
             edges_.at(i).point2_wf = (edges_.at(i).point2_wf + p2_wf)/2.0;
