@@ -9,7 +9,7 @@
 
 #include <ros/ros.h>
 
-namespace towr {
+namespace edge_detection {
 
     EdgeDetection::EdgeDetection (ros::NodeHandle& node_handle, std::string & frame_name, double & min_length, double & min_height):
     node_handle_(node_handle),
@@ -66,7 +66,7 @@ namespace towr {
       findNewEdges(lines, base_pose);
       //setFakeEdges();
 
-      closest_orthogonal_edge_index_ = findNextEdge(base_pose);
+      findNextEdge();
 
       std::cout<<"[EdgeDetection::advance] number of detected edges: "<<edges_.size()<<std::endl;
       for(int j = 0; j < edges_.size(); j++){
@@ -126,7 +126,7 @@ namespace towr {
 
     void EdgeDetection::checkExistingEdges(const Eigen::Vector3d & base_pose){
       if(edges_.size()>0){
-        std::vector<towr::EdgeContainer> edges_tmp = edges_;
+        std::vector<edge_detection::EdgeContainer> edges_tmp = edges_;
         edges_.clear();
         for( size_t i = 0; i < edges_tmp.size(); i++ ){
           double height_check = computeStepHeight(edges_tmp.at(i).point1_wf, edges_tmp.at(i).point2_wf, edges_tmp.at(i).z);
@@ -145,7 +145,7 @@ namespace towr {
     void EdgeDetection::sortEdgesFromClosestToFurthest(const Eigen::Vector3d & base_pose){
       if(edges_.size()>0){
 
-        std::vector<towr::EdgeContainer> edges_tmp = edges_;
+        std::vector<edge_detection::EdgeContainer> edges_tmp = edges_;
         Eigen::VectorXd distances(edges_.size());
         Eigen::Vector2d base_pos = Eigen::Vector2d(base_pose[0], base_pose[1]);
         for( size_t i = 0; i < edges_.size(); i++ ){
@@ -216,11 +216,11 @@ namespace towr {
 
     }
 
-    edge_idx EdgeDetection::findNextEdge(const Eigen::Vector3d & base_pose){
+    edge_idx EdgeDetection::findNextEdge(){
       double min_dist = 10000.0;
       edge_idx closest_idx;
       for( size_t i = 0; i < edges_.size(); i++ ){
-        Eigen::Vector2d base_pos = Eigen::Vector2d(base_pose[0], base_pose[1]);
+        Eigen::Vector2d base_pos = Eigen::Vector2d(base_pose_[0], base_pose_[1]);
         double distance_from_base = computeDistanceBtwEdgeAndBaseInWorldFrame(edges_.at(i).point1_wf, edges_.at(i).point2_wf, base_pos);
         if(distance_from_base<min_dist){
           min_dist = distance_from_base;
@@ -232,7 +232,7 @@ namespace towr {
           //std::cout<<"[EdgeDetection::detectEdges] edge angle: "<<edges_.at(i).yaw<<std::endl;
         }
       }
-
+      closest_orthogonal_edge_index_ = closest_idx;
       return closest_idx;
     }
 
@@ -446,7 +446,7 @@ namespace towr {
 
         //if((d11&&d22)||(d12&&d21)){
         if(hasSimilarLineCoefficients(edges_.at(i), p1_wf, p2_wf, base_pos)){
-          std::cout<<"[EdgeDetection::isEdgeRedundant] edge is redundant!"<<std::endl;
+          //std::cout<<"[EdgeDetection::isEdgeRedundant] edge is redundant!"<<std::endl;
           if(merge_redundant_edges){
             std::cout<<"[EdgeDetection::isEdgeRedundant] merge redundant edges"<<std::endl;
             if(d11&&d22){

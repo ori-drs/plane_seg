@@ -7,8 +7,8 @@
  * @version 1.0
  * @copyright 2020, Romeo Orsolino. BSD-3-Clause
  */
-#ifndef TOWR_EDGE_DETECTION_H
-#define TOWR_EDGE_DETECTION_H
+#ifndef EDGE_DETECTION_EDGE_DETECTION_H
+#define EDGE_DETECTION_EDGE_DETECTION_H
 
 #include <random>
 
@@ -19,7 +19,7 @@
 #include <locomotion_viewer/LocomotionViewer.hpp>
 
 
-namespace towr {
+namespace edge_detection {
 
     class EdgeDetection {
     public:
@@ -68,6 +68,8 @@ namespace towr {
         */
         double getStepHeight(edge_idx idx);
 
+        edge_idx findNextEdge();
+
     protected:
 
         /**
@@ -88,7 +90,6 @@ namespace towr {
         bool isEdgeRedundant(const Eigen::Vector2d & p1_wf, const Eigen::Vector2d & p2_wf);
         bool isEdgeFacingRobot(const double & edge_yaw_wf, const double & robot_yaw_angle);
         void findNewEdges(const std::vector<cv::Vec4i> & lines, const Eigen::Vector3d & base_pose_so2);
-        edge_idx findNextEdge(const Eigen::Vector3d & base_pose_so2);
         void checkExistingEdges(const Eigen::Vector3d & base_pose);
         void sortEdgesFromClosestToFurthest(const Eigen::Vector3d & base_pose);
         bool hasSimilarLineCoefficients(const EdgeContainer & existing_edge, const Eigen::Vector2d & p1, const Eigen::Vector2d & p2, const Eigen::Vector2d & base_pos);
@@ -118,7 +119,7 @@ namespace towr {
         std::vector<edge_idx> orthogonal_edge_indices_;
         edge_idx closest_orthogonal_edge_index_;
 
-        std::vector<towr::EdgeContainer> edges_;
+        std::vector<edge_detection::EdgeContainer> edges_;
 
         Eigen::Vector3d base_pose_;
 
@@ -127,4 +128,4 @@ namespace towr {
 
 } //end namespace
 
-#endif //TOWR_EDGE_DETECTION_H
+#endif //EDGE_DETECTION_EDGE_DETECTION_H

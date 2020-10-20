@@ -1,5 +1,5 @@
-#ifndef TOWR_EDGE_DETECTION_ROS_H
-#define TOWR_EDGE_DETECTION_ROS_H
+#ifndef EDGE_DETECTION_EDGE_DETECTION_ROS_H
+#define EDGE_DETECTION_EDGE_DETECTION_ROS_H
 
 #include <ros/ros.h>
 
@@ -15,7 +15,7 @@
 #include <edge_detection/Edge.h>
 #include <edge_detection/EdgeArray.h>
 
-namespace towr {
+namespace edge_detection {
     class EdgeDetectionRos: public EdgeDetection
     {
     public:
@@ -40,4 +40,4 @@ namespace towr {
     };
 }
 
-#endif //TOWR_EDGE_DETECTION_ROS_H
+#endif //EDGE_DETECTION_EDGE_DETECTION_ROS_H

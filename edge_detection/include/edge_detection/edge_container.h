@@ -14,7 +14,7 @@
 #include <Eigen/Core>
 #include <vector>
 
-namespace towr {
+namespace edge_detection {
 
     using edge_idx      =  int;
 

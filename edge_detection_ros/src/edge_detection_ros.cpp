@@ -1,12 +1,12 @@
 #include "edge_detection_ros/edge_detection_ros.h"
 
-namespace towr {
+namespace edge_detection {
 
     EdgeDetectionRos::EdgeDetectionRos(ros::NodeHandle &node_handle, std::string & frame_name, double min_length, double min_height) :
             node_handle_(node_handle), EdgeDetection(node_handle, frame_name, min_length, min_height) {
 
-      elevation_map_sub_ = node_handle_.subscribe("elevation_mapping/elevation_map", 1, &towr::EdgeDetectionRos::UpdateEdges, this);
-      anymal_state_sub_ = node_handle_.subscribe("/state_estimator/anymal_state", 1, &towr::EdgeDetectionRos::ReadAnymalState, this);
+      elevation_map_sub_ = node_handle_.subscribe("elevation_mapping/elevation_map", 1, &edge_detection::EdgeDetectionRos::UpdateEdges, this);
+      anymal_state_sub_ = node_handle_.subscribe("/state_estimator/anymal_state", 1, &edge_detection::EdgeDetectionRos::ReadAnymalState, this);
       edge_pub_ = node_handle_.advertise<edge_detection::EdgeArray>("/edge_detection/edge_array", 1000);
 
       number_of_published_edges_ = 4;
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
   ros::init(argc, argv, "edge_detection_ros");
   ros::NodeHandle node_handle;
   std::string frame_name = "point_cloud_odom";
-  towr::EdgeDetectionRos edge_detection_ros(node_handle, frame_name, 0.4, 0.02);
+  edge_detection::EdgeDetectionRos edge_detection_ros(node_handle, frame_name, 0.4, 0.02);
   ros::MultiThreadedSpinner spinner(4);
   spinner.spin();
   return 0;
