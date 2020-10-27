@@ -188,7 +188,7 @@ namespace edge_detection {
         //new_edge.middle_point_bf = (new_edge.point1_bf + new_edge.point2_bf) / 2.0;
         new_edge.length = computeLength(new_edge.point1_wf, new_edge.point2_wf);
         if ((new_edge.length > min_length_)&&(new_edge.length < max_length_)) {
-          std::cout << "[EdgeDetection::detectEdges] edge length is " <<new_edge.length<< std::endl;
+          //std::cout << "[EdgeDetection::detectEdges] edge length is " <<new_edge.length<< std::endl;
           double edge_yaw_wf = computeEdgeOrientation(new_edge.point1_wf, new_edge.point2_wf);
           new_edge.line_coeffs = Eigen::Vector2d(sin(edge_yaw_wf), cos(edge_yaw_wf));
           Eigen::Vector2d target_pos = robot_pos + 1.0*Eigen::Vector2d(cos(robot_yaw_angle), sin(robot_yaw_angle));
@@ -196,19 +196,19 @@ namespace edge_detection {
           //std::cout << "[EdgeDetection::detectEdges] robot_pos " <<robot_pos.transpose()<< std::endl;
           //std::cout << "[EdgeDetection::detectEdges] robot_yaw_angle " <<robot_yaw_angle<< std::endl;
           Eigen::Vector2d edge_pos = (new_edge.point1_wf+new_edge.point2_wf)/2.0;
-          std::cout << "[EdgeDetection::detectEdges] robot_pos " <<robot_pos.transpose()<< std::endl;
+          //std::cout << "[EdgeDetection::detectEdges] robot_pos " <<robot_pos.transpose()<< std::endl;
           //std::cout << "[EdgeDetection::detectEdges] target_pos " <<target_pos.transpose()<< std::endl;
-          std::cout << "[EdgeDetection::detectEdges] edge pos " <<edge_pos.transpose()<< std::endl;
+          //std::cout << "[EdgeDetection::detectEdges] edge pos " <<edge_pos.transpose()<< std::endl;
           if(isInsideEllipse(robot_yaw_angle, robot_pos, edge_pos, 1.0, 2.0)){
-            std::cout << "[EdgeDetection::detectEdges] is inside ellipse!! " << std::endl;
+            //std::cout << "[EdgeDetection::detectEdges] is inside ellipse!! " << std::endl;
             new_edge.height = computeStepHeight(new_edge.point1_wf, new_edge.point2_wf, new_edge.z);
             if ((fabs(new_edge.height) > min_height_)&&(fabs(new_edge.height) < max_height_)){
-              std::cout << "[EdgeDetection::detectEdges] new_edge.height " <<new_edge.height<< std::endl;
+              //std::cout << "[EdgeDetection::detectEdges] new_edge.height " <<new_edge.height<< std::endl;
               //if (fabs(edge_yaw_wf - robot_yaw_angle)< delta_range){
-              std::cout << "[EdgeDetection::detectEdges] edge_yaw_wf " <<edge_yaw_wf<< std::endl;
-              std::cout << "[EdgeDetection::detectEdges] robot_yaw_angle " <<robot_yaw_angle<< std::endl;
+              //std::cout << "[EdgeDetection::detectEdges] edge_yaw_wf " <<edge_yaw_wf<< std::endl;
+              //std::cout << "[EdgeDetection::detectEdges] robot_yaw_angle " <<robot_yaw_angle<< std::endl;
               //if (isEdgeFacingRobot(edge_yaw_wf, robot_yaw_angle)) {
-                std::cout << "[EdgeDetection::detectEdges] edge is facing robot! "<< std::endl;
+                //std::cout << "[EdgeDetection::detectEdges] edge is facing robot! "<< std::endl;
                 if (!isEdgeRedundant(new_edge.point1_wf, new_edge.point2_wf)) {
                   new_edge.yaw = edge_yaw_wf;
                   new_edge.line_coeffs = Eigen::Vector2d(sin(new_edge.yaw), cos(new_edge.yaw));
@@ -380,10 +380,10 @@ namespace edge_detection {
 
       //double robot_dist_from_edge = computeSignedDistanceBtwEdgeAndBaseInWorldFrame(p1_wf, p2_wf, base_pose_.segment(0, 2));
       Eigen::Vector2d robot_direction = Eigen::Vector2d(cos(base_pose_(2)), sin(base_pose_(2)));
-      std::cout<<"[EdgeDetection::computeStepHeight] edge_normal: "<<edge_normal.transpose()<<std::endl;
+      //std::cout<<"[EdgeDetection::computeStepHeight] edge_normal: "<<edge_normal.transpose()<<std::endl;
       double project_robot_direction_on_edge_normal = robot_direction.dot(edge_normal);
-      std::cout<<"[EdgeDetection::computeStepHeight] robot_direction: "<<robot_direction.transpose()<<std::endl;
-      std::cout<<"[EdgeDetection::computeStepHeight] project_robot_direction_on_edge_normal: "<<project_robot_direction_on_edge_normal<<std::endl;
+      //std::cout<<"[EdgeDetection::computeStepHeight] robot_direction: "<<robot_direction.transpose()<<std::endl;
+      //std::cout<<"[EdgeDetection::computeStepHeight] project_robot_direction_on_edge_normal: "<<project_robot_direction_on_edge_normal<<std::endl;
       if(project_robot_direction_on_edge_normal<0){ //make sure that the edge normal is aligned with the robot to make code more robust against occlusions
         edge_normal = -edge_normal;
       }
@@ -393,10 +393,10 @@ namespace edge_detection {
       for(int i = 0; i<10; i++){
         double idx = 0.1*(double)i + 0.05;
         Eigen::Vector2d p = p1_wf + (p2_wf - p1_wf)*idx;
-        std::cout<<"[EdgeDetection::computeStepHeight] idx: "<<idx<<std::endl;
-        std::cout<<"[EdgeDetection::computeStepHeight] p: "<<p.transpose()<<std::endl;
+        //std::cout<<"[EdgeDetection::computeStepHeight] idx: "<<idx<<std::endl;
+        //std::cout<<"[EdgeDetection::computeStepHeight] p: "<<p.transpose()<<std::endl;
         heights(i) = computeHeight(edge_normal, p, z_coordinate);
-        std::cout<<"[EdgeDetection::computeStepHeight] heights(i): "<<heights(i)<<std::endl;
+        //std::cout<<"[EdgeDetection::computeStepHeight] heights(i): "<<heights(i)<<std::endl;
       }
 
       //std::cout<<"[EdgeDetection::computeStepHeight] edge_yaw: "<<edge_yaw<<std::endl;
@@ -406,7 +406,7 @@ namespace edge_detection {
       //std::cout<<"[EdgeDetection::computeStepHeight] z1: "<<z1<<std::endl;
       //std::cout<<"[EdgeDetection::computeStepHeight] z2: "<<z2<<std::endl;
       double height = heights.sum()/heights.size();
-      std::cout<<"[EdgeDetection::computeStepHeight] height: "<<height<<std::endl;
+      //std::cout<<"[EdgeDetection::computeStepHeight] height: "<<height<<std::endl;
       return height;
     }
 
@@ -417,8 +417,8 @@ namespace edge_detection {
       //std::mt19937 rng(random_number());  // seed the generator
       //std::uniform_real_distribution<> x_distribution_plus(0.15, 0.5); // define the x range
       //std::uniform_real_distribution<> x_distribution_minus(0.05, 0.1); // define the x range
-      double epsilon_plus = 0.1; //x_distribution_plus(rng);
-      double epsilon_minus = 0.1; //x_distribution_minus(rng);
+      double epsilon_plus = 0.15; //x_distribution_plus(rng);
+      double epsilon_minus = 0.15; //x_distribution_minus(rng);
       Eigen::Vector2d middle_point_wf_plus = point2check + edge_normal*epsilon_plus;
       Eigen::Vector2d middle_point_wf_minus = point2check - edge_normal*epsilon_minus;
       //std::cout<<"[EdgeDetection::computeStepHeight] middle_point_wf_plus: "<<middle_point_wf_plus.transpose()<<std::endl;
@@ -509,8 +509,8 @@ namespace edge_detection {
     double delta_range = M_PI / 6.0;
     double wrapped_yaw_angle = limitAngle(edge_yaw_wf - M_PI/2.0);
     double wrapped_robot_angle = limitAngle(robot_yaw_angle);
-    std::cout<<"[EdgeDetection::isEdgeFacingRobot] wrapped_yaw_angle "<<wrapped_yaw_angle<<std::endl;
-    std::cout<<"[EdgeDetection::isEdgeFacingRobot] wrapped_robot_angle "<<wrapped_robot_angle<<std::endl;
+    //std::cout<<"[EdgeDetection::isEdgeFacingRobot] wrapped_yaw_angle "<<wrapped_yaw_angle<<std::endl;
+    //std::cout<<"[EdgeDetection::isEdgeFacingRobot] wrapped_robot_angle "<<wrapped_robot_angle<<std::endl;
     if(fabs(wrapped_yaw_angle - wrapped_robot_angle) <  delta_range) {
       return true;
     }else{
