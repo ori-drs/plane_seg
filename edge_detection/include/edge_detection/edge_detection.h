@@ -94,6 +94,7 @@ namespace edge_detection {
         void sortEdgesFromClosestToFurthest(const Eigen::Vector3d & base_pose);
         bool hasSimilarLineCoefficients(const EdgeContainer & existing_edge, const Eigen::Vector2d & p1, const Eigen::Vector2d & p2, const Eigen::Vector2d & base_pos);
         void clockwiseSort(EdgeContainer & edge);
+        double limitAngle(const double & yaw);
 
         /**
         * @brief compute distance point to line as in https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line

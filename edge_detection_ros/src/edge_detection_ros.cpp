@@ -5,7 +5,7 @@ namespace edge_detection {
     EdgeDetectionRos::EdgeDetectionRos(ros::NodeHandle &node_handle, std::string & frame_name, double min_length, double min_height) :
             node_handle_(node_handle), EdgeDetection(node_handle, frame_name, min_length, min_height) {
 
-      elevation_map_sub_ = node_handle_.subscribe("elevation_mapping/elevation_map", 1, &edge_detection::EdgeDetectionRos::UpdateEdges, this);
+      elevation_map_sub_ = node_handle_.subscribe("elevation_map_processing/sub_map", 1, &edge_detection::EdgeDetectionRos::UpdateEdges, this);
       anymal_state_sub_ = node_handle_.subscribe("/state_estimator/anymal_state", 1, &edge_detection::EdgeDetectionRos::ReadAnymalState, this);
       edge_pub_ = node_handle_.advertise<edge_detection::EdgeArray>("/edge_detection/edge_array", 1000);
 
