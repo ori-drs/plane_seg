@@ -9,7 +9,7 @@ namespace edge_detection {
       anymal_state_sub_ = node_handle_.subscribe("/state_estimator/anymal_state", 1, &edge_detection::EdgeDetectionRos::ReadAnymalState, this);
       edge_pub_ = node_handle_.advertise<edge_detection::EdgeArray>("/edge_detection/edge_array", 1000);
 
-      number_of_published_edges_ = 4;
+      number_of_published_edges_ = 6;
       std::cout<<"[EdgeDetection::detectEdges] number of published edges: "<<number_of_published_edges_<<std::endl;
       //state_world_yaw_prev_ = 0.0;
 
