@@ -85,6 +85,7 @@ namespace edge_detection {
     void EdgeDetection::setFakeEdges(const Eigen::Vector3d & base_pose){
 
       base_pose_ = base_pose;
+      edges_.clear();
 
       Eigen::MatrixXd fake_points_wf(10,4);
       fake_points_wf << 0.74, 0.5, 0.74, -0.5,
