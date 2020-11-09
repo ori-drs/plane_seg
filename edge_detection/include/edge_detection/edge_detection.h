@@ -103,7 +103,7 @@ namespace edge_detection {
         grid_map::GridMap gridMap_;
         double deltaFiniteDifferentiation_;
         ros::NodeHandle node_handle_;
-        std::vector<cv::Vec4i> linesP_; // will hold the results of the detectio
+        std::vector<cv::Vec4i> linesP_; // will hold the results of the detection
         Eigen::Vector2d edge_direction_;
         Eigen::Vector2d middle_point_;
         double edge_distance_;
@@ -111,7 +111,6 @@ namespace edge_detection {
         double max_length_;
         double min_height_;
         double max_height_;
-        double target_yaw_angle_;
         std::vector<edge_idx> orthogonal_edge_indices_;
         Eigen::Vector3d base_pose_;
 
