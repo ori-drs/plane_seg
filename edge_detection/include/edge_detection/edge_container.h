@@ -7,8 +7,8 @@
  * @version 1.0
  * @copyright 2020, Romeo Orsolino. BSD-3-Clause
  */
-#ifndef TOWR_EDGE_CONTAINER_H
-#define TOWR_EDGE_CONTAINER_H
+#ifndef EDGE_CONTAINER_H
+#define EDGE_CONTAINER_H
 
 #pragma once
 #include <Eigen/Core>
@@ -27,6 +27,6 @@ namespace edge_detection {
         Eigen::Vector2d point2_wf;
         Eigen::Vector2d line_coeffs;
     };
-} /* namespace towr */
+} /* namespace edge_detection */
 
-#endif //TOWR_EDGE_CONTAINER_H
+#endif //EDGE_CONTAINER_H
