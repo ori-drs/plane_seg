@@ -6,7 +6,6 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Header.h>
-#include <anymal_msgs/AnymalState.h>
 
 #include <Eigen/Eigen>
 
@@ -34,12 +33,10 @@ namespace edge_detection {
     private:
 
         void UpdateEdges(const grid_map_msgs::GridMap& grid_map_in);
-        void ReadAnymalState(const anymal_msgs::AnymalState & anymal_state_msg);
 
         //ROS
         ros::NodeHandle node_handle_;
         ros::Subscriber elevation_map_sub_;
-        ros::Subscriber anymal_state_sub_;
         ros::Publisher edge_pub_;
         ros::Publisher edges_publisher_;
         Eigen::Vector3d robot_state_;

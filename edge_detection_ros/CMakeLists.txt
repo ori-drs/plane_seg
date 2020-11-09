@@ -26,7 +26,6 @@ find_package(catkin REQUIRED COMPONENTS
   grid_map_cv
   message_generation
   edge_detection
-  xpp_msgs
   )
 
 ###################################
@@ -44,7 +43,6 @@ catkin_package(
   std_msgs
   geometry_msgs
   edge_detection
-  xpp_msgs
   )
 
 ###########

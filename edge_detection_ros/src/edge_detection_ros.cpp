@@ -6,7 +6,6 @@ namespace edge_detection {
             node_handle_(node_handle), EdgeDetection(node_handle, frame_name, min_length, min_height) {
 
       elevation_map_sub_ = node_handle_.subscribe("elevation_map_processing/sub_map", 1, &edge_detection::EdgeDetectionRos::UpdateEdges, this);
-      anymal_state_sub_ = node_handle_.subscribe("/state_estimator/anymal_state", 1, &edge_detection::EdgeDetectionRos::ReadAnymalState, this);
       edge_pub_ = node_handle_.advertise<edge_detection::EdgeArray>("/edge_detection/edge_array", 1000);
       edges_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>( "/edge_detection/detected_edges", 0 );
 
@@ -15,16 +14,6 @@ namespace edge_detection {
     }
 
     EdgeDetectionRos::~EdgeDetectionRos() {
-    }
-
-    void EdgeDetectionRos::ReadAnymalState(const anymal_msgs::AnymalState & anymal_state_msg) {
-      robot_state_[0] = anymal_state_msg.pose.pose.position.x;
-      robot_state_[1]= anymal_state_msg.pose.pose.position.y;
-
-      Eigen::Quaterniond state_world_q(anymal_state_msg.pose.pose.orientation.w, anymal_state_msg.pose.pose.orientation.x, anymal_state_msg.pose.pose.orientation.y, anymal_state_msg.pose.pose.orientation.z);
-      Eigen::Vector3d euler = state_world_q.toRotationMatrix().eulerAngles(2, 1, 0);
-      double yaw = euler[0]; //pitch = euler[1]; roll = euler[2];
-      robot_state_[2] = yaw;
     }
 
     edge_detection::EdgeArray EdgeDetectionRos::createMessage(){
