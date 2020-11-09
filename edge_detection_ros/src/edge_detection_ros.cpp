@@ -69,9 +69,8 @@ namespace edge_detection {
         edge_pose(2) = edges_.at(i).z;
 
         Eigen::Quaterniond q;
-        q = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitX())
-            * Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitY())
-            * Eigen::AngleAxisd(edges_.at(i).yaw, Eigen::Vector3d::UnitZ());
+        q = Eigen::AngleAxisd(M_PI/2.0, Eigen::Vector3d::UnitX())
+              * Eigen::AngleAxisd(edges_.at(i).yaw + M_PI/2.0, Eigen::Vector3d::UnitY());
 
         if(closest_orthogonal_edge_index_==i){
           marker.color.r = 0.0;
@@ -96,11 +95,36 @@ namespace edge_detection {
         marker.pose.orientation.y = q.y();
         marker.pose.orientation.z = q.z();
         marker.pose.orientation.w = q.w();
-        marker.scale.x = 1;
-        marker.scale.y = 0.1;
-        marker.scale.z = 0.1;
+        marker.scale.x = 0.02;
+        marker.scale.y = 0.02;
+        marker.scale.z = edges_.at(i).length;
         marker.color.a = 1.0; // Don't forget to set the alpha!
         marker_array.markers.push_back(marker);
+
+        visualization_msgs::Marker text_marker;
+        text_marker.header.frame_id = frame_name_;
+        text_marker.header.stamp = ros::Time();
+        text_marker.ns = "edge_detection";
+        text_marker.id = edges_.size() + i;
+        text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+        text_marker.action = visualization_msgs::Marker::ADD;
+        text_marker.pose.position.x = edges_.at(i).point1_wf[0];
+        text_marker.pose.position.y = edges_.at(i).point1_wf[1];
+        text_marker.pose.position.z = edges_.at(i).z;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+        text_marker.text = std::to_string(i);
+        text_marker.scale.x = 0.1;
+        text_marker.scale.y = 0.1;
+        text_marker.scale.z = 0.1;
+        text_marker.color.a = 1.0; // Don't forget to set the alpha!
+        text_marker.color.r = 1.0;
+        text_marker.color.g = 1.0;
+        text_marker.color.b = 1.0;
+        marker_array.markers.push_back(text_marker);
+
       }
 
       edges_publisher_.publish(marker_array);
