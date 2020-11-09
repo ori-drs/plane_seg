@@ -8,11 +8,10 @@ namespace edge_detection {
       elevation_map_sub_ = node_handle_.subscribe("elevation_map_processing/sub_map", 1, &edge_detection::EdgeDetectionRos::UpdateEdges, this);
       anymal_state_sub_ = node_handle_.subscribe("/state_estimator/anymal_state", 1, &edge_detection::EdgeDetectionRos::ReadAnymalState, this);
       edge_pub_ = node_handle_.advertise<edge_detection::EdgeArray>("/edge_detection/edge_array", 1000);
+      edges_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>( "/edge_detection/detected_edges", 0 );
 
       number_of_published_edges_ = 6;
       std::cout<<"[EdgeDetection::detectEdges] number of published edges: "<<number_of_published_edges_<<std::endl;
-      //state_world_yaw_prev_ = 0.0;
-
     }
 
     EdgeDetectionRos::~EdgeDetectionRos() {
@@ -57,15 +56,54 @@ namespace edge_detection {
 
       plotEdges();
     }
-}
 
-int main(int argc, char *argv[])
-{
-  ros::init(argc, argv, "edge_detection_ros");
-  ros::NodeHandle node_handle;
-  std::string frame_name = "odom";
-  edge_detection::EdgeDetectionRos edge_detection_ros(node_handle, frame_name, 0.4, 0.02);
-  ros::MultiThreadedSpinner spinner(4);
-  spinner.spin();
-  return 0;
+    void EdgeDetectionRos::plotEdges(){
+
+      visualization_msgs::MarkerArray marker_array;
+      for( size_t i = 0; i < edges_.size(); i++ )
+      {
+        visualization_msgs::Marker marker;
+        Eigen::Vector3d edge_pose;
+        edge_pose(0) = (edges_.at(i).point1_wf[0]+edges_.at(i).point2_wf[0])/2.0;
+        edge_pose(1) = (edges_.at(i).point1_wf[1]+edges_.at(i).point2_wf[1])/2.0;
+        edge_pose(2) = edges_.at(i).z;
+
+        Eigen::Quaterniond q;
+        q = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitX())
+            * Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitY())
+            * Eigen::AngleAxisd(edges_.at(i).yaw, Eigen::Vector3d::UnitZ());
+
+        if(closest_orthogonal_edge_index_==i){
+          marker.color.r = 0.0;
+          marker.color.g = 1.0;
+          marker.color.b = 0.0;
+        }else{
+          marker.color.r = 1.0;
+          marker.color.g = 0.0;
+          marker.color.b = 0.0;
+        }
+
+        marker.header.frame_id = frame_name_;
+        marker.header.stamp = ros::Time();
+        marker.ns = "edge_detection";
+        marker.id = i;
+        marker.type = visualization_msgs::Marker::CYLINDER;
+        marker.action = visualization_msgs::Marker::ADD;
+        marker.pose.position.x = edge_pose(0);
+        marker.pose.position.y = edge_pose(1);
+        marker.pose.position.z = edge_pose(2);
+        marker.pose.orientation.x = q.x();
+        marker.pose.orientation.y = q.y();
+        marker.pose.orientation.z = q.z();
+        marker.pose.orientation.w = q.w();
+        marker.scale.x = 1;
+        marker.scale.y = 0.1;
+        marker.scale.z = 0.1;
+        marker.color.a = 1.0; // Don't forget to set the alpha!
+        marker_array.markers.push_back(marker);
+      }
+
+      edges_publisher_.publish(marker_array);
+
+    }
 }

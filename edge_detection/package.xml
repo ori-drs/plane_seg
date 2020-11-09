@@ -19,7 +19,6 @@
   <depend>grid_map_core</depend>
   <depend>grid_map_cv</depend>
   <depend>grid_map_filters</depend>
-  <depend>locomotion_viewer</depend>
   <exec_depend>xterm</exec_depend>
   <exec_depend>rviz</exec_depend>
   <exec_depend>rqt_bag</exec_depend>

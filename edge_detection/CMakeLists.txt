@@ -22,7 +22,6 @@ find_package(catkin REQUIRED COMPONENTS
   grid_map_core
   grid_map_filters
   grid_map_cv
-  locomotion_viewer
   message_generation
   )
 
@@ -52,7 +51,6 @@ catkin_package(
   message_runtime
   std_msgs
   geometry_msgs
-  locomotion_viewer
   )
 
 ###########

@@ -13,11 +13,8 @@
 #include <random>
 
 #include <grid_map_core/grid_map_core.hpp>
-
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <edge_detection/edge_container.h>
-#include <locomotion_viewer/LocomotionViewer.hpp>
-
 
 namespace edge_detection {
 
@@ -31,11 +28,6 @@ namespace edge_detection {
         * @brief update list of detected edges
         */
         bool advance(const Eigen::Vector3d & base_pose_so2, const grid_map_msgs::GridMap & message);
-
-        /**
-        * @brief plot edges to Rviz.
-        */
-        void plotEdges();
 
         /**
         * @brief get perpendicular distance between robot's odometry frame and the considered edge.
@@ -76,6 +68,9 @@ namespace edge_detection {
         * @brief get height of step corresponding to the edge closest to the robot.
         */
         double getNextStepHeight();
+        std::vector<edge_detection::EdgeContainer> edges_;
+        std::string frame_name_;
+        edge_idx closest_orthogonal_edge_index_;
 
 
     private:
@@ -107,7 +102,6 @@ namespace edge_detection {
 
         grid_map::GridMap gridMap_;
         double deltaFiniteDifferentiation_;
-        locomotion_viewer::LocomotionViewerPtr edges_publisher_;
         ros::NodeHandle node_handle_;
         std::vector<cv::Vec4i> linesP_; // will hold the results of the detectio
         Eigen::Vector2d edge_direction_;
@@ -119,10 +113,6 @@ namespace edge_detection {
         double max_height_;
         double target_yaw_angle_;
         std::vector<edge_idx> orthogonal_edge_indices_;
-        edge_idx closest_orthogonal_edge_index_;
-
-        std::vector<edge_detection::EdgeContainer> edges_;
-
         Eigen::Vector3d base_pose_;
 
 

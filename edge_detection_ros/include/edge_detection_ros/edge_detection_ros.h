@@ -8,12 +8,14 @@
 #include <std_msgs/Header.h>
 #include <anymal_msgs/AnymalState.h>
 
-#include <locomotion_viewer/LocomotionViewer.hpp>
 #include <Eigen/Eigen>
 
 #include <edge_detection/edge_detection.h>
 #include <edge_detection/Edge.h>
 #include <edge_detection/EdgeArray.h>
+
+#include "visualization_msgs/Marker.h"
+#include "visualization_msgs/MarkerArray.h"
 
 namespace edge_detection {
     class EdgeDetectionRos: public EdgeDetection
@@ -23,6 +25,11 @@ namespace edge_detection {
         ~EdgeDetectionRos();
 
         edge_detection::EdgeArray createMessage();
+
+        /**
+        * @brief plot edges to Rviz.
+        */
+        void plotEdges();
 
     private:
 
@@ -34,6 +41,7 @@ namespace edge_detection {
         ros::Subscriber elevation_map_sub_;
         ros::Subscriber anymal_state_sub_;
         ros::Publisher edge_pub_;
+        ros::Publisher edges_publisher_;
         Eigen::Vector3d robot_state_;
         int number_of_published_edges_;
 

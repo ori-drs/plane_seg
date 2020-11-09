@@ -1,4 +1,4 @@
-#include "edge_detection/edge_detection.h"
+#include "edge_detection_ros/edge_detection_ros.h"
 #include <edge_detection/Edge.h>
 #include <edge_detection/EdgeArray.h>
 
@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
   double min_lenght = 0.8;
   double min_height = 0.3;
   std::string frame_name = "world";
-  edge_detection::EdgeDetection edge_det(node_handle, frame_name, min_lenght, min_height);
+  edge_detection::EdgeDetectionRos edge_det(node_handle, frame_name, min_lenght, min_height);
 
   double number_of_published_edges = 4;
   ros::Publisher fake_edges_pub = node_handle.advertise<edge_detection::EdgeArray>("/edge_detection/edge_array", 1000);

@@ -24,7 +24,6 @@ find_package(catkin REQUIRED COMPONENTS
   grid_map_core
   grid_map_filters
   grid_map_cv
-  locomotion_viewer
   message_generation
   edge_detection
   xpp_msgs
@@ -44,7 +43,6 @@ catkin_package(
   message_runtime
   std_msgs
   geometry_msgs
-  locomotion_viewer
   edge_detection
   xpp_msgs
   )
@@ -59,6 +57,7 @@ include_directories(
   )
 
 add_executable(${PROJECT_NAME}
+        src/edge_detection_ros_node.cpp
         src/edge_detection_ros.cpp
         )
 
@@ -68,6 +67,7 @@ target_link_libraries(${PROJECT_NAME}
 
 add_executable(fake_edges_publisher
         src/fake_edges_publisher.cpp
+        src/edge_detection_ros.cpp
         )
 
 target_link_libraries(fake_edges_publisher

@@ -16,11 +16,13 @@ namespace edge_detection {
     min_length_(min_length),
     min_height_(min_height)
     {
-      edges_publisher_.reset(
-                    new locomotion_viewer::LocomotionViewer(frame_name, "/edge_detection/detected_edges", node_handle_));
+      //edges_publisher_.reset(
+      //              new locomotion_viewer::LocomotionViewer(frame_name, "/edge_detection/detected_edges", node_handle_));
+
       max_height_ = 10.35;
       max_length_ = 1.5;
       target_yaw_angle_ = 0.0;
+      frame_name_ = frame_name;
       std::cout<<"[EdgeDetection::detectEdges] Parameters: "<<std::endl;
       std::cout<<"[EdgeDetection::detectEdges] min length: "<<min_length_<<std::endl;
       std::cout<<"[EdgeDetection::detectEdges] max length: "<<max_length_<<std::endl;
@@ -250,48 +252,6 @@ namespace edge_detection {
       }
       closest_orthogonal_edge_index_ = closest_idx;
       return closest_idx;
-    }
-
-    void EdgeDetection::plotEdges(){
-      edges_publisher_->deleteAllMarkers();
-      
-      for( size_t i = 0; i < edges_.size(); i++ )
-      {
-        Eigen::VectorXd x(5), y(5);
-        x[0] = edges_.at(i).point1_wf[0]; y[0] = edges_.at(i).point1_wf[1];
-        x[1] = edges_.at(i).point2_wf[0]; y[1] = edges_.at(i).point2_wf[1];
-        x[2] = edges_.at(i).point2_wf[0]; y[2] = edges_.at(i).point2_wf[1];
-        x[3] = edges_.at(i).point1_wf[0]; y[3] = edges_.at(i).point1_wf[1];
-        x[4] = edges_.at(i).point1_wf[0]; y[4] = edges_.at(i).point1_wf[1];
-      
-        Eigen::VectorXd z(5);
-        z[0] = edges_.at(i).z;
-        z[1] = edges_.at(i).z;
-        z[2] = edges_.at(i).z - fabs(edges_.at(i).height);
-        z[3] = edges_.at(i).z - fabs(edges_.at(i).height);
-        z[4] = edges_.at(i).z;
-      
-        rviz_visual_tools::colors rviz_color;
-        if(closest_orthogonal_edge_index_==i){
-          rviz_color = rviz_visual_tools::GREEN;
-      
-          //std::cout<<"[EdgeDetection::detectEdges] edge index: "<<i<<std::endl;
-          //std::cout<<"[EdgeDetection::detectEdges] edge lenght: "<<edges_.at(i).length<<std::endl;
-          //std::cout<<"[EdgeDetection::detectEdges] edge height: "<<edges_.at(i).height<<std::endl;
-          //std::cout<<"[EdgeDetection::detectEdges] edge angle: "<<edges_.at(i).yaw<<std::endl;
-        }else{
-          rviz_color = rviz_visual_tools::RED;
-        }
-        edges_publisher_->publishEigenPath(x, y, z, rviz_color, rviz_visual_tools::MEDIUM);
-        Eigen::Isometry3d text_pose = Eigen::Isometry3d::Identity();
-        text_pose.translation().x() = x[0];
-        text_pose.translation().y() = y[0];
-        text_pose.translation().z() = edges_.at(i).z;
-        edges_publisher_->publishText(text_pose, std::to_string(i), rviz_visual_tools::WHITE, rviz_visual_tools::XLARGE, false);
-        //edges_publisher_->publishText(text_pose, std::to_string(orthogonal_edge_indices_.at(next_i)));
-      }
-      
-      edges_publisher_->trigger();
     }
 
     Eigen::Vector2d EdgeDetection::convertImageToOdomFrame(const double & resolution, const Eigen::Array2i & grid_size, const int & p_x, const int & p_y){
