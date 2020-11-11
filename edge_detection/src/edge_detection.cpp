@@ -172,7 +172,7 @@ namespace edge_detection {
           new_edge.line_coeffs = Eigen::Vector2d(sin(edge_yaw_wf), cos(edge_yaw_wf));
           Eigen::Vector2d target_pos = robot_pos + 1.0*Eigen::Vector2d(cos(robot_yaw_angle), sin(robot_yaw_angle));
           Eigen::Vector2d edge_pos = (new_edge.point1_wf+new_edge.point2_wf)/2.0;
-          if(isInsideEllipse(robot_yaw_angle, robot_pos, edge_pos, 1.0, 2.0)){
+          //if(isInsideEllipse(robot_yaw_angle, robot_pos, edge_pos, 1.0, 2.0)){
             new_edge.height = computeStepHeight(new_edge.point1_wf, new_edge.point2_wf, new_edge.z);
             if ((fabs(new_edge.height) > min_height_)&&(fabs(new_edge.height) < max_height_)){
                 if (!isEdgeRedundant(new_edge.point1_wf, new_edge.point2_wf)) {
@@ -182,7 +182,7 @@ namespace edge_detection {
                   orthogonal_edge_indices_.push_back(i);
                 }
             }
-          }
+          //}
 
         }
       }
@@ -263,9 +263,9 @@ namespace edge_detection {
       Eigen::Vector2d new_line_coeffs = Eigen::Vector2d(sin(new_adge_yaw), cos(new_adge_yaw));
       double existing_edge_distance = computeDistanceBtwEdgeAndBaseInWorldFrame(existing_edge.point1_wf, existing_edge.point2_wf, base_pos);
       double new_distance = computeDistanceBtwEdgeAndBaseInWorldFrame(p1, p2, base_pos);
-      if(fabs(existing_edge.line_coeffs(0)-new_line_coeffs(0))<5){
-        if(fabs(existing_edge.line_coeffs(1)-new_line_coeffs(1))<5){
-          if(fabs(existing_edge_distance - new_distance)< 0.1){
+      if(fabs(existing_edge.line_coeffs(0)-new_line_coeffs(0))<10){
+        if(fabs(existing_edge.line_coeffs(1)-new_line_coeffs(1))<10){
+          if(fabs(existing_edge_distance - new_distance)< 0.4){
             return true;
           }
         }
