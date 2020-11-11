@@ -1,0 +1,2 @@
+string status
+Edge[]              edges

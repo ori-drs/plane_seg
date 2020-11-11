@@ -6,6 +6,8 @@
 
 We assume the ROS build system (e.g. Melodic). The core library (plane-seg) is only dependent on PCL. The ROS application (plane-seg-ros) can process PointCloud2 and GridMap data types.
 
+The edge detection package depends on Rviz Visual Tools and on the Locomotion Viewer library.
+
 # Using It
 
 **Run-Time Application:** A sample application (for ANYmal) can be run and visualized (in Rviz) as follows:
@@ -22,6 +24,10 @@ roslaunch plane_seg_ros test.launch
 roslaunch plane_seg_ros view_plane_seg.launch
 ```
 
+**Run edge detection:** 
+```python
+rosrun edge_detection_ros edge_detection_ros
+```
 
 # Input
 
@@ -30,9 +36,11 @@ in the odometry frame. The elevation map is assumed to be at a 1-2 Hz.
 
 # Output
 
-A series of planar convex hulls published to ROS at 1-2 Hz
+1) A series of planar convex hulls published to ROS at 1-2 Hz
 
 * Nov 2019: Existing limitation is that the code searches for plane regions (which works fine), but that these regions are then assumed to be convex. However, they could be concave. We need to instead break concave regions into convex ones - a basic task.
+
+2) A series of line segments (edges) of published to ROS at 1-2 Hz. The minimum lenght of the edges can be adjusted, as much as the minimum height required to detect a new step.
 
 # Performance
 
