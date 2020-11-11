@@ -5,12 +5,12 @@ namespace edge_detection {
     EdgeDetectionRos::EdgeDetectionRos(ros::NodeHandle &node_handle, std::string & frame_name, double min_length, double min_height) :
             node_handle_(node_handle), EdgeDetection(node_handle, frame_name, min_length, min_height) {
 
-      elevation_map_sub_ = node_handle_.subscribe("elevation_map_processing/sub_map", 1, &edge_detection::EdgeDetectionRos::UpdateEdges, this);
+      elevation_map_sub_ = node_handle_.subscribe("elevation_mapping/elevation_map", 1, &edge_detection::EdgeDetectionRos::UpdateEdges, this);
       edge_pub_ = node_handle_.advertise<edge_detection::EdgeArray>("/edge_detection/edge_array", 1000);
       edges_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>( "/edge_detection/detected_edges", 0 );
 
       number_of_published_edges_ = 6;
-      std::cout<<"[EdgeDetection::detectEdges] number of published edges: "<<number_of_published_edges_<<std::endl;
+      std::cout<<"[EdgeDetection::detectEdges] size of edge array: "<<number_of_published_edges_<<std::endl;
     }
 
     EdgeDetectionRos::~EdgeDetectionRos() {
