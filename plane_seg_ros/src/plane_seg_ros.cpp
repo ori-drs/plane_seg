@@ -471,7 +471,7 @@ int main( int argc, char** argv ){
 
   ros::init(argc, argv, "plane_seg");
   ros::NodeHandle nh("~");
-  Pass *app = new Pass(nh);
+  std::unique_ptr<Pass> app = std::make_unique<Pass>(nh);
 
   ROS_INFO_STREAM("plane_seg ros ready");
   ROS_INFO_STREAM("=============================");
