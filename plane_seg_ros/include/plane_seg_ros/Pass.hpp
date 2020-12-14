@@ -26,7 +26,7 @@ class Pass{
 
     void processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f origin, Eigen::Vector3f lookDir);
     void processFromFile(int test_example);
-    void stepThroughFile();
+    void stepThroughFile(std::string filename);
     void publishHullsAsCloud(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_ptrs,
                                  int secs, int nsecs);
 
