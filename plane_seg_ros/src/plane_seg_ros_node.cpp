@@ -13,6 +13,8 @@ int main( int argc, char** argv ){
 
   ros::init(argc, argv, "plane_seg");
   ros::NodeHandle nh("~");
+  std::string filename_;
+  nh.getParam("/rosbag_pass/filename", filename_);
   std::unique_ptr<Pass> app = std::make_unique<Pass>(nh);
 
   ROS_INFO_STREAM("plane_seg ros ready");
@@ -45,7 +47,7 @@ int main( int argc, char** argv ){
   //Enable this to run the sequential test
   if (run_sequential_test){
       std::cout << "Running sequential test\n";
-      app->stepThroughFile();
+      app->stepThroughFile(filename_);
       std::cout << "Finished!\n";
       exit(-1);
   }

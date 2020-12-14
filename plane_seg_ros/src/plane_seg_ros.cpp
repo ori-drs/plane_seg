@@ -186,12 +186,12 @@ void Pass::processFromFile(int test_example){
   processCloud(inCloud, origin, lookDir);
 }
 
-void Pass::stepThroughFile(){
+void Pass::stepThroughFile(std::string filename){
 
-//    std::cout << filename <<std::endl;
+    std::cout << filename <<std::endl;
 
     rosbag::Bag bag;
-    bag.open("/home/christos/rosbags/2020-12-04-12-48-30.bag", rosbag::bagmode::Read);
+    bag.open(filename, rosbag::bagmode::Read);
     std::vector<std::string> topics;
     topics.push_back(std::string("/rooster_elevation_mapping/elevation_map"));
     topics.push_back(std::string("/vilens/pose"));
