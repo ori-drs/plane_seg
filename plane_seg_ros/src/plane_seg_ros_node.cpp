@@ -38,6 +38,18 @@ int main( int argc, char** argv ){
     exit(-1);
   }
 
+  bool run_sequential_test = false;
+  nh.param("/plane_seg/run_sequential_test", run_sequential_test, false);
+  std::cout << "run_sequential_test: " << run_sequential_test << "\n";
+
+  //Enable this to run the sequential test
+  if (run_sequential_test){
+      std::cout << "Running sequential test\n";
+      app->stepThroughFile();
+      std::cout << "Finished!\n";
+      exit(-1);
+  }
+
   ROS_INFO_STREAM("Waiting for ROS messages");
   ros::spin();
 

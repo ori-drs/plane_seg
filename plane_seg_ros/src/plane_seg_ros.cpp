@@ -3,8 +3,10 @@
 
 #include <unistd.h>
 #include <ros/ros.h>
-
+#include <ros/console.h>
 #include <ros/package.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
 
 #include <eigen_conversions/eigen_msg.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -16,6 +18,13 @@
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_ros/GridMapRosConverter.hpp>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <grid_map_msgs/GridMap.h>
+
+#include <boost/foreach.hpp>
+#include <boost/variant.hpp>
+#define foreach BOOST_FOREACH
+
 
 using namespace planeseg;
 
@@ -24,18 +33,22 @@ Pass::Pass(ros::NodeHandle node_):
 
   std::string input_body_pose_topic;
   node_.getParam("input_body_pose_topic", input_body_pose_topic);
-
+//  std::string filename;
+//  node_.getParm("/rosbag_pass/filename", filename);
+/*
   grid_map_sub_ = node_.subscribe("/elevation_mapping/elevation_map", 100,
                                     &Pass::elevationMapCallback, this);
   point_cloud_sub_ = node_.subscribe("/plane_seg/point_cloud_in", 100,
                                     &Pass::pointCloudCallback, this);
   pose_sub_ = node_.subscribe("/state_estimator/pose_in_odom", 100,
                                     &Pass::robotPoseCallBack, this);
-
+*/
   received_cloud_pub_ = node_.advertise<sensor_msgs::PointCloud2>("/plane_seg/received_cloud", 10);
   hull_cloud_pub_ = node_.advertise<sensor_msgs::PointCloud2>("/plane_seg/hull_cloud", 10);
   hull_markers_pub_ = node_.advertise<visualization_msgs::Marker>("/plane_seg/hull_markers", 10);
   look_pose_pub_ = node_.advertise<geometry_msgs::PoseStamped>("/plane_seg/look_pose", 10);
+  elev_map_pub_ = node_.advertise<grid_map_msgs::GridMap>("/rooster_elevation_mapping/elevation_map", 1);
+  pose_pub_ = node_.advertise<geometry_msgs::PoseWithCovarianceStamped>("/vilens/pose", 1);
 
   last_robot_pose_ = Eigen::Isometry3d::Identity();
 
@@ -77,15 +90,21 @@ void Pass::robotPoseCallBack(const geometry_msgs::PoseWithCovarianceStampedConst
 }
 
 void Pass::elevationMapCallback(const grid_map_msgs::GridMap& msg){
-  //std::cout << "got grid map / ev map\n";
+  std::cout << "got grid map / ev map\n";
 
   // convert message to GridMap, to PointCloud to LabeledCloud
   grid_map::GridMap map;
+  std::cout << "created gmap object map\n";
   grid_map::GridMapRosConverter::fromMessage(msg, map);
+  std::cout << "converted gmap_msg to gmap map\n";
   sensor_msgs::PointCloud2 pointCloud;
+  std::cout << "created pointcloud object pointCloud\n";
   grid_map::GridMapRosConverter::toPointCloud(map, "elevation", pointCloud);
+  std::cout << "converted gmap map to pointcloud pointCloud\n";
   planeseg::LabeledCloud::Ptr inCloud(new planeseg::LabeledCloud());
-  pcl::fromROSMsg(pointCloud,*inCloud);
+  std::cout << "created object inCloud\n";
+  pcl::fromROSMsg(pointCloud, *inCloud);
+  std::cout << "called fromROSMsg\n";
 
   Eigen::Vector3f origin, lookDir;
   origin << last_robot_pose_.translation().cast<float>();
@@ -165,6 +184,40 @@ void Pass::processFromFile(int test_example){
   }
 
   processCloud(inCloud, origin, lookDir);
+}
+
+void Pass::stepThroughFile(){
+
+//    std::cout << filename <<std::endl;
+
+    rosbag::Bag bag;
+    bag.open("/home/christos/rosbags/2020-12-04-12-48-30.bag", rosbag::bagmode::Read);
+    std::vector<std::string> topics;
+    topics.push_back(std::string("/rooster_elevation_mapping/elevation_map"));
+    topics.push_back(std::string("/vilens/pose"));
+
+    rosbag::View view(bag, rosbag::TopicQuery(topics));
+
+    foreach(rosbag::MessageInstance const m, view){
+        grid_map_msgs::GridMap::ConstPtr s = m.instantiate<grid_map_msgs::GridMap>();
+
+        if (s != NULL){
+            std::cout << "received gridmap at time " << m.getTime().toNSec() << " with resolution:" <<   s->info.resolution << std::endl;
+            elevationMapCallback(*s);
+            elev_map_pub_.publish(*s);
+            std::cout << "Press [Enter] to continue to next gridmap message" << std::endl;
+            std::cin.get();
+        }
+
+        geometry_msgs::PoseWithCovarianceStamped::ConstPtr i = m.instantiate<geometry_msgs::PoseWithCovarianceStamped>();
+        if (i !=NULL){
+            std::cout << "position (x, y, z): " << i->pose.pose.position.x << ", " << i->pose.pose.position.y << ", "  << i->pose.pose.position.z << std::endl;
+            robotPoseCallBack(i);
+            pose_pub_.publish(*i);
+        }
+    }
+
+    bag.close();
 }
 
 
@@ -267,7 +320,7 @@ void Pass::publishResult(){
   publishHullsAsMarkers(cloud_ptrs, 0, 0);
 
   //pcl::PCDWriter pcd_writer_;
-  //pcd_writer_.write<pcl::PointXYZ> ("/home/mfallon/out.pcd", cloud, false);
+  //cd_writer_.write<pcl::PointXYZ> ("/home/mfallon/out.pcd", cloud, false);
   //std::cout << "blocks: " << result_.mBlocks.size() << " blocks\n";
   //std::cout << "cloud: " << cloud.points.size() << " pts\n";
 }
