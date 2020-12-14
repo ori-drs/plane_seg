@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<launch>
+  <rosparam command="load" file="$(find plane_seg_ros)/config/rosbag_sequential.yaml" />
+  <arg name="rosbag_path" default="$(find drs_testing_data)/plane_seg/ori_stairs.bag" />
+  <node name="plane_seg" pkg="plane_seg_ros" type="plane_seg_ros_node">
+    <param name="rosbag_path" value="$(arg rosbag_path)" />
+  </node>
+</launch>
