@@ -3,7 +3,7 @@
 #include <mutex>
 #include <sstream>
 
-#include <lcm/lcm-cpp.hpp>
+//#include <lcm/lcm-cpp.hpp>
 //#include <ConciseArgs>
 
 //#include <drc_utils/LcmWrapper.hpp>
