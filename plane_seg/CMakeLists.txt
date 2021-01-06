@@ -33,6 +33,7 @@ add_library(${LIB_NAME} SHARED
   src/PlaneSegmenter.cpp
   src/RectangleFitter.cpp
   src/BlockFitter.cpp
+  src/Tracker.cpp
 )
 add_dependencies(plane_seg ${catkin_EXPORTED_TARGETS})
 target_link_libraries(plane_seg ${catkin_LIBRARIES})

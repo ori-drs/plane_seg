@@ -12,6 +12,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
+#include <pcl/common/impl/centroid.hpp>
 
 #include <visualization_msgs/Marker.h>
 
@@ -89,22 +90,17 @@ void Pass::robotPoseCallBack(const geometry_msgs::PoseWithCovarianceStampedConst
   tf::poseMsgToEigen(msg->pose.pose, last_robot_pose_);
 }
 
+
 void Pass::elevationMapCallback(const grid_map_msgs::GridMap& msg){
   std::cout << "got grid map / ev map\n";
 
   // convert message to GridMap, to PointCloud to LabeledCloud
   grid_map::GridMap map;
-  std::cout << "created gmap object map\n";
   grid_map::GridMapRosConverter::fromMessage(msg, map);
-  std::cout << "converted gmap_msg to gmap map\n";
   sensor_msgs::PointCloud2 pointCloud;
-  std::cout << "created pointcloud object pointCloud\n";
   grid_map::GridMapRosConverter::toPointCloud(map, "elevation", pointCloud);
-  std::cout << "converted gmap map to pointcloud pointCloud\n";
   planeseg::LabeledCloud::Ptr inCloud(new planeseg::LabeledCloud());
-  std::cout << "created object inCloud\n";
   pcl::fromROSMsg(pointCloud, *inCloud);
-  std::cout << "called fromROSMsg\n";
 
   Eigen::Vector3f origin, lookDir;
   origin << last_robot_pose_.translation().cast<float>();
@@ -203,6 +199,8 @@ void Pass::stepThroughFile(std::string filename){
 
         if (s != NULL){
             std::cout << "received gridmap at time " << m.getTime().toNSec() << " with resolution:" <<   s->info.resolution << std::endl;
+            int i = 0;
+            if (i )
             elevationMapCallback(*s);
             elev_map_pub_.publish(*s);
             std::cout << "Press [Enter] to continue to next gridmap message" << std::endl;
@@ -299,6 +297,19 @@ void Pass::printResultAsJson(){
 void Pass::publishResult(){
   // convert result to a vector of point clouds
   std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_ptrs;
+  std::vector<Eigen::Vector4f> centroid_list;
+  std::vector<Eigen::Vector4f> old_centroid_list;
+
+  if (old_centroid_list.empty()){
+      Eigen::Vector4f old_centroid_list_init;
+      old_centroid_list_init << 0,
+              0,
+              0,
+              1;
+      old_centroid_list.push_back(old_centroid_list_init);
+  }
+//  printCentroidList(old_centroid_list);
+
   for (size_t i=0; i<result_.mBlocks.size(); ++i){
     pcl::PointCloud<pcl::PointXYZ> cloud;
     const auto& block = result_.mBlocks[i];
@@ -311,13 +322,23 @@ void Pass::publishResult(){
     }
     cloud.height = cloud.points.size();
     cloud.width = 1;
+    Eigen::Vector4f centroid;
+    pcl::compute3DCentroid(cloud, centroid);
+    centroid_list.push_back(centroid);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ptr;
     cloud_ptr = cloud.makeShared();
     cloud_ptrs.push_back(cloud_ptr);
   }
 
+  std::cout << "Centroid list: " << std::endl;
+  printCentroidList(centroid_list);
+  compareCentroidLists(old_centroid_list, centroid_list);
+//  std::cout << centroid_list[0] << std::endl;
+
   publishHullsAsCloud(cloud_ptrs, 0, 0);
   publishHullsAsMarkers(cloud_ptrs, 0, 0);
+
+  old_centroid_list = centroid_list;
 
   //pcl::PCDWriter pcd_writer_;
   //cd_writer_.write<pcl::PointXYZ> ("/home/mfallon/out.pcd", cloud, false);
@@ -440,4 +461,28 @@ void Pass::publishHullsAsMarkers(std::vector< pcl::PointCloud<pcl::PointXYZ>::Pt
 }
 
 
+void Pass::printCentroidList(std::vector<Eigen::Vector4f> centroid_list_){
+    for (unsigned i=0; i < centroid_list_.size(); i++){
+        for (unsigned j=0; j < centroid_list_[i].size(); j++){
+    std::cout << centroid_list_[i][j] << std::endl;
+        }
+    }
+}
 
+void Pass::compareCentroidLists(std::vector<Eigen::Vector4f> old_centroid_list_, std::vector<Eigen::Vector4f> centroid_list_){
+
+//    double threshold = 1;
+    std::cout << "Entered compareCentroidLists" << std::endl;
+    for (unsigned i = 0; i < old_centroid_list_.size(); i++){
+
+        std::cout << "Entered first for loop" << std::endl;
+        for (unsigned j = 0; j < centroid_list_.size(); j++){
+//            double z_dist = fabs(old_centroid_list_[i][2] - centroid_list_[j][2]);
+
+//            if (z_dist < threshold){
+//                std::complex dist = (old_centroid_list_[i] - centroid_list_[j]).norm();
+                std::cout << "The " << i << "'th old centroid is " << (old_centroid_list_[i] - centroid_list_[j]).norm() << " far away from the " << j << "'th new centroid." << std::endl;
+//            }
+    }
+    }
+}
