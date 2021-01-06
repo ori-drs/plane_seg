@@ -2,7 +2,7 @@
 <launch>
   <rosparam command="load" file="$(find plane_seg_ros)/config/rosbag_sequential.yaml" />
   <arg name="rosbag_path" default="" />
-  <node name="plane_seg" pkg="plane_seg_ros" type="plane_seg_ros_node">
+  <node name="plane_seg" pkg="plane_seg_ros" type="plane_seg_ros_node" output="screen">
     <param name="rosbag_path" value="$(arg rosbag_path)" />
   </node>
 
