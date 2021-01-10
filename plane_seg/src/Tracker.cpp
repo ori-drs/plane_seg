@@ -54,10 +54,6 @@ void Tracker::test(planeseg::BlockFitter::Result result_){
     printStairs(newStairs);
 };
 
-// Create a vector newStairs containing the centroids from result
-std::vector<pcl::PointXYZ> Tracker::newStairs{
-
-};
 
 int Tracker::get_new_centroid_id(plane plane){
 
