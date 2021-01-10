@@ -2,6 +2,7 @@
 #include "plane_seg_ros/Pass.hpp"
 #include <ros/console.h>
 #include <pcl/console/print.h>
+#include <iostream>
 
 using namespace planeseg;
 

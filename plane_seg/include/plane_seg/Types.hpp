@@ -8,7 +8,7 @@
 
 namespace planeseg {
 
-  /*
+/*
 struct Point {
   PCL_ADD_POINT4D;
   float delta;
@@ -23,7 +23,7 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(Point,
                                   (float, delta, delta)
                                   (int, label, label)
 )
-  */
+*/
 typedef pcl::PointXYZL Point;
 
 typedef pcl::PointCloud<pcl::Normal> NormalCloud;
