@@ -10,6 +10,7 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
+#include <plane_seg/Tracker.hpp>
 
 namespace planeseg {
 
@@ -34,6 +35,8 @@ class Pass{
                                  int secs, int nsecs);
     void printResultAsJson();
     void publishResult();
+    void printCentroidList(std::vector<Eigen::Vector4f> centroid_list);
+    void compareCentroidLists(std::vector<Eigen::Vector4f> old_centroid_list, std::vector<Eigen::Vector4f> centroid_list);
 
   private:
     ros::NodeHandle node_;
@@ -44,5 +47,6 @@ class Pass{
 
     Eigen::Isometry3d last_robot_pose_;
     planeseg::BlockFitter::Result result_;
+    planeseg::Tracker tracking_;
 };
 }

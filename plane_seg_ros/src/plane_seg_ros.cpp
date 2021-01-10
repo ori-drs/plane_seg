@@ -24,6 +24,8 @@
 
 #include <boost/foreach.hpp>
 #include <boost/variant.hpp>
+
+#include "plane_seg/Tracker.hpp"
 #define foreach BOOST_FOREACH
 
 
@@ -52,6 +54,8 @@ Pass::Pass(ros::NodeHandle node_):
   pose_pub_ = node_.advertise<geometry_msgs::PoseWithCovarianceStamped>("/vilens/pose", 1);
 
   last_robot_pose_ = Eigen::Isometry3d::Identity();
+
+  tracking_ = new planeseg::Tracker();
 
   colors_ = {
        51/255.0, 160/255.0, 44/255.0,  //0
@@ -232,7 +236,8 @@ void Pass::processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f or
   fitter.setMaxAngleOfPlaneSegmenter(10);
 
   result_ = fitter.go();
-
+  tracking_.reset();
+  tracking_.test(result_);
 
   Eigen::Vector3f rz = lookDir;
   Eigen::Vector3f rx = rz.cross(Eigen::Vector3f::UnitZ());
@@ -297,7 +302,7 @@ void Pass::printResultAsJson(){
 void Pass::publishResult(){
   // convert result to a vector of point clouds
   std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_ptrs;
-  std::vector<Eigen::Vector4f> centroid_list;
+/*  std::vector<Eigen::Vector4f> centroid_list;
   std::vector<Eigen::Vector4f> old_centroid_list;
 
   if (old_centroid_list.empty()){
@@ -309,7 +314,7 @@ void Pass::publishResult(){
       old_centroid_list.push_back(old_centroid_list_init);
   }
 //  printCentroidList(old_centroid_list);
-
+*/
   for (size_t i=0; i<result_.mBlocks.size(); ++i){
     pcl::PointCloud<pcl::PointXYZ> cloud;
     const auto& block = result_.mBlocks[i];
@@ -322,23 +327,23 @@ void Pass::publishResult(){
     }
     cloud.height = cloud.points.size();
     cloud.width = 1;
-    Eigen::Vector4f centroid;
-    pcl::compute3DCentroid(cloud, centroid);
-    centroid_list.push_back(centroid);
+//    Eigen::Vector4f centroid;
+//    pcl::compute3DCentroid(cloud, centroid);
+//    centroid_list.push_back(centroid);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ptr;
     cloud_ptr = cloud.makeShared();
     cloud_ptrs.push_back(cloud_ptr);
   }
 
-  std::cout << "Centroid list: " << std::endl;
+/*  std::cout << "Centroid list: " << std::endl;
   printCentroidList(centroid_list);
   compareCentroidLists(old_centroid_list, centroid_list);
-//  std::cout << centroid_list[0] << std::endl;
-
+  std::cout << centroid_list[0] << std::endl;
+*/
   publishHullsAsCloud(cloud_ptrs, 0, 0);
   publishHullsAsMarkers(cloud_ptrs, 0, 0);
 
-  old_centroid_list = centroid_list;
+//  old_centroid_list = centroid_list;
 
   //pcl::PCDWriter pcd_writer_;
   //cd_writer_.write<pcl::PointXYZ> ("/home/mfallon/out.pcd", cloud, false);
