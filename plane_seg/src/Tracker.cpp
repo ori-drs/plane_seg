@@ -83,6 +83,7 @@ int Tracker::get_centroid_id(planeseg::plane plane){
         std::cout << "Entered get_centroid_id" << std::endl;
 
         // go through each plane in oldStairs and compare it to the new plane
+
         for (size_t i = 0; i < oldStairs.size(); i++){
 
             centroid = oldStairs[i].centroid;
@@ -90,6 +91,7 @@ int Tracker::get_centroid_id(planeseg::plane plane){
             if (!idAssigned[i].taken && test){
                 distz = fabs(centroid.z = plane.centroid.z);
                 if (distz < threshold) {
+
                     distance = pcl::euclideanDistance(oldStairs[i].centroid, plane.centroid);
 
                     if (closest == -1 || distance < closestDist){
