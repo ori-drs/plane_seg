@@ -30,7 +30,7 @@ public:
     void reset();
     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> convertResult(planeseg::BlockFitter::Result result);
     void test(planeseg::BlockFitter::Result result);
-    void printStairs(std::vector<Eigen::Vector4f> centroid_list_);
+    void printStairs(const std::vector<plane>& centroid_list_);
     
 private:
     std::vector<plane> newStairs;
