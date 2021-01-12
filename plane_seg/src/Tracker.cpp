@@ -55,7 +55,7 @@ void Tracker::test(planeseg::BlockFitter::Result result_){
 };
 
 
-int Tracker::get_new_centroid_id(plane plane){
+int Tracker::get_centroid_id(planeseg::plane plane){
 
     bool test = true;
     int id;
@@ -73,9 +73,9 @@ int Tracker::get_new_centroid_id(plane plane){
         int closest = -1;
         double closestDist = 0;
 
-        std::cout << "Entered get_new_centroid_id" << std::endl;
+        std::cout << "Entered get_centroid_id" << std::endl;
 
-        // go through each plane in oldStair and compare it to the new plane
+        // go through each plane in oldStairs and compare it to the new plane
         for (int i = 0; i < oldStairs.size(); i++){
 
             centroid = oldStairs[i].centroid;
