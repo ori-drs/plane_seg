@@ -36,7 +36,8 @@ include_directories(
 )
 
 add_library(${PROJECT_NAME} SHARED src/${PROJECT_NAME}.cpp
-                                   src/geometry_utils.cpp)
+                                   src/geometry_utils.cpp
+                                   src/Visualizer.cpp)
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 
