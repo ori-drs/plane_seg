@@ -30,7 +30,7 @@ pcl::PointXYZ Tracker::find_centroid(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud )
     return centroid;
 }
 
-std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Tracker::convertResult(planeseg::BlockFitter::Result result_){
+std::vector<planeseg::plane> Tracker::convertResult(planeseg::BlockFitter::Result result_){
     for (size_t i=0; i<result_.mBlocks.size(); ++i){
       pcl::PointCloud<pcl::PointXYZ> cloud;
       const auto& block = result_.mBlocks[i];
@@ -43,19 +43,35 @@ std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Tracker::convertResult(planeseg
       }
       cloud.height = cloud.points.size();
       cloud.width = 1;
-      pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ptr;
-      cloud_ptr = cloud.makeShared();
-      cloud_ptrs.push_back(cloud_ptr);
+ //     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ptr;
+ //     cloud_ptr = cloud.makeShared();
+ //     cloud_ptrs.push_back(cloud_ptr);
+      planeseg::plane plane_no_id;
+      plane_no_id.cloud.push_back(cloud);
+      vector_of_planes.push_back(plane_no_id);
+
     }
-    return cloud_ptrs;
+
+    return vector_of_planes;
 }
+
+// *** NEXT STEP: create std::vector<int> = planesToIds(std::vector<planeseg::planes>) which goes through each plane in the vector and calls get_centroid_id and assigns it to the plane
+std::vector<int> Tracker::planesToIds(){
+    for (size_t i = 0; i < vector_of_planes.size(); ++i){
+        int current_id;
+        current_id = Tracker::get_centroid_id(vector_of_planes[i]);
+        vector_of_ids.push_back(current_id);
+    }
+    return vector_of_ids;
+}
+
 
 // First test is to just calculate and print centroids
 void Tracker::test(planeseg::BlockFitter::Result result_){
     reset();
     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_ptrs_;
     cloud_ptrs = convertResult(result_);
-    for (size_t i =0 ; i < cloud_ptrs_.size(); i++){
+    for (size_t i =0 ; i < cloud_ptrs_.size(); ++i){
         newStairs[i].centroid = find_centroid(cloud_ptrs_[i]);
     }
     printStairs(newStairs);
@@ -84,7 +100,7 @@ int Tracker::get_centroid_id(planeseg::plane plane){
 
         // go through each plane in oldStairs and compare it to the new plane
 
-        for (size_t i = 0; i < oldStairs.size(); i++){
+        for (size_t i = 0; i < oldStairs.size(); ++i){
 
             centroid = oldStairs[i].centroid;
 
@@ -122,16 +138,16 @@ void Tracker::reset(){
     idAssigned.clear();
     IdAssigned temp;
     temp.taken = false;
-    for (int i=0; i < oldStairs.size(); i++){
+    for (int i=0; i < oldStairs.size(); ++i){
         temp.id = oldStairs[i].id;
         idAssigned.push_back(temp);
     }
 }
 
 
-void Tracker::printStairs(const std::vector<plane>& stairs){
+void Tracker::printStairs(std::vector<plane> stairs){
   std::cout << "Centroids of " << stairs.size() << " steps: " << std::endl;
-    for (unsigned i=0; i < stairs.size(); i++){
+    for (unsigned i = 0; i < stairs.size(); ++i){
       std::cout << "Step " << i << " (x,y,z): ";
       std::cout << stairs[i].centroid.x << ", ";
       std::cout << stairs[i].centroid.y << ", ";
@@ -139,3 +155,9 @@ void Tracker::printStairs(const std::vector<plane>& stairs){
     }
 }
 
+void Tracker::printIds(){
+    std::cout << "Total number of ids assigned: " << vector_of_ids_.size() << std::endl;
+    for (size_t i = 0; i < vector_of_ids.size(); ++i){
+        std::cout << vector_of_ids[i] << std::endl;
+    }
+}

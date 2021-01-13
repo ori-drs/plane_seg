@@ -55,7 +55,7 @@ Pass::Pass(ros::NodeHandle node_):
 
   last_robot_pose_ = Eigen::Isometry3d::Identity();
 
-  tracking_ = new planeseg::Tracker();
+  tracking_ = planeseg::Tracker();
 
   colors_ = {
        51/255.0, 160/255.0, 44/255.0,  //0
@@ -237,7 +237,11 @@ void Pass::processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f or
 
   result_ = fitter.go();
   tracking_.reset();
-  tracking_.test(result_);
+  std::vector<planeseg::plane> vector_of_planes_;
+  vector_of_planes_ = tracking_.convertResult(result_);
+  std::vector<int> vector_of_ids_;
+  vector_of_ids_ = tracking_.planesToIds();
+  tracking_.printIds();
 
   Eigen::Vector3f rz = lookDir;
   Eigen::Vector3f rx = rz.cross(Eigen::Vector3f::UnitZ());

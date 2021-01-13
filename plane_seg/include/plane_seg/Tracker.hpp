@@ -25,18 +25,22 @@ public:
     Tracker();
     ~Tracker();
     
-    int get_centroid_id(plane plane_);
+    int get_centroid_id(planeseg::plane plane_);
     pcl::PointXYZ find_centroid(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud );
     void reset();
-    std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> convertResult(planeseg::BlockFitter::Result result);
+    std::vector<planeseg::plane> convertResult(planeseg::BlockFitter::Result result);
+    std::vector<int> planesToIds();
     void test(planeseg::BlockFitter::Result result);
-    void printStairs(const std::vector<plane>& centroid_list_);
+    void printStairs(std::vector<plane> centroid_list_);
+    void printIds();
     
 private:
     std::vector<plane> newStairs;
     std::vector<plane> oldStairs;
     std::vector<IdAssigned> idAssigned;
     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_ptrs;
+    std::vector<planeseg::plane> vector_of_planes;
+    std::vector<int> vector_of_ids;
     std::vector<Eigen::Vector4f> icentroid_list_init;
     int totalIds;
 };
