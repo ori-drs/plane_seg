@@ -156,7 +156,7 @@ void Tracker::printStairs(std::vector<plane> stairs){
 }
 
 void Tracker::printIds(){
-    std::cout << "Total number of ids assigned: " << vector_of_ids_.size() << std::endl;
+    std::cout << "Total number of ids assigned: " << vector_of_ids.size() << std::endl;
     for (size_t i = 0; i < vector_of_ids.size(); ++i){
         std::cout << vector_of_ids[i] << std::endl;
     }
