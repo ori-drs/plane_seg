@@ -155,7 +155,7 @@ visualization_msgs::Marker Visualizer::displayLineStrip(int id, pcl::PointXYZ ne
     return lineStripMarker;
 }
 
-visualization_msgs::Marker Visualizer::displayString(int id, std::string string, geometry_msgs::Point point){
+visualization_msgs::Marker Visualizer::displayString(int id, geometry_msgs::Point point){
     visualization_msgs::Marker stringMarker;
     stringMarker.header.frame_id = "odom";
     stringMarker.header.stamp = ros::Time();
@@ -171,7 +171,9 @@ visualization_msgs::Marker Visualizer::displayString(int id, std::string string,
     stringMarker.color.r = 1;
     stringMarker.color.g = 1;
     stringMarker.color.b = 1;
-    stringMarker.text = string;
+
+    std::string id_string = std::to_string(id);
+    stringMarker.text = id_string;
 
     return stringMarker;
 }
