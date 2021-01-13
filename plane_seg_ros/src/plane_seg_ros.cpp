@@ -25,6 +25,7 @@
 #include <boost/foreach.hpp>
 #include <boost/variant.hpp>
 
+#include "plane_seg/BlockFitter.hpp"
 #include "plane_seg/Tracker.hpp"
 #define foreach BOOST_FOREACH
 
@@ -213,7 +214,7 @@ void Pass::stepThroughFile(std::string filename){
 
         geometry_msgs::PoseWithCovarianceStamped::ConstPtr i = m.instantiate<geometry_msgs::PoseWithCovarianceStamped>();
         if (i !=NULL){
-            std::cout << "position (x, y, z): " << i->pose.pose.position.x << ", " << i->pose.pose.position.y << ", "  << i->pose.pose.position.z << std::endl;
+      //      std::cout << "position (x, y, z): " << i->pose.pose.position.x << ", " << i->pose.pose.position.y << ", "  << i->pose.pose.position.z << std::endl;
             robotPoseCallBack(i);
             pose_pub_.publish(*i);
         }
@@ -225,6 +226,7 @@ void Pass::stepThroughFile(std::string filename){
 
 void Pass::processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f origin, Eigen::Vector3f lookDir){
 
+  std::cout << "entered processCloud" << std::endl;
   planeseg::BlockFitter fitter;
   fitter.setSensorPose(origin, lookDir);
   fitter.setCloud(inCloud);
@@ -236,11 +238,13 @@ void Pass::processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f or
   fitter.setMaxAngleOfPlaneSegmenter(10);
 
   result_ = fitter.go();
+  std::cout << "got result" << std::endl;
   tracking_.reset();
-  std::vector<planeseg::plane> vector_of_planes_;
-  vector_of_planes_ = tracking_.convertResult(result_);
-  std::vector<int> vector_of_ids_;
-  vector_of_ids_ = tracking_.planesToIds();
+  std::cout << "reset tracker" << std::endl;
+  tracking_.convertResult(result_);
+  std::cout << "converted result to planes" << std::endl;
+  tracking_.planesToIds();
+  std::cout << "converted planes to ids" << std::endl;
   tracking_.printIds();
 
   Eigen::Vector3f rz = lookDir;
@@ -306,19 +310,6 @@ void Pass::printResultAsJson(){
 void Pass::publishResult(){
   // convert result to a vector of point clouds
   std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_ptrs;
-/*  std::vector<Eigen::Vector4f> centroid_list;
-  std::vector<Eigen::Vector4f> old_centroid_list;
-
-  if (old_centroid_list.empty()){
-      Eigen::Vector4f old_centroid_list_init;
-      old_centroid_list_init << 0,
-              0,
-              0,
-              1;
-      old_centroid_list.push_back(old_centroid_list_init);
-  }
-//  printCentroidList(old_centroid_list);
-*/
   for (size_t i=0; i<result_.mBlocks.size(); ++i){
     pcl::PointCloud<pcl::PointXYZ> cloud;
     const auto& block = result_.mBlocks[i];
@@ -331,30 +322,19 @@ void Pass::publishResult(){
     }
     cloud.height = cloud.points.size();
     cloud.width = 1;
-//    Eigen::Vector4f centroid;
-//    pcl::compute3DCentroid(cloud, centroid);
-//    centroid_list.push_back(centroid);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ptr;
     cloud_ptr = cloud.makeShared();
     cloud_ptrs.push_back(cloud_ptr);
   }
 
-/*  std::cout << "Centroid list: " << std::endl;
-  printCentroidList(centroid_list);
-  compareCentroidLists(old_centroid_list, centroid_list);
-  std::cout << centroid_list[0] << std::endl;
-*/
   publishHullsAsCloud(cloud_ptrs, 0, 0);
   publishHullsAsMarkers(cloud_ptrs, 0, 0);
 
-//  old_centroid_list = centroid_list;
-
   //pcl::PCDWriter pcd_writer_;
-  //cd_writer_.write<pcl::PointXYZ> ("/home/mfallon/out.pcd", cloud, false);
+  //pcd_writer_.write<pcl::PointXYZ> ("/home/mfallon/out.pcd", cloud, false);
   //std::cout << "blocks: " << result_.mBlocks.size() << " blocks\n";
   //std::cout << "cloud: " << cloud.points.size() << " pts\n";
 }
-
 
 // combine the individual clouds into one, with a different each
 void Pass::publishHullsAsCloud(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_ptrs,

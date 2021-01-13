@@ -9,7 +9,7 @@ using namespace planeseg;
 int main( int argc, char** argv ){
   // Turn off warning message about labels
   // TODO: look into how labels are used
-  pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS);
+  //pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS);
 
 
   ros::init(argc, argv, "plane_seg");
