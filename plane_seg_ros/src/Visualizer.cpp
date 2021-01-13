@@ -9,10 +9,11 @@
 
 #include <pcl/io/pcd_io.h>
 #include <pcl_ros/point_cloud.h>
+#include <pcl_conversions/pcl_conversions.h>
 
-Visualizer::Visualizer(ros::Publisher centroids_pub, ros:: Publisher linestrip_pub):
-    centroids_pub_(centroids_pub),
-    linestrip_pub_(linestrip_pub)
+Visualizer::Visualizer(ros::Publisher centroids_pub, ros:: Publisher linestrip_pub)//:
+ //   centroids_pub_(centroids_pub),
+ //   linestrip_pub_(linestrip_pub)
 {
     colors_ = {
          51/255.0, 160/255.0, 44/255.0,  //0
@@ -83,6 +84,12 @@ visualization_msgs::Marker Visualizer::displayLineStrip(int id, pcl::PointXYZ ne
     bool point_added;
     point_added = false;
 
+    // convert newCentroid to geometry_msgs/Point
+    geometry_msgs::Point newCentroidgm;
+    newCentroidgm.x = newCentroid.x;
+    newCentroidgm.y = newCentroid.y;
+    newCentroidgm.z = newCentroid.z;
+
     // create visualization markers
     visualization_msgs::Marker centroidMarker;
     visualization_msgs::Marker lineStripMarker;
@@ -97,12 +104,12 @@ visualization_msgs::Marker Visualizer::displayLineStrip(int id, pcl::PointXYZ ne
     // first we must find out if the newCentroid should be added to an already existing linestrip
     for (unsigned i = 0; i < lineStrips.size() && point_added == false; i++){
         if (id == lineStrips[i].id){
-            lineStrips[i].centroidsMarker.points.push_back(newCentroid);
+            lineStrips[i].centroidsMarker.points.push_back(newCentroidgm);
             centroidMarker = lineStrips[i].centroidsMarker;
             centroidMarker.header.frame_id = "odom";
             centroidMarker.header.stamp = ros::Time::now();
             centroidMarker.ns = "linestrips";
-            centroidMarker.id = centroid_id;
+            centroidMarker.id = id;
 
             // declare outgoing marker as the linestrip with matching ID
             lineStripMarker = centroidMarker;
@@ -117,7 +124,7 @@ visualization_msgs::Marker Visualizer::displayLineStrip(int id, pcl::PointXYZ ne
         newPlaneMarker.header.frame_id = "odom";
         newPlaneMarker.header.stamp = ros::Time::now();
         newPlaneMarker.ns = "linestrips";
-        newPlaneMarker.id = centroid_id;
+        newPlaneMarker.id = id;
         newPlaneMarker.scale.x = 0.1;
         newPlaneMarker.scale.y = 0.1;
         newPlaneMarker.color.r = getR(id);
@@ -125,7 +132,7 @@ visualization_msgs::Marker Visualizer::displayLineStrip(int id, pcl::PointXYZ ne
         newPlaneMarker.color.b = getB(id);
         newPlaneMarker.color.a = 1;
         newPlaneMarker.pose.orientation.w = 1.0;
-        newPlaneMarker.points.push_back(newCentroid);
+        newPlaneMarker.points.push_back(newCentroidgm);
 
         // create a new linestrip for the new ID
         centroidMarker.type = visualization_msgs::Marker::LINE_STRIP;
@@ -135,7 +142,7 @@ visualization_msgs::Marker Visualizer::displayLineStrip(int id, pcl::PointXYZ ne
         centroidMarker.color.b = getB(id);
         centroidMarker.color.a = 1;
         centroidMarker.pose.orientation.w = 1.0;
-        centroidMarker.points.push_back(newCentroid);
+        centroidMarker.points.push_back(newCentroidgm);
         line_strip newLineStrip;
         newLineStrip.centroidsMarker = centroidMarker;
         newLineStrip.id = id;
@@ -165,6 +172,8 @@ visualization_msgs::Marker Visualizer::displayString(int id, std::string string,
     stringMarker.color.g = 1;
     stringMarker.color.b = 1;
     stringMarker.text = string;
+
+    return stringMarker;
 }
 
 unsigned Visualizer::getR(int id){

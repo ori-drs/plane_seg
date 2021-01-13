@@ -1,5 +1,6 @@
 #ifndef _planeseg_Visualizer_hpp_
 #define _planeseg_Visualizer_hpp_
+#endif
 
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -10,7 +11,7 @@
 struct line_strip {
     visualization_msgs::Marker centroidsMarker;
     int id;
-}
+};
 
 class Visualizer{
 public:
@@ -27,4 +28,4 @@ private:
     unsigned getR(int id);
     unsigned getG(int id);
     unsigned getB(int id);
-}
+};
