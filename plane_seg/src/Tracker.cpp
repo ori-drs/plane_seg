@@ -66,18 +66,6 @@ std::vector<int> Tracker::planesToIds(){
 }
 
 
-// First test is to just calculate and print centroids
-void Tracker::test(planeseg::BlockFitter::Result result_){
-    reset();
-    std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_ptrs_;
-    cloud_ptrs = convertResult(result_);
-    for (size_t i =0 ; i < cloud_ptrs_.size(); ++i){
-        newStairs[i].centroid = find_centroid(cloud_ptrs_[i]);
-    }
-    printStairs(newStairs);
-}
-
-
 int Tracker::get_centroid_id(planeseg::plane plane){
 
     bool test = true;
