@@ -30,7 +30,8 @@ pcl::PointXYZ Tracker::find_centroid(pcl::PointCloud<pcl::PointXYZ> cloud ){
     return centroid;
 }
 
-std::vector<planeseg::plane> Tracker::convertResult(planeseg::BlockFitter::Result result_){
+// converts the result from the BlockFitter to a vector of planes complete with pointclouds, centroids and ids, and saves it as newStairs
+void Tracker::convertResult(planeseg::BlockFitter::Result result_){
     std::cout << "entered convertResult" << std::endl;
     for (size_t i=0; i<result_.mBlocks.size(); ++i){
       pcl::PointCloud<pcl::PointXYZ> cloud;
@@ -51,14 +52,16 @@ std::vector<planeseg::plane> Tracker::convertResult(planeseg::BlockFitter::Resul
  //     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ptr;
  //     cloud_ptr = cloud.makeShared();
  //     cloud_ptrs.push_back(cloud_ptr);
-      planeseg::plane plane_no_id;
-      plane_no_id.cloud = cloud;
-      plane_no_id.centroid = cloud_centroid;
+      planeseg::plane newPlane;
+      newPlane.cloud = cloud;
+      newPlane.centroid = cloud_centroid;
+      newPlane.id = get_plane_id(newPlane);
 
-      vector_of_planes.push_back(plane_no_id);     
+//      std::vector<planeseg::planes> vec_planes_no_ids.push_back(plane_no_id);
+//      vector_of_planes.push_back(plane_no_id);
+      newStairs.push_back(newPlane);
     }
 
-    return vector_of_planes;
 }
 
 // *** NEXT STEP: create std::vector<int> = planesToIds(std::vector<planeseg::planes>) which goes through each plane in the vector and calls get_plane_id and assigns it to the plane
@@ -75,7 +78,7 @@ std::vector<int> Tracker::planesToIds(){
 
 int Tracker::get_plane_id(planeseg::plane plane){
 
-    std::cout << "entered get_plane_id" << std::endl;
+//    std::cout << "entered get_plane_id" << std::endl;
     bool test = true;
     int id;
 
@@ -85,44 +88,46 @@ int Tracker::get_plane_id(planeseg::plane plane){
     }
 
     else{
-        pcl::PointXYZ centroid;
-        double threshold = 1;
+        pcl::PointXYZ oldCentroid;
+        double threshold = 0.1;
         double distance;
         double distz;
         int closest = -1;
-        double closestDist = 0;
+        // start with closestDist being far larger than anything that would ever happen
+        double closestDist = 1000000000;
 
         // go through each plane in oldStairs and compare it to the new plane
 
         for (size_t i = 0; i < oldStairs.size(); ++i){
 
-            centroid = oldStairs[i].centroid;
+            // if the id of the ith plane in oldStair exists
+     //       if (!idAssigned[i].taken && test){
+            distz = fabs(oldStairs[i].centroid.z - plane.centroid.z);
+            std::cout << "distz = " << distz << std::endl;
+              if(distz < threshold){
+  //              distance = pcl::euclideanDistance(oldStairs[i].centroid, plane.centroid);
 
-            if (!idAssigned[i].taken && test){
-                distz = fabs(centroid.z = plane.centroid.z);
-                if (distz < threshold) {
-
-                    distance = pcl::euclideanDistance(oldStairs[i].centroid, plane.centroid);
-
-                    if (closest == -1 || distance < closestDist){
+                    if (distz < closestDist){
                         closest = i;
-                        closestDist = distance;
+                        closestDist = distz;
                     }
                 }
-            }
+           // }
         }
+
+        std::cout << "closestDist = " << closestDist << std::endl;
 
         if (closest != -1){
             id = oldStairs[closest].id;
-            idAssigned[closest].taken = true;
+//            idAssigned[closest].taken = true;
         }
         else{
             id = totalIds;
             ++totalIds;
         }
     }
-    plane.id = id;
-    newStairs.push_back(plane);
+//    plane.id = id;
+//    newStairs.push_back(plane);
     return id;
 }
 
@@ -131,6 +136,8 @@ void Tracker::reset(){
     oldStairs = newStairs;
     newStairs.clear();
     idAssigned.clear();
+
+    // set the ids in the vector IdAssigned to be the same as the ids in the planes of oldStairs
     IdAssigned temp;
     temp.taken = false;
     for (size_t i=0; i < oldStairs.size(); ++i){
@@ -152,9 +159,16 @@ void Tracker::printStairs(std::vector<plane> stairs){
 
 void Tracker::printIds(){
     std::cout << "entered printIds" << std::endl;
-    std::cout << "Total number of ids assigned: " << vector_of_ids.size() << std::endl;
-    for (size_t i = 0; i < vector_of_ids.size(); ++i){
-        std::cout << vector_of_ids[i] << std::endl;
+    std::cout << "Total number of ids assigned: " << newStairs.size() << std::endl;
+    for (size_t i = 0; i < newStairs.size(); ++i){
+        std::cout << newStairs[i].id << std::endl;
+    }
+}
+
+void Tracker::printidAssigned(){
+    std::cout << "idAssigned: " << std::endl;
+    for (size_t i = 0; i < idAssigned.size(); ++i){
+        std::cout << idAssigned[i].id << std::endl;
     }
 }
 

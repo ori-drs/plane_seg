@@ -15,6 +15,7 @@
 #include <pcl/common/impl/centroid.hpp>
 
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_ros/GridMapRosConverter.hpp>
@@ -53,10 +54,12 @@ Pass::Pass(ros::NodeHandle node_):
   look_pose_pub_ = node_.advertise<geometry_msgs::PoseStamped>("/plane_seg/look_pose", 10);
   elev_map_pub_ = node_.advertise<grid_map_msgs::GridMap>("/rooster_elevation_mapping/elevation_map", 1);
   pose_pub_ = node_.advertise<geometry_msgs::PoseWithCovarianceStamped>("/vilens/pose", 1);
+  id_strings_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/id_strings", 10);
 
   last_robot_pose_ = Eigen::Isometry3d::Identity();
 
-//  tracking_ = planeseg::Tracker();
+  tracking_ = planeseg::Tracker();
+  visualizer_ = planeseg::Visualizer();
 
   colors_ = {
        51/255.0, 160/255.0, 44/255.0,  //0
@@ -204,8 +207,6 @@ void Pass::stepThroughFile(std::string filename){
 
         if (s != NULL){
             std::cout << "received gridmap at time " << m.getTime().toNSec() << " with resolution:" <<   s->info.resolution << std::endl;
-            int i = 0;
-            if (i )
             elevationMapCallback(*s);
             elev_map_pub_.publish(*s);
             std::cout << "Press [Enter] to continue to next gridmap message" << std::endl;
@@ -238,14 +239,12 @@ void Pass::processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f or
   fitter.setMaxAngleOfPlaneSegmenter(10);
 
   result_ = fitter.go();
-  std::cout << "got result" << std::endl;
-//  tracking_.reset();
-  std::cout << "reset tracker" << std::endl;
-//  tracking_.convertResult(result_);
-  std::cout << "converted result to planes" << std::endl;
+  tracking_.reset();
+  tracking_.convertResult(result_);
 //  tracking_.planesToIds();
-  std::cout << "converted planes to ids" << std::endl;
-//  tracking_.printIds();
+  tracking_.printIds();
+//  tracking_.printidAssigned();
+  publishIdsAsStrings();
 
   Eigen::Vector3f rz = lookDir;
   Eigen::Vector3f rx = rz.cross(Eigen::Vector3f::UnitZ());
@@ -450,28 +449,16 @@ void Pass::publishHullsAsMarkers(std::vector< pcl::PointCloud<pcl::PointXYZ>::Pt
 }
 
 
-void Pass::printCentroidList(std::vector<Eigen::Vector4f> centroid_list_){
-    for (unsigned i=0; i < centroid_list_.size(); i++){
-        for (unsigned j=0; j < centroid_list_[i].size(); j++){
-    std::cout << centroid_list_[i][j] << std::endl;
-        }
+void Pass::publishIdsAsStrings(){
+    visualization_msgs::MarkerArray strings_array;
+    for (size_t i = 0; i < tracking_.newStairs.size(); ++i){
+        visualization_msgs::Marker id_marker;
+        int id = tracking_.newStairs[i].id;
+        pcl::PointXYZ centroid = tracking_.newStairs[i].centroid;
+        id_marker = visualizer_.displayString(id, centroid);
+        id_marker.frame_locked = true;
+        strings_array.markers.push_back(id_marker);
     }
-}
 
-void Pass::compareCentroidLists(std::vector<Eigen::Vector4f> old_centroid_list_, std::vector<Eigen::Vector4f> centroid_list_){
-
-//    double threshold = 1;
-    std::cout << "Entered compareCentroidLists" << std::endl;
-    for (unsigned i = 0; i < old_centroid_list_.size(); i++){
-
-        std::cout << "Entered first for loop" << std::endl;
-        for (unsigned j = 0; j < centroid_list_.size(); j++){
-//            double z_dist = fabs(old_centroid_list_[i][2] - centroid_list_[j][2]);
-
-//            if (z_dist < threshold){
-//                std::complex dist = (old_centroid_list_[i] - centroid_list_[j]).norm();
-                std::cout << "The " << i << "'th old centroid is " << (old_centroid_list_[i] - centroid_list_[j]).norm() << " far away from the " << j << "'th new centroid." << std::endl;
-//            }
-    }
-    }
+    id_strings_pub_.publish(strings_array);
 }

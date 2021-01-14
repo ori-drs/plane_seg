@@ -6,16 +6,15 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/Point.h>
 #include "plane_seg/Tracker.hpp"
+#include <ros/time.h>
 
 #include <pcl/io/pcd_io.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
 
+namespace planeseg {
 
-Visualizer::Visualizer(ros::Publisher centroids_pub, ros:: Publisher linestrip_pub)//:
- //   centroids_pub_(centroids_pub),
- //   linestrip_pub_(linestrip_pub)
-{
+Visualizer::Visualizer(){
     colors_ = {
          51/255.0, 160/255.0, 44/255.0,  //0
          166/255.0, 206/255.0, 227/255.0,
@@ -47,6 +46,8 @@ Visualizer::Visualizer(ros::Publisher centroids_pub, ros:: Publisher linestrip_p
          0.5, 0.5, 1.0};
 
 }
+
+Visualizer::~Visualizer(){}
 
 /* NOT FINISHED YET
 void Visualizer::publish(std::vector<plane> &planes){
@@ -156,7 +157,14 @@ visualization_msgs::Marker Visualizer::displayLineStrip(int id, pcl::PointXYZ ne
     return lineStripMarker;
 }
 
-visualization_msgs::Marker Visualizer::displayString(int id, geometry_msgs::Point point){
+visualization_msgs::Marker Visualizer::displayString(int id, pcl::PointXYZ point){
+
+    // convert pcl::PointXYZ into geometry_msgs::Point
+    geometry_msgs::Point pointGM;
+    pointGM.x = point.x;
+    pointGM.y = point.y;
+    pointGM.z = point.z;
+
     visualization_msgs::Marker stringMarker;
     stringMarker.header.frame_id = "odom";
     stringMarker.header.stamp = ros::Time();
@@ -164,14 +172,16 @@ visualization_msgs::Marker Visualizer::displayString(int id, geometry_msgs::Poin
     stringMarker.id = id;
     stringMarker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
     stringMarker.action = visualization_msgs::Marker::ADD;
-    stringMarker.pose.position.x = point.x;
-    stringMarker.pose.position.y = point.y;
-    stringMarker.pose.position.z = point.z;
-    stringMarker.scale.x = 1;
+    stringMarker.pose.position.x = pointGM.x;
+    stringMarker.pose.position.y = pointGM.y;
+    stringMarker.pose.position.z = pointGM.z;
+    stringMarker.scale.x = 0.2;
+    stringMarker.scale.y = 0.2;
+    stringMarker.scale.z = 0.2;
     stringMarker.color.a = 1;
-    stringMarker.color.r = 1;
-    stringMarker.color.g = 1;
-    stringMarker.color.b = 1;
+    stringMarker.color.r = 0.5;
+    stringMarker.color.g = 0.5;
+    stringMarker.color.b = 0.5;
 
     std::string id_string = std::to_string(id);
     stringMarker.text = id_string;
@@ -196,3 +206,4 @@ unsigned Visualizer::getB(int id){
     j = id % (colors_.size()/3);
     return colors_[3*j+2]*255;
 }
+} // namespace planeseg
