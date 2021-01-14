@@ -25,8 +25,8 @@ public:
     Tracker();
     ~Tracker();
     
-    int get_centroid_id(planeseg::plane plane_);
-    pcl::PointXYZ find_centroid(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud );
+    int get_plane_id(planeseg::plane plane_);
+    pcl::PointXYZ find_centroid(pcl::PointCloud<pcl::PointXYZ> cloud );
     void reset();
     std::vector<planeseg::plane> convertResult(planeseg::BlockFitter::Result result);
     std::vector<int> planesToIds();
