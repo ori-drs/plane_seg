@@ -17,10 +17,10 @@ Tracker::Tracker(){
 
 Tracker::~Tracker(){}
 
-pcl::PointXYZ Tracker::find_centroid(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud ){
+pcl::PointXYZ Tracker::find_centroid(pcl::PointCloud<pcl::PointXYZ> cloud ){
     std::cout << "Computing centroid" << std::endl;
     Eigen::Vector4f centroid_eigen;
-    pcl::compute3DCentroid(*cloud, centroid_eigen);
+    pcl::compute3DCentroid(cloud, centroid_eigen);
     pcl::PointXYZ centroid;
     // NOTE: assuming the first three values of the centroid are the Eucledian
     // coordinates of the centroid. The fourth value is discarded.
@@ -44,34 +44,38 @@ std::vector<planeseg::plane> Tracker::convertResult(planeseg::BlockFitter::Resul
       }
       cloud.height = cloud.points.size();
       cloud.width = 1;
+
+      pcl::PointXYZ cloud_centroid;
+      cloud_centroid = find_centroid(cloud);
+
  //     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ptr;
  //     cloud_ptr = cloud.makeShared();
  //     cloud_ptrs.push_back(cloud_ptr);
       planeseg::plane plane_no_id;
       plane_no_id.cloud = cloud;
-      vector_of_planes.push_back(plane_no_id);
+      plane_no_id.centroid = cloud_centroid;
 
+      vector_of_planes.push_back(plane_no_id);     
     }
 
     return vector_of_planes;
 }
 
-// *** NEXT STEP: create std::vector<int> = planesToIds(std::vector<planeseg::planes>) which goes through each plane in the vector and calls get_centroid_id and assigns it to the plane
+// *** NEXT STEP: create std::vector<int> = planesToIds(std::vector<planeseg::planes>) which goes through each plane in the vector and calls get_plane_id and assigns it to the plane
 
 std::vector<int> Tracker::planesToIds(){
     std::cout << "entered planesToIds" << std::endl;
     for (size_t i = 0; i < vector_of_planes.size(); ++i){
         int current_id;
-        current_id = Tracker::get_centroid_id(vector_of_planes[i]);
+        current_id = Tracker::get_plane_id(vector_of_planes[i]);
         vector_of_ids.push_back(current_id);
     }
     return vector_of_ids;
 }
 
+int Tracker::get_plane_id(planeseg::plane plane){
 
-int Tracker::get_centroid_id(planeseg::plane plane){
-
-    std::cout << "entered get_centroid_id" << std::endl;
+    std::cout << "entered get_plane_id" << std::endl;
     bool test = true;
     int id;
 

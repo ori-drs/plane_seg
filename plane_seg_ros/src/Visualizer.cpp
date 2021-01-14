@@ -11,6 +11,7 @@
 #include <pcl_ros/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
 
+
 Visualizer::Visualizer(ros::Publisher centroids_pub, ros:: Publisher linestrip_pub)//:
  //   centroids_pub_(centroids_pub),
  //   linestrip_pub_(linestrip_pub)
