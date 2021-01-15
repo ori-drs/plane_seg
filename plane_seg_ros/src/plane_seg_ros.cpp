@@ -56,6 +56,7 @@ Pass::Pass(ros::NodeHandle node_):
   pose_pub_ = node_.advertise<geometry_msgs::PoseWithCovarianceStamped>("/vilens/pose", 1);
   id_strings_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/id_strings", 10);
   centroids_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/centroids", 10);
+  hulls_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/hulls", 10);
 
   last_robot_pose_ = Eigen::Isometry3d::Identity();
 
@@ -63,34 +64,33 @@ Pass::Pass(ros::NodeHandle node_):
   visualizer_ = planeseg::Visualizer();
 
   colors_ = {
-       51/255.0, 160/255.0, 44/255.0,  //0
-       166/255.0, 206/255.0, 227/255.0,
-       178/255.0, 223/255.0, 138/255.0,//6
-       31/255.0, 120/255.0, 180/255.0,
-       251/255.0, 154/255.0, 153/255.0,// 12
-       227/255.0, 26/255.0, 28/255.0,
-       253/255.0, 191/255.0, 111/255.0,// 18
-       106/255.0, 61/255.0, 154/255.0,
-       255/255.0, 127/255.0, 0/255.0, // 24
-       202/255.0, 178/255.0, 214/255.0,
-       1.0, 0.0, 0.0, // red // 30
-       0.0, 1.0, 0.0, // green
-       0.0, 0.0, 1.0, // blue// 36
-       1.0, 1.0, 0.0,
-       1.0, 0.0, 1.0, // 42
-       0.0, 1.0, 1.0,
-       0.5, 1.0, 0.0,
-       1.0, 0.5, 0.0,
-       0.5, 0.0, 1.0,
-       1.0, 0.0, 0.5,
-       0.0, 0.5, 1.0,
-       0.0, 1.0, 0.5,
-       1.0, 0.5, 0.5,
-       0.5, 1.0, 0.5,
-       0.5, 0.5, 1.0,
-       0.5, 0.5, 1.0,
-       0.5, 1.0, 0.5,
-       0.5, 0.5, 1.0};
+      1, 1, 1, // 42
+      255, 255, 120,
+      1, 120, 1,
+      225, 120, 1,
+      1, 255, 1,
+      1, 255, 255,
+      120, 1, 1,
+      255, 120, 255,
+      120, 1, 255,
+      1, 1, 120,
+      255, 255, 255,
+      120, 120, 1,
+      120, 120, 120,
+      1, 1, 255,
+      255, 1, 255,
+      120, 120, 255,
+      120, 255, 120,
+      1, 120, 120,
+      120, 255, 255,
+      255, 1, 1,
+      155, 1, 120,
+      120, 1, 120,
+      255, 120, 1,
+      1, 120, 255,
+      255, 120, 120,
+      1, 255, 120,
+      255, 255, 1};
 
 }
 
@@ -245,8 +245,6 @@ void Pass::processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f or
 //  tracking_.planesToIds();
   tracking_.printIds();
 //  tracking_.printidAssigned();
-  publishIdsAsStrings();
-  publishCentroidsAsSpheres();
 
   Eigen::Vector3f rz = lookDir;
   Eigen::Vector3f rx = rz.cross(Eigen::Vector3f::UnitZ());
@@ -328,8 +326,12 @@ void Pass::publishResult(){
     cloud_ptrs.push_back(cloud_ptr);
   }
 
+  std::cout << "colors_.size() = " << colors_.size() << std::endl;
+  publishIdsAsStrings();
+  publishCentroidsAsSpheres();
+  publishHullsAsMarkers();
   publishHullsAsCloud(cloud_ptrs, 0, 0);
-  publishHullsAsMarkers(cloud_ptrs, 0, 0);
+//  publishHullsAsMarkers(cloud_ptrs, 0, 0);
 
   //pcl::PCDWriter pcd_writer_;
   //pcd_writer_.write<pcl::PointXYZ> ("/home/mfallon/out.pcd", cloud, false);
@@ -369,7 +371,7 @@ void Pass::publishHullsAsCloud(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr 
 }
 
 
-void Pass::publishHullsAsMarkers(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_ptrs,
+void Pass::publishHullsAsMarkersOLD(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_ptrs,
                                  int secs, int nsecs){
   geometry_msgs::Point point;
   std_msgs::ColorRGBA point_color;
@@ -447,7 +449,7 @@ void Pass::publishHullsAsMarkers(std::vector< pcl::PointCloud<pcl::PointXYZ>::Pt
     marker.points.push_back(point);
   }
   marker.frame_locked = true;
-  hull_markers_pub_.publish(marker);
+//  hull_markers_pub_.publish(marker);
 }
 
 void Pass::publishIdsAsStrings(){
@@ -470,4 +472,104 @@ void Pass::publishCentroidsAsSpheres(){
         centroids_array.markers.push_back(centroid_marker);
     }
     centroids_pub_.publish(centroids_array);
+}
+
+void Pass::publishHullsAsMarkers(){
+
+    std::vector<pcl::PointCloud<pcl::PointXYZ>> clouds;
+    for (size_t k = 0; k < tracking_.newStairs.size(); ++k){
+        clouds.push_back(tracking_.newStairs[k].cloud);
+    }
+
+    std::vector<int> ids;
+    for (size_t m = 0; m < tracking_.newStairs.size(); ++m){
+        ids.push_back(tracking_.newStairs[m].id);
+    }
+
+  geometry_msgs::Point point;
+  std_msgs::ColorRGBA point_color;
+  visualization_msgs::Marker hullMarker;
+  std::string frameID;
+
+  // define markers
+  hullMarker.header.frame_id = "odom";
+  hullMarker.header.stamp = ros::Time(0, 0);
+  hullMarker.ns = "hull lines";
+  hullMarker.id = 0;
+  hullMarker.type = visualization_msgs::Marker::LINE_LIST; //visualization_msgs::Marker::POINTS;
+  hullMarker.action = visualization_msgs::Marker::ADD;
+  hullMarker.pose.position.x = 0;
+  hullMarker.pose.position.y = 0;
+  hullMarker.pose.position.z = 0;
+  hullMarker.pose.orientation.x = 0.0;
+  hullMarker.pose.orientation.y = 0.0;
+  hullMarker.pose.orientation.z = 0.0;
+  hullMarker.pose.orientation.w = 1.0;
+  hullMarker.scale.x = 0.03;
+  hullMarker.scale.y = 0.03;
+  hullMarker.scale.z = 0.03;
+  hullMarker.color.a = 1.0;
+
+  for (size_t i = 0; i < clouds.size (); i++){
+
+/*    int nColor = ids[i] % (colors_.size()/3);
+//    std::cout << "nColor for id " << ids[i] << " = " << nColor << std::endl;
+    double r = colors_[nColor*3];
+//    std::cout << "r for id " << i << " = " << r << std::endl;
+    double g = colors_[nColor*3+1];
+//    std::cout << "g for id " << ids[i] << " = " << g << std::endl;
+    double b = colors_[nColor*3+2];
+//    std::cout << "b for id " << ids[i] << " = " << b << std::endl;
+*/
+
+      double r = visualizer_.getR(ids[i]);
+      double g = visualizer_.getG(ids[i]);
+      double b = visualizer_.getB(ids[i]);
+
+    for (size_t j = 1; j < clouds[i].points.size (); j++){
+      point.x = clouds[i].points[j-1].x;
+      point.y = clouds[i].points[j-1].y;
+      point.z = clouds[i].points[j-1].z;
+      point_color.r = r;
+      point_color.g = g;
+      point_color.b = b;
+      point_color.a = 1.0;
+      hullMarker.colors.push_back(point_color);
+      hullMarker.points.push_back(point);
+
+      //
+      point.x = clouds[i].points[j].x;
+      point.y = clouds[i].points[j].y;
+      point.z = clouds[i].points[j].z;
+      point_color.r = r;
+      point_color.g = g;
+      point_color.b = b;
+      point_color.a = 1.0;
+      hullMarker.colors.push_back(point_color);
+      hullMarker.points.push_back(point);
+    }
+
+    // start to end line:
+    point.x = clouds[i].points[0].x;
+    point.y = clouds[i].points[0].y;
+    point.z = clouds[i].points[0].z;
+    point_color.r = r;
+    point_color.g = g;
+    point_color.b = b;
+    point_color.a = 1.0;
+    hullMarker.colors.push_back(point_color);
+    hullMarker.points.push_back(point);
+
+    point.x = clouds[i].points[ clouds[i].points.size()-1 ].x;
+    point.y = clouds[i].points[ clouds[i].points.size()-1 ].y;
+    point.z = clouds[i].points[ clouds[i].points.size()-1 ].z;
+    point_color.r = r;
+    point_color.g = g;
+    point_color.b = b;
+    point_color.a = 1.0;
+    hullMarker.colors.push_back(point_color);
+    hullMarker.points.push_back(point);
+  }
+  hullMarker.frame_locked = true;
+  hull_markers_pub_.publish(hullMarker);
 }
