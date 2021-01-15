@@ -16,50 +16,38 @@ namespace planeseg {
 
 Visualizer::Visualizer(){
     colors_ = {
-         51/255.0, 160/255.0, 44/255.0,  //0
-         166/255.0, 206/255.0, 227/255.0,
-         178/255.0, 223/255.0, 138/255.0,//6
-         31/255.0, 120/255.0, 180/255.0,
-         251/255.0, 154/255.0, 153/255.0,// 12
-         227/255.0, 26/255.0, 28/255.0,
-         253/255.0, 191/255.0, 111/255.0,// 18
-         106/255.0, 61/255.0, 154/255.0,
-         255/255.0, 127/255.0, 0/255.0, // 24
-         202/255.0, 178/255.0, 214/255.0,
-         1.0, 0.0, 0.0, // red // 30
-         0.0, 1.0, 0.0, // green
-         0.0, 0.0, 1.0, // blue// 36
-         1.0, 1.0, 0.0,
-         1.0, 0.0, 1.0, // 42
-         0.0, 1.0, 1.0,
-         0.5, 1.0, 0.0,
-         1.0, 0.5, 0.0,
-         0.5, 0.0, 1.0,
-         1.0, 0.0, 0.5,
-         0.0, 0.5, 1.0,
-         0.0, 1.0, 0.5,
-         1.0, 0.5, 0.5,
-         0.5, 1.0, 0.5,
-         0.5, 0.5, 1.0,
-         0.5, 0.5, 1.0,
-         0.5, 1.0, 0.5,
-         0.5, 0.5, 1.0};
+        1, 1, 1, // 42
+        255, 255, 120,
+        1, 120, 1,
+        1, 225, 1,
+        120, 255, 1,
+        1, 255, 255,
+        120, 1, 1,
+        255, 120, 255,
+        120, 1, 255,
+        1, 1, 120,
+        255, 255, 255,
+        120, 120, 1,
+        120, 120, 120,
+        1, 1, 255,
+        255, 1, 255,
+        120, 120, 255,
+        120, 255, 120,
+        1, 120, 120,
+        1, 1, 255,
+        255, 1, 1,
+        155, 1, 120,
+        120, 1, 120,
+        255, 120, 1,
+        1, 120, 255,
+        255, 120, 120,
+        1, 255, 120,
+        255, 255, 1};
 
 }
 
 Visualizer::~Visualizer(){}
 
-/* NOT FINISHED YET
-void Visualizer::publish(std::vector<plane> &planes){
-
-    // publish coloured centroids
-    sensor_msgs::PointCloud2 displayCentroidsMsg(displayCentroids(planes));
-    centroids_pub_.publish(displayCentroidsMsg);
-
-    // publish line segments
-    visualization_msgs::Marker displayLineStripMsg(displayCentroidsMsg);
-}
-*/
 
 visualization_msgs::Marker Visualizer::displayCentroid(planeseg::plane plane){
 
@@ -194,9 +182,9 @@ visualization_msgs::Marker Visualizer::displayString(planeseg::plane plane){
     stringMarker.scale.y = 0.2;
     stringMarker.scale.z = 0.2;
     stringMarker.color.a = 1;
-    stringMarker.color.r = 0.5;
-    stringMarker.color.g = 0.5;
-    stringMarker.color.b = 0.5;
+    stringMarker.color.r = 1;
+    stringMarker.color.g = 1;
+    stringMarker.color.b = 1;
 
     std::string id_string = std::to_string(id);
     stringMarker.text = id_string;
@@ -204,21 +192,51 @@ visualization_msgs::Marker Visualizer::displayString(planeseg::plane plane){
     return stringMarker;
 }
 
-unsigned Visualizer::getR(int id){
-    unsigned j;
-    j = id % (colors_.size()/3);
-    return colors_[3*j]*255;
+visualization_msgs::Marker Visualizer::displayHull(planeseg::plane plane){
+
+    geometry_msgs::Point pointGM;
+    std_msgs::ColorRGBA point_color;
+    visualization_msgs::Marker hullMarker;
+    std::string FrameID;
+
+    hullMarker.header.frame_id = "odom";
+    hullMarker.header.stamp = ros::Time();
+    hullMarker.ns = "hull lines";
+    hullMarker.id = plane.id;
+    hullMarker.type = visualization_msgs::Marker::LINE_STRIP;
+    hullMarker.action = visualization_msgs::Marker::ADD;
+    hullMarker.pose.orientation.w = 1.0;
+    hullMarker.scale.x = 0.03;
+    hullMarker.color.r = getR(plane.id);
+    hullMarker.color.g = getG(plane.id);
+    hullMarker.color.b = getB(plane.id);
+    hullMarker.color.a = 1;
+
+    for (size_t i = 0; i < plane.cloud.size(); ++i){
+        pointGM.x = plane.cloud[i].x;
+        pointGM.y = plane.cloud[i].y;
+        pointGM.z = plane.cloud[i].z;
+        hullMarker.points.push_back(pointGM);
+    }
+
+    return hullMarker;
 }
 
-unsigned Visualizer::getG(int id){
-    unsigned j;
+double Visualizer::getR(int id){
+    double j;
     j = id % (colors_.size()/3);
-    return colors_[3*j+1]*255;
+    return colors_[3*j];
 }
 
-unsigned Visualizer::getB(int id){
+double Visualizer::getG(int id){
     unsigned j;
     j = id % (colors_.size()/3);
-    return colors_[3*j+2]*255;
+    return colors_[3*j+1];
+}
+
+double Visualizer::getB(int id){
+    unsigned j;
+    j = id % (colors_.size()/3);
+    return colors_[3*j+2];
 }
 } // namespace planeseg

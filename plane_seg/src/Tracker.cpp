@@ -18,7 +18,7 @@ Tracker::Tracker(){
 Tracker::~Tracker(){}
 
 pcl::PointXYZ Tracker::find_centroid(pcl::PointCloud<pcl::PointXYZ> cloud ){
-    std::cout << "Computing centroid" << std::endl;
+//    std::cout << "Computing centroid" << std::endl;
     Eigen::Vector4f centroid_eigen;
     pcl::compute3DCentroid(cloud, centroid_eigen);
     pcl::PointXYZ centroid;
@@ -103,7 +103,7 @@ int Tracker::get_plane_id(planeseg::plane plane){
             // if the id of the ith plane in oldStair exists
      //       if (!idAssigned[i].taken && test){
             distz = fabs(oldStairs[i].centroid.z - plane.centroid.z);
-            std::cout << "distz = " << distz << std::endl;
+  //          std::cout << "distz = " << distz << std::endl;
               if(distz < threshold){
   //              distance = pcl::euclideanDistance(oldStairs[i].centroid, plane.centroid);
 
@@ -115,7 +115,7 @@ int Tracker::get_plane_id(planeseg::plane plane){
            // }
         }
 
-        std::cout << "closestDist = " << closestDist << std::endl;
+   //     std::cout << "closestDist = " << closestDist << std::endl;
 
         if (closest != -1){
             id = oldStairs[closest].id;
@@ -158,7 +158,7 @@ void Tracker::printStairs(std::vector<plane> stairs){
 }
 
 void Tracker::printIds(){
-    std::cout << "entered printIds" << std::endl;
+//    std::cout << "entered printIds" << std::endl;
     std::cout << "Total number of ids assigned: " << newStairs.size() << std::endl;
     for (size_t i = 0; i < newStairs.size(); ++i){
         std::cout << newStairs[i].id << std::endl;
