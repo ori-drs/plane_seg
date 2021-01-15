@@ -61,24 +61,36 @@ void Visualizer::publish(std::vector<plane> &planes){
 }
 */
 
-sensor_msgs::PointCloud2 Visualizer::displayCentroids(std::vector<planeseg::plane> &planes){
-    int id;
-    pcl::PointXYZRGB centroid;
-    pcl::PointCloud<pcl::PointXYZRGB> display_centroids;
+visualization_msgs::Marker Visualizer::displayCentroid(planeseg::plane plane){
 
-    for (unsigned i = 0; i < planes.size(); i++){
-        id = planes[i].id;
-        centroid.r = getR(id);
-        centroid.g = getG(id);
-        centroid.b = getB(id);
-        centroid.x = planes[i].centroid.x;
-        centroid.y = planes[i].centroid.y;
-        centroid.z = planes[i].centroid.z;
-        display_centroids.push_back(centroid);
-    }
-    sensor_msgs::PointCloud2 displayCentroidsMsg;
-    pcl::toROSMsg(display_centroids, displayCentroidsMsg);
-    return displayCentroidsMsg;
+    int id = plane.id;
+    pcl::PointXYZ centroid = plane.centroid;
+
+    // convert centroid to geometry_msgs/Point
+    geometry_msgs::Point centroidGM;
+    centroidGM.x = centroid.x;
+    centroidGM.y = centroid.y;
+    centroidGM.z = centroid.z;
+
+    visualization_msgs::Marker centroidMarker;
+    centroidMarker.type = visualization_msgs::Marker::SPHERE;
+    centroidMarker.header.frame_id = "odom";
+    centroidMarker.header.stamp = ros::Time();
+    centroidMarker.ns = "centroids";
+    centroidMarker.id = id;
+    centroidMarker.scale.x = 0.05;
+    centroidMarker.scale.y = 0.05;
+    centroidMarker.scale.z = 0.05;
+    centroidMarker.color.r = getR(id);
+    centroidMarker.color.g = getG(id);
+    centroidMarker.color.b = getB(id);
+    centroidMarker.color.a = 1;
+    centroidMarker.pose.orientation.w = 1.0;
+    centroidMarker.pose.position.x = centroidGM.x;
+    centroidMarker.pose.position.y = centroidGM.y;
+    centroidMarker.pose.position.z = centroidGM.z;
+
+    return centroidMarker;
 }
 
 visualization_msgs::Marker Visualizer::displayLineStrip(int id, pcl::PointXYZ newCentroid){
@@ -157,7 +169,10 @@ visualization_msgs::Marker Visualizer::displayLineStrip(int id, pcl::PointXYZ ne
     return lineStripMarker;
 }
 
-visualization_msgs::Marker Visualizer::displayString(int id, pcl::PointXYZ point){
+visualization_msgs::Marker Visualizer::displayString(planeseg::plane plane){
+
+    int id = plane.id;
+    pcl::PointXYZ point = plane.centroid;
 
     // convert pcl::PointXYZ into geometry_msgs::Point
     geometry_msgs::Point pointGM;

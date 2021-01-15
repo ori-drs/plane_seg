@@ -55,6 +55,7 @@ Pass::Pass(ros::NodeHandle node_):
   elev_map_pub_ = node_.advertise<grid_map_msgs::GridMap>("/rooster_elevation_mapping/elevation_map", 1);
   pose_pub_ = node_.advertise<geometry_msgs::PoseWithCovarianceStamped>("/vilens/pose", 1);
   id_strings_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/id_strings", 10);
+  centroids_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/centroids", 10);
 
   last_robot_pose_ = Eigen::Isometry3d::Identity();
 
@@ -245,6 +246,7 @@ void Pass::processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f or
   tracking_.printIds();
 //  tracking_.printidAssigned();
   publishIdsAsStrings();
+  publishCentroidsAsSpheres();
 
   Eigen::Vector3f rz = lookDir;
   Eigen::Vector3f rx = rz.cross(Eigen::Vector3f::UnitZ());
@@ -448,17 +450,24 @@ void Pass::publishHullsAsMarkers(std::vector< pcl::PointCloud<pcl::PointXYZ>::Pt
   hull_markers_pub_.publish(marker);
 }
 
-
 void Pass::publishIdsAsStrings(){
     visualization_msgs::MarkerArray strings_array;
     for (size_t i = 0; i < tracking_.newStairs.size(); ++i){
         visualization_msgs::Marker id_marker;
-        int id = tracking_.newStairs[i].id;
-        pcl::PointXYZ centroid = tracking_.newStairs[i].centroid;
-        id_marker = visualizer_.displayString(id, centroid);
+        id_marker = visualizer_.displayString(tracking_.newStairs[i]);
         id_marker.frame_locked = true;
         strings_array.markers.push_back(id_marker);
     }
-
     id_strings_pub_.publish(strings_array);
+}
+
+void Pass::publishCentroidsAsSpheres(){
+    visualization_msgs::MarkerArray centroids_array;
+    for (size_t i = 0; i < tracking_.newStairs.size(); ++i){
+        visualization_msgs::Marker centroid_marker;
+        centroid_marker = visualizer_.displayCentroid(tracking_.newStairs[i]);
+        centroid_marker.frame_locked = true;
+        centroids_array.markers.push_back(centroid_marker);
+    }
+    centroids_pub_.publish(centroids_array);
 }

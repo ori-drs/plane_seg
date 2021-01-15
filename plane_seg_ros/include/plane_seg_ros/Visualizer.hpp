@@ -20,8 +20,9 @@ public:
     Visualizer();
     ~Visualizer();
 
-    sensor_msgs::PointCloud2 displayCentroids(std::vector<planeseg::plane> &planes);
-    visualization_msgs::Marker displayString(int id, pcl::PointXYZ point_);
+//    sensor_msgs::PointCloud2 displayCentroids(std::vector<planeseg::plane> &planes);
+    visualization_msgs::Marker displayCentroid(planeseg::plane plane);
+    visualization_msgs::Marker displayString(planeseg::plane);
     visualization_msgs::Marker displayLineStrip(int id, pcl::PointXYZ newCentroid);
 
 private:
