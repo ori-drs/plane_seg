@@ -36,16 +36,15 @@ class Pass{
                                  int secs, int nsecs);
     void printResultAsJson();
     void publishResult();
-    void printCentroidList(std::vector<Eigen::Vector4f> centroid_list);
-    void compareCentroidLists(std::vector<Eigen::Vector4f> old_centroid_list, std::vector<Eigen::Vector4f> centroid_list);
     void publishIdsAsStrings();
+    void publishCentroidsAsSpheres();
 
   private:
     ros::NodeHandle node_;
     std::vector<double> colors_;
 
     ros::Subscriber point_cloud_sub_, grid_map_sub_, pose_sub_;
-    ros::Publisher received_cloud_pub_, hull_cloud_pub_, hull_markers_pub_, look_pose_pub_, elev_map_pub_, pose_pub_, id_strings_pub_;
+    ros::Publisher received_cloud_pub_, hull_cloud_pub_, hull_markers_pub_, look_pose_pub_, elev_map_pub_, pose_pub_, id_strings_pub_, centroids_pub_;
 
     Eigen::Isometry3d last_robot_pose_;
     planeseg::BlockFitter::Result result_;
