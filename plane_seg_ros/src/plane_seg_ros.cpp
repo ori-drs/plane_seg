@@ -57,6 +57,7 @@ Pass::Pass(ros::NodeHandle node_):
   id_strings_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/id_strings", 10);
   centroids_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/centroids", 10);
   hulls_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/hulls", 10);
+  linestrips_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/linestrips", 10);
 
   last_robot_pose_ = Eigen::Isometry3d::Identity();
 
@@ -328,6 +329,7 @@ void Pass::publishResult(){
   publishIdsAsStrings();
   publishCentroidsAsSpheres();
   publishHullsAsMarkers();
+  publishLineStrips();
   publishHullsAsCloud(cloud_ptrs, 0, 0);
 
   //pcl::PCDWriter pcd_writer_;
@@ -559,4 +561,16 @@ void Pass::publishHullsAsMarkers(){
   }
   hullMarker.frame_locked = true;
   hull_markers_pub_.publish(hullMarker);
+}
+
+
+void Pass::publishLineStrips(){
+    visualization_msgs::MarkerArray linestrips_array;
+    for (size_t i = 0; i < tracking_.newStairs.size(); ++i){
+        visualization_msgs::Marker linestrip_marker;
+        linestrip_marker = visualizer_.displayLineStrip(tracking_.newStairs[i]);
+        linestrip_marker.frame_locked = true;
+        linestrips_array.markers.push_back(linestrip_marker);
+    }
+    linestrips_pub_.publish(linestrips_array);
 }

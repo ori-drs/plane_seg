@@ -23,7 +23,7 @@ public:
 //    sensor_msgs::PointCloud2 displayCentroids(std::vector<planeseg::plane> &planes);
     visualization_msgs::Marker displayCentroid(planeseg::plane plane);
     visualization_msgs::Marker displayString(planeseg::plane plane);
-    visualization_msgs::Marker displayLineStrip(int id, pcl::PointXYZ newCentroid);
+    visualization_msgs::Marker displayLineStrip(planeseg::plane plane);
     visualization_msgs::Marker displayHull(planeseg::plane plane);
     double getR(int id);
     double getG(int id);

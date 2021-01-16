@@ -39,6 +39,7 @@ class Pass{
     void publishIdsAsStrings();
     void publishCentroidsAsSpheres();
     void publishHullsAsMarkers();
+    void publishLineStrips();
 
   private:
     ros::NodeHandle node_;
@@ -47,7 +48,7 @@ class Pass{
     std::vector<double> colors_3;
 
     ros::Subscriber point_cloud_sub_, grid_map_sub_, pose_sub_;
-    ros::Publisher received_cloud_pub_, hull_cloud_pub_, hull_markers_pub_, look_pose_pub_, elev_map_pub_, pose_pub_, id_strings_pub_, centroids_pub_, hulls_pub_;
+    ros::Publisher received_cloud_pub_, hull_cloud_pub_, hull_markers_pub_, look_pose_pub_, elev_map_pub_, pose_pub_, id_strings_pub_, centroids_pub_, hulls_pub_, linestrips_pub_;
 
     Eigen::Isometry3d last_robot_pose_;
     planeseg::BlockFitter::Result result_;
