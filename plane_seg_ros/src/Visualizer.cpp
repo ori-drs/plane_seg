@@ -81,7 +81,10 @@ visualization_msgs::Marker Visualizer::displayCentroid(planeseg::plane plane){
     return centroidMarker;
 }
 
-visualization_msgs::Marker Visualizer::displayLineStrip(int id, pcl::PointXYZ newCentroid){
+visualization_msgs::Marker Visualizer::displayLineStrip(planeseg::plane plane){
+
+    int id = plane.id;
+    pcl::PointXYZ newCentroid = plane.centroid;
 
     bool point_added;
     point_added = false;
@@ -127,8 +130,8 @@ visualization_msgs::Marker Visualizer::displayLineStrip(int id, pcl::PointXYZ ne
         newPlaneMarker.header.stamp = ros::Time::now();
         newPlaneMarker.ns = "linestrips";
         newPlaneMarker.id = id;
-        newPlaneMarker.scale.x = 0.1;
-        newPlaneMarker.scale.y = 0.1;
+        newPlaneMarker.scale.x = 0.01;
+        newPlaneMarker.scale.y = 0.01;
         newPlaneMarker.color.r = getR(id);
         newPlaneMarker.color.g = getG(id);
         newPlaneMarker.color.b = getB(id);
@@ -138,7 +141,7 @@ visualization_msgs::Marker Visualizer::displayLineStrip(int id, pcl::PointXYZ ne
 
         // create a new linestrip for the new ID
         centroidMarker.type = visualization_msgs::Marker::LINE_STRIP;
-        centroidMarker.scale.x = 0.1;
+        centroidMarker.scale.x = 0.01;
         centroidMarker.color.r = getR(id);
         centroidMarker.color.g = getG(id);
         centroidMarker.color.b = getB(id);
