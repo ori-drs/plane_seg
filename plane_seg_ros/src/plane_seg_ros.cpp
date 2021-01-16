@@ -242,9 +242,7 @@ void Pass::processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f or
   result_ = fitter.go();
   tracking_.reset();
   tracking_.convertResult(result_);
-//  tracking_.planesToIds();
   tracking_.printIds();
-//  tracking_.printidAssigned();
 
   Eigen::Vector3f rz = lookDir;
   Eigen::Vector3f rx = rz.cross(Eigen::Vector3f::UnitZ());
@@ -331,7 +329,6 @@ void Pass::publishResult(){
   publishCentroidsAsSpheres();
   publishHullsAsMarkers();
   publishHullsAsCloud(cloud_ptrs, 0, 0);
-//  publishHullsAsMarkers(cloud_ptrs, 0, 0);
 
   //pcl::PCDWriter pcd_writer_;
   //pcd_writer_.write<pcl::PointXYZ> ("/home/mfallon/out.pcd", cloud, false);
@@ -511,16 +508,6 @@ void Pass::publishHullsAsMarkers(){
   hullMarker.color.a = 1.0;
 
   for (size_t i = 0; i < clouds.size (); i++){
-
-/*    int nColor = ids[i] % (colors_.size()/3);
-//    std::cout << "nColor for id " << ids[i] << " = " << nColor << std::endl;
-    double r = colors_[nColor*3];
-//    std::cout << "r for id " << i << " = " << r << std::endl;
-    double g = colors_[nColor*3+1];
-//    std::cout << "g for id " << ids[i] << " = " << g << std::endl;
-    double b = colors_[nColor*3+2];
-//    std::cout << "b for id " << ids[i] << " = " << b << std::endl;
-*/
 
       double r = visualizer_.getR(ids[i]);
       double g = visualizer_.getG(ids[i]);
