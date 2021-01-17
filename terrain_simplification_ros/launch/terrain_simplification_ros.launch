@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+  <!-- ############ Default Parameters ############ -->
+  <arg name="gdb"                   default="" />
+  
+  <!-- ############ Main Node ############ -->
+  <node 
+    name="terrain_simplification_ros_node"
+    pkg="terrain_simplification_ros"
+    type="terrain_simplification_ros_node"
+    output="screen"
+    launch-prefix="$(arg gdb)"
+    required="true"
+    >
+
+    <!-- Input topics -->
+    <param name="topic_elevation_map"         value="/elevation_mapping/elevation_map" />
+    <param name="topic_robot_state"           value="/state_estimator/pose_in_odom" />
+    <!-- Output topic -->
+    <param name="topic_map_simplified"        value="/terrain_simplification/map_simplified" />
+    <!-- Map -->
+    <param name="gridmap_size_x"              value="2.5" />
+    <param name="gridmap_size_y"              value="2.5" />
+    <param name="h_nominal"                   value="0.53" />
+    <param name="map_res_scaling"             value="0.4" />
+
+    <!-- Traversability -->
+    <param name="erode_radius"                value="0.11" />
+    <param name="traversability_threshold"    value="0.7" />
+    <param name="verbose_timer"               value="true" />
+    <!-- Filter chain -->
+    <param name="filter_chain_parameter_name" value="grid_map_filters" />
+    <rosparam command="load" file="$(find terrain_simplification_ros)/config/filter_chain.yaml" />
+  </node>
+</launch>
+

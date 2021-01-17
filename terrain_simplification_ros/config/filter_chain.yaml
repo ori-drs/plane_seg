@@ -1,0 +1,81 @@
+grid_map_filters:
+
+  - name: buffer_normalizer
+    type: gridMapFilters/BufferNormalizerFilter
+
+  # Fill holes in the map with inpainting.
+  - name: inpaint
+    type: gridMapCv/InpaintFilter
+    params:
+      input_layer: elevation
+      output_layer: elevation_inpainted
+      radius: 0.05
+
+  # Compute surface normals.
+  - name: surface_normals
+    type: gridMapFilters/NormalVectorsFilter
+    params:
+      parallelization_enabled: true
+      thread_number: 4
+      algorithm: area
+      input_layer: elevation_inpainted
+      output_layers_prefix: normal_vectors_
+      radius: 0.03
+      normal_vector_positive_axis: z
+
+  # Delete layers.
+  - name: delete_original_layers
+    type: gridMapFilters/DeletionFilter
+    params:
+      layers: [color,  upper_bound, lower_bound, uncertainty_range, normal_vectors_x, normal_vectors_y,] # List of layers.
+
+
+  # Compute slope from surface normal.
+  - name: slope
+    type: gridMapFilters/MathExpressionFilter
+    params:
+      output_layer: slope
+      expression: acos(normal_vectors_z)
+
+#  # Reduce noise with a radial blurring filter.
+#  - name: mean_in_radius2
+#    type: gridMapFilters/MeanInRadiusFilter
+#    params:
+#      input_layer: slope
+#      output_layer: slope_smooth
+#      radius: 0.4
+
+  # Boxblur as an alternative to the inpaint and radial blurring filter above.
+  - name: boxblur
+    type: gridMapFilters/SlidingWindowMathExpressionFilter
+    params:
+      input_layer: slope
+      output_layer: slope_smooth
+      expression: meanOfFinites(slope)
+      compute_empty_cells: true
+      edge_handling: crop # options: inside, crop, empty, mean
+      window_size: 21 # optional
+
+
+  # Compute traversability as normalized weighted sum of slope and roughness.
+  - name: traversability
+    type: gridMapFilters/MathExpressionFilter
+    params:
+      output_layer: traversability
+      expression: (1.0 - (slope_smooth / 0.6))
+
+  # Set lower threshold on traversability.
+  - name: traversability_lower_threshold
+    type: gridMapFilters/ThresholdFilter
+    params:
+      layer: traversability
+      lower_threshold: 0.0
+      set_to: 0.0
+
+  # Set upper threshold on traversability.
+  - name: traversability_upper_threshold
+    type: gridMapFilters/ThresholdFilter
+    params:
+      layer: traversability
+      upper_threshold: 1.0
+      set_to: 1.0 # Other uses: .nan, .inf
