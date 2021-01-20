@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<launch>
+  <rosparam command="load" file="$(find plane_seg_ros)/config/nth_cloud.yaml" />
+  <arg name="rosbag_path" default="" />
+  <arg name="n" default="" />
+  <node name="plane_seg" pkg="plane_seg_ros" type="plane_seg_ros_node" output="screen">
+    <param name="rosbag_path" value="$(arg rosbag_path)" />
+    <param name="n" value="$(arg n)" />
+  </node>
+
+<node name="rviz_sequential" pkg="rviz" type="rviz" output="screen" args="-d $(find elevation_map_plane_seg)/config/plane_seg_sequential_config.rviz">>
+	</node>
+
+</launch>

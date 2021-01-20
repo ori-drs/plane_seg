@@ -56,6 +56,22 @@ int main( int argc, char** argv ){
       exit(-1);
   }
 
+  bool run_nth_cloud = false;
+  nh.param("/plane_seg/run_nth_cloud", run_nth_cloud, false);
+  std::cout << "run_nth_cloud: " << run_nth_cloud << "\n";
+
+  // Enable this to run nth coud
+  if (run_nth_cloud){
+      std::cout << "Running nth cloud\n";
+      std::string filename_;
+      nh.getParam("rosbag_path", filename_);
+      int n_;
+      nh.getParam("n", n_);
+      app->extractNthCloud(filename_, n_);
+      std::cout << "Finshed!\n";
+      exit(-1);
+  }
+
   ROS_INFO_STREAM("Waiting for ROS messages");
   ros::spin();
 

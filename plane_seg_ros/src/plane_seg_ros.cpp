@@ -5,6 +5,7 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <ros/package.h>
+#include <ros/time.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 
@@ -195,7 +196,7 @@ void Pass::processFromFile(int test_example){
 void Pass::stepThroughFile(std::string filename){
 
     std::cout << filename <<std::endl;
-
+    int frame = -1;
     rosbag::Bag bag;
     bag.open(filename, rosbag::bagmode::Read);
     std::vector<std::string> topics;
@@ -208,11 +209,15 @@ void Pass::stepThroughFile(std::string filename){
         grid_map_msgs::GridMap::ConstPtr s = m.instantiate<grid_map_msgs::GridMap>();
 
         if (s != NULL){
-            std::cout << "received gridmap at time " << m.getTime().toNSec() << " with resolution:" <<   s->info.resolution << std::endl;
+            std::cin.get();
+            ++frame;
+
+            std::cout << "frames = " << frame << std::endl;
+//            std::cout << "received gridmap at time " << m.getTime().toNSec() << " with resolution:" <<   s->info.resolution << "and time: " << s->info.header.stamp << std::endl;
+            std::cout << "rosbag time: " << s->info.header.stamp << std::endl;
             elevationMapCallback(*s);
             elev_map_pub_.publish(*s);
             std::cout << "Press [Enter] to continue to next gridmap message" << std::endl;
-            std::cin.get();
         }
 
         geometry_msgs::PoseWithCovarianceStamped::ConstPtr i = m.instantiate<geometry_msgs::PoseWithCovarianceStamped>();
@@ -220,7 +225,7 @@ void Pass::stepThroughFile(std::string filename){
       //      std::cout << "position (x, y, z): " << i->pose.pose.position.x << ", " << i->pose.pose.position.y << ", "  << i->pose.pose.position.z << std::endl;
             robotPoseCallBack(i);
             pose_pub_.publish(*i);
-        }
+            }
     }
 
     bag.close();
@@ -243,7 +248,7 @@ void Pass::processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f or
   result_ = fitter.go();
   tracking_.reset();
   tracking_.convertResult(result_);
-  tracking_.printIds();
+//  tracking_.printIds();
 
   Eigen::Vector3f rz = lookDir;
   Eigen::Vector3f rx = rz.cross(Eigen::Vector3f::UnitZ());
@@ -325,7 +330,6 @@ void Pass::publishResult(){
     cloud_ptrs.push_back(cloud_ptr);
   }
 
-  std::cout << "colors_.size() = " << colors_.size() << std::endl;
   publishIdsAsStrings();
   publishCentroidsAsSpheres();
   publishHullsAsMarkers();
@@ -573,4 +577,45 @@ void Pass::publishLineStrips(){
         linestrips_array.markers.push_back(linestrip_marker);
     }
     linestrips_pub_.publish(linestrips_array);
+}
+
+
+void Pass::extractNthCloud(std::string filename, int n){
+
+    std::cout << filename <<std::endl;
+    int frame = -1;
+    rosbag::Bag bag;
+    bag.open(filename, rosbag::bagmode::Read);
+    std::vector<std::string> topics;
+    topics.push_back(std::string("/rooster_elevation_mapping/elevation_map"));
+    topics.push_back(std::string("/vilens/pose"));
+
+    rosbag::View view(bag, rosbag::TopicQuery(topics));
+
+    foreach(rosbag::MessageInstance const m, view){
+        grid_map_msgs::GridMap::ConstPtr s = m.instantiate<grid_map_msgs::GridMap>();
+
+ //       std::cout << " frame = " << frame << std::endl;
+
+        if (s != NULL){
+            ++frame;
+            if (frame == n){
+                std::cin.get();
+                elevationMapCallback(*s);
+                elev_map_pub_.publish(*s);
+                std::cout << "Press [Enter] to continue to next gridmap message" << std::endl;
+            }
+        }
+
+        geometry_msgs::PoseWithCovarianceStamped::ConstPtr i = m.instantiate<geometry_msgs::PoseWithCovarianceStamped>();
+        if (i !=NULL){
+            if (frame == n){
+                robotPoseCallBack(i);
+                pose_pub_.publish(*i);
+            }
+        }
+    }
+
+
+bag.close();
 }

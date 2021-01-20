@@ -40,6 +40,7 @@ class Pass{
     void publishCentroidsAsSpheres();
     void publishHullsAsMarkers();
     void publishLineStrips();
+    void extractNthCloud(std::string filename, int n);
 
   private:
     ros::NodeHandle node_;
