@@ -1,4 +1,5 @@
 plane_seg:
   run_test_program: false
   run_sequential_test: true
+  run_nth_cloud: false
 
