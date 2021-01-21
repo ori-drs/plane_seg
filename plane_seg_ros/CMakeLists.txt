@@ -16,7 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   plane_seg
 )
 
-find_package(OpenCV 3.0 QUIET)
+
+find_package(OpenCV 3.0 REQUIRED COMPONENTS core highgui imgproc imgcodecs)
 
 catkin_package(INCLUDE_DIRS include
                LIBRARIES ${PROJECT_NAME}
@@ -40,11 +41,13 @@ add_library(${PROJECT_NAME} SHARED src/${PROJECT_NAME}.cpp
                                    src/Visualizer.cpp
                                    )
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES})
 
 
 set(APP_NAME ${PROJECT_NAME}_node)
 add_executable(${APP_NAME} src/${APP_NAME}.cpp)
 target_link_libraries(${APP_NAME} ${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(${APP_NAME} ${PROJECT_NAME} ${OpenCV_LIBRARIES})
 
 install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

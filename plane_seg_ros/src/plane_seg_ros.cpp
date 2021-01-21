@@ -20,12 +20,19 @@
 
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_ros/GridMapRosConverter.hpp>
+#include <image_transport/image_transport.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <grid_map_msgs/GridMap.h>
+#include <grid_map_cv/GridMapCvConverter.hpp>
 
 #include <boost/foreach.hpp>
 #include <boost/variant.hpp>
+
+#include <opencv2/highgui.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "plane_seg/BlockFitter.hpp"
 #include "plane_seg/Tracker.hpp"
@@ -603,7 +610,29 @@ void Pass::extractNthCloud(std::string filename, int n){
                 std::cin.get();
                 elevationMapCallback(*s);
                 elev_map_pub_.publish(*s);
-                std::cout << "Press [Enter] to continue to next gridmap message" << std::endl;
+                std::cout << 0 << std::endl;
+                cv_bridge::CvImage cv_img, erode_img;
+                std::cout << 1 << std::endl;
+                cv_img = convertToImg(*s);
+//                cv_bridge::CvImage img_rgb;
+//                cv::applyColorMap(image.image, img_rgb.image, cv::COLORMAP_JET);
+                displayImage(cv_img);
+                std::cout << 2 << std::endl;
+                std::cout << "Press 's' to save, 'e' to erode, anything else to close" << std::endl;
+                int l = cv::waitKey(0);
+                if (l == 's'){
+                    saveImage(cv_img);
+                }
+                else if (l == 'e'){
+                    erode_img = erodeImage(cv_img);
+                    displayProcessedImage(erode_img, "erode");
+                    std::cout << "Press 's' to save both images, original then eroded" << std::endl;
+                    int k = cv::waitKey(0);
+                    if (k == 's'){
+                        saveImage(cv_img);
+                        saveImage(erode_img);
+                    }
+                }
             }
         }
 
@@ -619,3 +648,51 @@ void Pass::extractNthCloud(std::string filename, int n){
 
 bag.close();
 }
+
+cv_bridge::CvImage Pass::convertToImg(const grid_map_msgs::GridMap &msg){
+    grid_map::GridMap gridmap;
+    grid_map::GridMapRosConverter::fromMessage(msg, gridmap);
+    std::string layer;
+    cv_bridge::CvImage cv_img;
+    grid_map::GridMapRosConverter::toCvImage(gridmap, "elevation", sensor_msgs::image_encodings::MONO8, cv_img);
+    return cv_img;
+}
+
+
+void Pass::displayImage(cv_bridge::CvImage image_){
+    cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
+    cv::imshow("image", image_.image);
+/*    std::cout << "Press 's' to save image, anything else to close" << std::endl;
+    int k = cv::waitKey(0);
+
+    if(k == 's')
+    {
+        saveImage(img_rgb);
+    }*/
+}
+
+void Pass::displayProcessedImage(cv_bridge::CvImage image, std::string process){
+    cv::namedWindow(process, cv::WINDOW_AUTOSIZE);
+    cv::imshow(process, image.image);
+}
+
+
+void Pass::saveImage(cv_bridge::CvImage image_){
+    std::string imagename;
+    std::cout << "Enter filename to save image (don't forget .png!): " << std::endl;
+    std::cin >> imagename;
+    cv::imwrite("/home/christos/rosbags/" + imagename, image_.image);
+}
+
+
+cv_bridge::CvImage Pass::erodeImage(cv_bridge::CvImage originalImage){
+    cv_bridge::CvImage erodeImage;
+    int erode_size = 10;
+    cv::Mat element = cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                                cv::Size(2*erode_size + 1, 2*erode_size + 1),
+                                                cv::Point(erode_size, erode_size)
+                                                );
+    cv::erode(originalImage.image, erodeImage.image, element);
+    return erodeImage;
+}
+
