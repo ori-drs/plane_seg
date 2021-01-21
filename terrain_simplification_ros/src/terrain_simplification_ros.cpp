@@ -30,6 +30,7 @@ TerrainSimplificationRos::TerrainSimplificationRos(
   ros_server_stop_    = ros_nh_.advertiseService("/terrain_simplification/stop", &TerrainSimplificationRos::stop, this);
   ros_server_pub_     = ros_nh_.advertiseService("/terrain_simplification/pub", &TerrainSimplificationRos::pub, this);
   ros_server_read_    = ros_nh_.advertiseService("/terrain_simplification/read", &TerrainSimplificationRos::read, this);
+  ros_server_get_val_ = ros_nh_.advertiseService("/terrain_simplification/get_val", &TerrainSimplificationRos::getValueAtPosition, this);
 
   success = true;
 }
@@ -71,6 +72,27 @@ bool TerrainSimplificationRos::read(
     std_srvs::Empty::Response& response) {
   bool success = readParameters();
   return success;
+}
+
+bool TerrainSimplificationRos::getValueAtPosition(
+    terrain_simplification_ros::GetValueAtPosition::Request &request,
+    terrain_simplification_ros::GetValueAtPosition::Response &response) {
+  Eigen::Vector2d p(request.x, request.y);
+  bool is_inside = false;
+  double val = TerrainSimplification::getValueAtPosition(request.layer, p, is_inside);
+
+  if (is_inside) {
+    if (request.layer == "simplified") {
+      response.val = val + h_nominal_;
+    } else {
+      response.val = val;
+    }
+  } else {
+    ROS_ERROR_STREAM("The provided position (" << p.transpose() << ") "
+                     "is outside the map; "
+                     "hence, the corresponding value cannot be obtained.");
+  }
+  return is_inside;
 }
 
 double TerrainSimplificationRos::getHeight(

@@ -12,6 +12,7 @@
 #define TERRAIN_SIMPLIFICATION_ROS_HPP
 
 #include <terrain_simplification/terrain_simplification.hpp>
+#include <terrain_simplification_ros/GetValueAtPosition.h>
 
 #include <ros/ros.h>
 
@@ -118,7 +119,7 @@ private:
   ros::ServiceServer  ros_server_stop_;     ///< service server to stop terrain simplification
   ros::ServiceServer  ros_server_pub_;      ///< service server to publish simplified map
   ros::ServiceServer  ros_server_read_;     ///< service server to read ros parameters
-
+  ros::ServiceServer  ros_server_get_val_;  ///< service server to get value at position
   std::string topic_elevation_map_;         ///< topic name of the elevation map
   std::string topic_robot_state_;           ///< topic name of the robot state
   std::string topic_map_simplified_;        ///< topic name of the simplified map
