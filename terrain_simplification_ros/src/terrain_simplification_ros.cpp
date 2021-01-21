@@ -75,15 +75,17 @@ bool TerrainSimplificationRos::read(
 
 double TerrainSimplificationRos::getHeight(
     const Eigen::Vector2d& location,
+    bool& is_inside,
     const bool& apply_h_offset) {
-  double h = getValueAtPosition("simplified", location);
+  double h = TerrainSimplification::getValueAtPosition("simplified", location, is_inside);
   if (apply_h_offset) h += h_nominal_;
   return  h;
 }
 
 double TerrainSimplificationRos::getTraversability(
-    const Eigen::Vector2d& location) {
-  getValueAtPosition("traversability", location);
+    const Eigen::Vector2d& location,
+    bool& is_inside) {
+  TerrainSimplification::getValueAtPosition("traversability", location, is_inside);
 }
 
 bool

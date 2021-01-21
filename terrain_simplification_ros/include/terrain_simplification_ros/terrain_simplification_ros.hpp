@@ -79,20 +79,34 @@ protected:
       std_srvs::Empty::Response& response);
 
   /**
+   * @brief  Gets a value from a layer of the simplified map at a specific position
+   * @param  layer name of the accessed layer
+   * @param  position xy-coordinates
+   * @return value at a position
+   */
+  bool getValueAtPosition(
+      terrain_simplification_ros::GetValueAtPosition::Request& request,
+      terrain_simplification_ros::GetValueAtPosition::Response& response);
+
+  /**
    * @brief Obtains the height of the simplified map with the nominal height offset (h_nominal) applied by default
    * @param location xy-coordinates of a location
+   * @param is_inside flag that states whether the provided position is inside the map
    * @param apply_h_offset flag to apply the nominal height offset
    */
   double getHeight(
       const Eigen::Vector2d& location,
+      bool& is_inside,
       const bool& apply_h_offset = true);
 
   /**
    * @brief Obtains the traversability of the traversability
    * @param location xy-coordinates of a location
+   * @param is_inside flag that states whether the provided position is inside the map
    */
   double getTraversability(
-      const Eigen::Vector2d& location);
+      const Eigen::Vector2d& location,
+      bool& is_inside);
 
 private:
   // ROS

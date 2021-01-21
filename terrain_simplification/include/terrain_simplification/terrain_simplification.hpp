@@ -149,11 +149,13 @@ protected:
    * @brief  Gets a value from a layer of the simplified map at a specific position
    * @param  layer name of the accessed layer
    * @param  position xy-coordinates
+   * @param  is_inside flag that states whether the provided position is inside the map
    * @return value at a position
    */
   double getValueAtPosition(
       const std::string& layer,
-      const Eigen::Vector2d& position);
+      const Eigen::Vector2d& position,
+      bool& is_inside);
 
   /**
    * @brief The run function for the TerrainSimplification

@@ -241,10 +241,17 @@ TerrainSimplification::scaleCvImage(
 double
 TerrainSimplification::getValueAtPosition(
     const std::string& layer,
-    const Eigen::Vector2d& position) {
+    const Eigen::Vector2d& position,
+    bool& is_inside) {
   grid_map::Position p(position);
   mutex_.lock();
-  double value = map_simplified_.atPosition(layer, p);
+  double value = 0.0;
+  if (map_simplified_.isInside(p)) {
+    is_inside = true;
+    value = map_simplified_.atPosition(layer, p);
+  } else {
+    is_inside = false;
+  }
   mutex_.unlock();
   return value;
 }
