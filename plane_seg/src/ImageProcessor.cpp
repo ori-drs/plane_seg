@@ -1,6 +1,7 @@
-#include <plane_seg/ImageProcessor.hpp>
+#include "plane_seg/ImageProcessor.hpp"
+#include <grid_map_core/GridMap.hpp>
 #include <grid_map_ros/GridMapRosConverter.hpp>
-#include <sensor_msgs/image_encodings.h>
+#include <opencv2/highgui.hpp>
 
 namespace planeseg {
 

@@ -26,6 +26,8 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <grid_map_msgs/GridMap.h>
 
+#include <opencv2/highgui/highgui.hpp>
+
 #include <boost/foreach.hpp>
 #include <boost/variant.hpp>
 
