@@ -36,6 +36,8 @@
 
 #include "plane_seg/BlockFitter.hpp"
 #include "plane_seg/Tracker.hpp"
+#include "plane_seg/ImageProcessor.hpp"
+
 #define foreach BOOST_FOREACH
 
 
@@ -71,6 +73,7 @@ Pass::Pass(ros::NodeHandle node_):
 
   tracking_ = planeseg::Tracker();
   visualizer_ = planeseg::Visualizer();
+  imgprocessor_ = planeseg::ImageProcessor();
 
   colors_ = {
       1, 1, 1, // 42
@@ -610,29 +613,7 @@ void Pass::extractNthCloud(std::string filename, int n){
                 std::cin.get();
                 elevationMapCallback(*s);
                 elev_map_pub_.publish(*s);
-                std::cout << 0 << std::endl;
-                cv_bridge::CvImage cv_img, erode_img;
-                std::cout << 1 << std::endl;
-                cv_img = convertToImg(*s);
-//                cv_bridge::CvImage img_rgb;
-//                cv::applyColorMap(image.image, img_rgb.image, cv::COLORMAP_JET);
-                displayImage(cv_img);
-                std::cout << 2 << std::endl;
-                std::cout << "Press 's' to save, 'e' to erode, anything else to close" << std::endl;
-                int l = cv::waitKey(0);
-                if (l == 's'){
-                    saveImage(cv_img);
-                }
-                else if (l == 'e'){
-                    erode_img = erodeImage(cv_img);
-                    displayProcessedImage(erode_img, "erode");
-                    std::cout << "Press 's' to save both images, original then eroded" << std::endl;
-                    int k = cv::waitKey(0);
-                    if (k == 's'){
-                        saveImage(cv_img);
-                        saveImage(erode_img);
-                    }
-                }
+                imageProcessingCallback(*s);
             }
         }
 
@@ -647,6 +628,28 @@ void Pass::extractNthCloud(std::string filename, int n){
 
 
 bag.close();
+}
+
+void Pass::imageProcessingCallback(const grid_map_msgs::GridMap &msg){
+    imgprocessor_.convertToImg(msg);
+//                cv_bridge::CvImage img_rgb;
+//                cv::applyColorMap(image.image, img_rgb.image, cv::COLORMAP_JET);
+    imgprocessor_.displayImage(imgprocessor_.original_img_, "original");
+    std::cout << "Press 's' to save, 'e' to erode, anything else to close" << std::endl;
+    int l = cv::waitKey(0);
+    if (l == 's'){
+        imgprocessor_.saveImage(imgprocessor_.original_img_);
+    }
+    else if (l == 'e'){
+        imgprocessor_.erodeImage(imgprocessor_.original_img_);
+        imgprocessor_.displayImage(imgprocessor_.erode_img_, "erode");
+        std::cout << "Press 's' to save both images, original then eroded" << std::endl;
+        int k = cv::waitKey(0);
+        if (k == 's'){
+            imgprocessor_.saveImage(imgprocessor_.original_img_);
+            imgprocessor_.saveImage(imgprocessor_.erode_img_);
+        }
+    }
 }
 
 cv_bridge::CvImage Pass::convertToImg(const grid_map_msgs::GridMap &msg){

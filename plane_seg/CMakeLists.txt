@@ -9,7 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
 )
 
-find_package(OpenCV REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc imgcodecs)
 
 catkin_package(
   INCLUDE_DIRS
@@ -35,9 +35,11 @@ add_library(${LIB_NAME} SHARED
   src/RectangleFitter.cpp
   src/BlockFitter.cpp
   src/Tracker.cpp
+  src/ImageProcessor.cpp
 )
 add_dependencies(plane_seg ${catkin_EXPORTED_TARGETS})
 target_link_libraries(plane_seg ${catkin_LIBRARIES})
+target_link_libraries(plane_seg ${OpenCV_LIBRARIES})
 
 
 # standalone lcm-based block fitter
