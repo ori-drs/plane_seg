@@ -1,6 +1,3 @@
-#include "plane_seg_ros/Pass.hpp"
-#include "plane_seg_ros/geometry_utils.hpp"
-
 #include <unistd.h>
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -8,6 +5,10 @@
 #include <ros/time.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
+
+#include "plane_seg/ImageProcessor.hpp"
+#include "plane_seg/BlockFitter.hpp"
+#include "plane_seg/Tracker.hpp"
 
 #include <eigen_conversions/eigen_msg.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -24,19 +25,13 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <grid_map_msgs/GridMap.h>
-#include <grid_map_cv/GridMapCvConverter.hpp>
 
 #include <boost/foreach.hpp>
 #include <boost/variant.hpp>
 
-#include <opencv2/highgui.hpp>
-#include <opencv2/core.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
+#include "plane_seg_ros/Pass.hpp"
+#include "plane_seg_ros/geometry_utils.hpp"
 
-#include "plane_seg/BlockFitter.hpp"
-#include "plane_seg/Tracker.hpp"
-#include "plane_seg/ImageProcessor.hpp"
 
 #define foreach BOOST_FOREACH
 
@@ -652,6 +647,7 @@ void Pass::imageProcessingCallback(const grid_map_msgs::GridMap &msg){
     }
 }
 
+/*
 cv_bridge::CvImage Pass::convertToImg(const grid_map_msgs::GridMap &msg){
     grid_map::GridMap gridmap;
     grid_map::GridMapRosConverter::fromMessage(msg, gridmap);
@@ -660,20 +656,14 @@ cv_bridge::CvImage Pass::convertToImg(const grid_map_msgs::GridMap &msg){
     grid_map::GridMapRosConverter::toCvImage(gridmap, "elevation", sensor_msgs::image_encodings::MONO8, cv_img);
     return cv_img;
 }
-
-
+*/
+/*
 void Pass::displayImage(cv_bridge::CvImage image_){
     cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
     cv::imshow("image", image_.image);
-/*    std::cout << "Press 's' to save image, anything else to close" << std::endl;
-    int k = cv::waitKey(0);
-
-    if(k == 's')
-    {
-        saveImage(img_rgb);
-    }*/
 }
-
+*/
+/*
 void Pass::displayProcessedImage(cv_bridge::CvImage image, std::string process){
     cv::namedWindow(process, cv::WINDOW_AUTOSIZE);
     cv::imshow(process, image.image);
@@ -698,4 +688,4 @@ cv_bridge::CvImage Pass::erodeImage(cv_bridge::CvImage originalImage){
     cv::erode(originalImage.image, erodeImage.image, element);
     return erodeImage;
 }
-
+*/
