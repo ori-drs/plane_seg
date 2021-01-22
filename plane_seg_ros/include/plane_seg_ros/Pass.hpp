@@ -13,6 +13,7 @@
 #include <rosbag/view.h>
 #include <plane_seg/Tracker.hpp>
 #include <plane_seg_ros/Visualizer.hpp>
+#include <plane_seg/ImageProcessor.hpp>
 
 namespace planeseg {
 
@@ -43,6 +44,7 @@ class Pass{
     void publishLineStrips();
     void extractNthCloud(std::string filename, int n);
     cv_bridge::CvImage convertToImg(const grid_map_msgs::GridMap &msg);
+    void imageProcessingCallback(const grid_map_msgs::GridMap &msg);
     void displayImage(cv_bridge::CvImage image);
     void displayProcessedImage(cv_bridge::CvImage image, std::string process);
     cv_bridge::CvImage erodeImage(cv_bridge::CvImage originalImage);
@@ -61,5 +63,6 @@ class Pass{
     planeseg::BlockFitter::Result result_;
     planeseg::Tracker tracking_;
     planeseg::Visualizer visualizer_;
+    planeseg::ImageProcessor imgprocessor_;
 };
 }
