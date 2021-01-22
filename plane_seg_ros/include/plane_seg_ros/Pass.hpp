@@ -27,6 +27,7 @@ class Pass{
     void elevationMapCallback(const grid_map_msgs::GridMap& msg);
     void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr &msg);
     void robotPoseCallBack(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg);
+    void imageProcessingCallback(const grid_map_msgs::GridMap &msg);
 
     void processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f origin, Eigen::Vector3f lookDir);
     void processFromFile(int test_example);
@@ -43,12 +44,12 @@ class Pass{
     void publishHullsAsMarkers();
     void publishLineStrips();
     void extractNthCloud(std::string filename, int n);
-    cv_bridge::CvImage convertToImg(const grid_map_msgs::GridMap &msg);
-    void imageProcessingCallback(const grid_map_msgs::GridMap &msg);
-    void displayImage(cv_bridge::CvImage image);
-    void displayProcessedImage(cv_bridge::CvImage image, std::string process);
-    cv_bridge::CvImage erodeImage(cv_bridge::CvImage originalImage);
-    void saveImage(cv_bridge::CvImage image);
+//    cv_bridge::CvImage convertToImg(const grid_map_msgs::GridMap &msg);
+//    void imageProcessingCallback(const grid_map_msgs::GridMap &msg);
+//    void displayImage(cv_bridge::CvImage image);
+//    void displayProcessedImage(cv_bridge::CvImage image, std::string process);
+//    cv_bridge::CvImage erodeImage(cv_bridge::CvImage originalImage);
+//    void saveImage(cv_bridge::CvImage image);
 
   private:
     ros::NodeHandle node_;
