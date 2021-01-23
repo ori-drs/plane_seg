@@ -1,11 +1,6 @@
-#ifndef _planeseg_Visualizer_hpp_
-#define _planeseg_Visualizer_hpp_
-#endif
-
+#pragma once
 #include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
 #include <visualization_msgs/Marker.h>
-#include <geometry_msgs/Point.h>
 #include "plane_seg/Tracker.hpp"
 
 namespace planeseg{

@@ -628,66 +628,13 @@ bag.close();
 }
 
 void Pass::imageProcessingCallback(const grid_map_msgs::GridMap &msg){
-    imgprocessor_.convertToImg(msg);
-//                cv_bridge::CvImage img_rgb;
-//                cv::applyColorMap(image.image, img_rgb.image, cv::COLORMAP_JET);
-    imgprocessor_.displayImage(imgprocessor_.original_img_, "original");
-    std::cout << "Press 's' to save, 'e' to erode, anything else to close" << std::endl;
-    int l = cv::waitKey(0);
-    if (l == 's'){
-        imgprocessor_.saveImage(imgprocessor_.original_img_);
-    }
-    else if (l == 'e'){
-        imgprocessor_.erodeImage(imgprocessor_.original_img_);
-        imgprocessor_.displayImage(imgprocessor_.erode_img_, "erode");
-        std::cout << "Press 's' to save both images, original then eroded" << std::endl;
-        int k = cv::waitKey(0);
-        if (k == 's'){
-            imgprocessor_.saveImage(imgprocessor_.original_img_);
-            imgprocessor_.saveImage(imgprocessor_.erode_img_);
-        }
-    }
-}
-
-/*
-cv_bridge::CvImage Pass::convertToImg(const grid_map_msgs::GridMap &msg){
     grid_map::GridMap gridmap;
     grid_map::GridMapRosConverter::fromMessage(msg, gridmap);
-    std::string layer;
-    cv_bridge::CvImage cv_img;
-    grid_map::GridMapRosConverter::toCvImage(gridmap, "elevation", sensor_msgs::image_encodings::MONO8, cv_img);
-    return cv_img;
-}
-*/
-/*
-void Pass::displayImage(cv_bridge::CvImage image_){
-    cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
-    cv::imshow("image", image_.image);
-}
-*/
-/*
-void Pass::displayProcessedImage(cv_bridge::CvImage image, std::string process){
-    cv::namedWindow(process, cv::WINDOW_AUTOSIZE);
-    cv::imshow(process, image.image);
-}
+    grid_map::GridMapRosConverter::toCvImage(gridmap, "elevation", sensor_msgs::image_encodings::MONO8, imgprocessor_.original_img_);
 
+//                cv_bridge::CvImage img_rgb;
+//                cv::applyColorMap(image.image, img_rgb.image, cv::COLORMAP_JET);
 
-void Pass::saveImage(cv_bridge::CvImage image_){
-    std::string imagename;
-    std::cout << "Enter filename to save image (don't forget .png!): " << std::endl;
-    std::cin >> imagename;
-    cv::imwrite("/home/christos/rosbags/" + imagename, image_.image);
+    imgprocessor_.process();
+
 }
-
-
-cv_bridge::CvImage Pass::erodeImage(cv_bridge::CvImage originalImage){
-    cv_bridge::CvImage erodeImage;
-    int erode_size = 10;
-    cv::Mat element = cv::getStructuringElement(cv::MORPH_ELLIPSE,
-                                                cv::Size(2*erode_size + 1, 2*erode_size + 1),
-                                                cv::Point(erode_size, erode_size)
-                                                );
-    cv::erode(originalImage.image, erodeImage.image, element);
-    return erodeImage;
-}
-*/

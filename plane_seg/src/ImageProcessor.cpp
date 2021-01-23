@@ -1,6 +1,4 @@
 #include "plane_seg/ImageProcessor.hpp"
-#include <grid_map_core/GridMap.hpp>
-#include <grid_map_ros/GridMapRosConverter.hpp>
 #include <opencv2/highgui.hpp>
 
 namespace planeseg {
@@ -10,12 +8,25 @@ ImageProcessor::ImageProcessor(){
 
 ImageProcessor::~ImageProcessor(){}
 
-void ImageProcessor::convertToImg(const grid_map_msgs::GridMap &msg){
-    grid_map::GridMap gridmap;
-    grid_map::GridMapRosConverter::fromMessage(msg, gridmap);
-    std::string layer;
-    grid_map::GridMapRosConverter::toCvImage(gridmap, "elevation", sensor_msgs::image_encodings::MONO8, original_img_);
+void ImageProcessor::process(){
+    displayImage(original_img_, "original");
+    std::cout << "Press 's' to save, 'e' to erode, anything else to close" << std::endl;
+    int l = cv::waitKey(0);
+    if (l == 's'){
+        saveImage(original_img_);
+    }
+    else if (l == 'e'){
+        erodeImage(original_img_);
+        displayImage(erode_img_, "erode");
+        std::cout << "Press 's' to save both images, original then eroded" << std::endl;
+        int k = cv::waitKey(0);
+        if (k == 's'){
+            saveImage(original_img_);
+            saveImage(erode_img_);
+        }
+    }
 }
+
 
 void ImageProcessor::displayImage(cv_bridge::CvImage image, std::string process){
     cv::namedWindow(process, cv::WINDOW_AUTOSIZE);
