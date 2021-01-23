@@ -1,6 +1,4 @@
-#ifndef _planeseg_ImageProcessor_hpp_
-#define _planeseg_ImageProcessor_hpp_
-#include <grid_map_msgs/GridMap.h>
+#pragma once
 #include <cv_bridge/cv_bridge.h>
 
 namespace planeseg {
@@ -10,7 +8,7 @@ public:
     ImageProcessor();
     ~ImageProcessor();
 
-    void convertToImg(const grid_map_msgs::GridMap &msg);
+    void process();
     void displayImage(cv_bridge::CvImage image, std::string process);
     void saveImage(cv_bridge::CvImage image);
     void erodeImage(cv_bridge::CvImage originalImage);
@@ -23,4 +21,3 @@ private:
 
 } //namespace planeseg
 
-#endif

@@ -6,11 +6,8 @@
 #include <ros/node_handle.h>
 #include <plane_seg/BlockFitter.hpp>
 #include <grid_map_msgs/GridMap.h>
-#include <grid_map_ros/grid_map_ros.hpp>
 #include <sensor_msgs/PointCloud2.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <rosbag/bag.h>
-#include <rosbag/view.h>
 #include <plane_seg/Tracker.hpp>
 #include <plane_seg_ros/Visualizer.hpp>
 #include <plane_seg/ImageProcessor.hpp>
@@ -44,12 +41,6 @@ class Pass{
     void publishHullsAsMarkers();
     void publishLineStrips();
     void extractNthCloud(std::string filename, int n);
-//    cv_bridge::CvImage convertToImg(const grid_map_msgs::GridMap &msg);
-//    void imageProcessingCallback(const grid_map_msgs::GridMap &msg);
-//    void displayImage(cv_bridge::CvImage image);
-//    void displayProcessedImage(cv_bridge::CvImage image, std::string process);
-//    cv_bridge::CvImage erodeImage(cv_bridge::CvImage originalImage);
-//    void saveImage(cv_bridge::CvImage image);
 
   private:
     ros::NodeHandle node_;

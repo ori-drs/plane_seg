@@ -6,7 +6,7 @@ add_compile_options(-std=c++1y -Wall)
 #add_definitions(-std=c++1y -Wall)
 
 find_package(catkin REQUIRED COMPONENTS
-  pcl_ros grid_map_ros
+  pcl_ros
 )
 
 find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc imgcodecs)

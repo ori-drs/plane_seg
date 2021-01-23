@@ -1,9 +1,6 @@
-#ifndef _planeseg_Tracker_hpp_
-#define _planeseg_Tracker_hpp_
-
+#pragma once
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
-#include <pcl/common/impl/centroid.hpp>
 #include "plane_seg/BlockFitter.hpp"
 
 namespace planeseg {
@@ -39,6 +36,5 @@ private:
     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_ptrs;
     int totalIds;
 };
-}
 
-#endif
+} // namespace planeseg
