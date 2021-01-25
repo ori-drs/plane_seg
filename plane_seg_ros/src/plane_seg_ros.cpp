@@ -10,6 +10,8 @@
 #include "plane_seg/BlockFitter.hpp"
 #include "plane_seg/Tracker.hpp"
 
+#include <grid_map_cv/grid_map_cv.hpp>
+
 #include <eigen_conversions/eigen_msg.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
@@ -41,7 +43,9 @@
 using namespace planeseg;
 
 Pass::Pass(ros::NodeHandle node_):
-    node_(node_){
+    node_(node_),
+    filter_chain_("grid_map::GridMap")
+{
 
   std::string input_body_pose_topic;
   node_.getParam("input_body_pose_topic", input_body_pose_topic);
@@ -55,6 +59,7 @@ Pass::Pass(ros::NodeHandle node_):
   pose_sub_ = node_.subscribe("/state_estimator/pose_in_odom", 100,
                                     &Pass::robotPoseCallBack, this);
 */
+
   received_cloud_pub_ = node_.advertise<sensor_msgs::PointCloud2>("/plane_seg/received_cloud", 10);
   hull_cloud_pub_ = node_.advertise<sensor_msgs::PointCloud2>("/plane_seg/hull_cloud", 10);
   hull_markers_pub_ = node_.advertise<visualization_msgs::Marker>("/plane_seg/hull_markers", 10);
@@ -65,12 +70,27 @@ Pass::Pass(ros::NodeHandle node_):
   centroids_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/centroids", 10);
   hulls_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/hulls", 10);
   linestrips_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/linestrips", 10);
+  filtered_map_pub_ = node_.advertise<grid_map_msgs::GridMap>("/rooster_elevation_mapping/filtered_map", 1, true);
 
   last_robot_pose_ = Eigen::Isometry3d::Identity();
 
   tracking_ = planeseg::Tracker();
   visualizer_ = planeseg::Visualizer();
   imgprocessor_ = planeseg::ImageProcessor();
+  listener_ = new tf::TransformListener();
+
+  node_.param("input_topic", elevation_map_topic_, std::string("/rooster_elevation_mapping/elevation_map"));
+  node_.param("erode_radius", erode_radius_, 0.2);
+  ROS_INFO("Erode Radius [%f]", erode_radius_);
+  node_.param("traversability_threshold", traversability_threshold_, 0.8);
+  ROS_INFO("traversability_threshold [%f]", traversability_threshold_);
+  node_.param("verbose_timer", verbose_timer_, true);
+
+  // Setup filter chain
+  if (!filter_chain_.configure("grid_map_filters", node_)){
+      std::cout << "couldn't configure filter chain" << std::endl;
+      return;
+  }
 
   colors_ = {
       1, 1, 1, // 42
@@ -608,9 +628,11 @@ void Pass::extractNthCloud(std::string filename, int n){
             ++frame;
             if (frame == n){
                 std::cin.get();
+                grid_map_msgs::GridMap n;
+                gridMapCallback(*s);
                 elevationMapCallback(*s);
-                elev_map_pub_.publish(*s);
-                imageProcessingCallback(*s);
+//                elev_map_pub_.publish(*s);
+//                imageProcessingCallback(*s);
             }
         }
 
@@ -636,5 +658,113 @@ void Pass::imageProcessingCallback(const grid_map_msgs::GridMap &msg){
 //                cv::applyColorMap(image.image, img_rgb.image, cv::COLORMAP_JET);
 
     imgprocessor_.process();
+
+}
+
+void Pass::tic(){
+  last_time_ = std::chrono::high_resolution_clock::now();
+}
+
+std::chrono::duration<double> Pass::toc(){
+  auto now_time = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - last_time_);
+  last_time_ = now_time;
+  // std::cout << elapsedTime.count() << "ms elapsed" << std::endl;
+  return elapsed_time;
+}
+
+void Pass::gridMapCallback(const grid_map_msgs::GridMap& msg){
+  tic();
+
+  // Convert message to map.
+  grid_map::GridMap input_map;
+  grid_map::GridMapRosConverter::fromMessage(msg, input_map);
+
+  // Apply filter chain.
+  grid_map::GridMap output_map;
+  if (!filter_chain_.update(input_map, output_map)) {
+    std::cout << "couldn't update the grid map filter chain" << std::endl;
+//    grid_map_msgs::GridMap failmessage;
+//    grid_map::GridMapRosConverter::toMessage(input_map, failmessage);
+    return;
+  }
+
+  if (verbose_timer_) {
+    std::cout << toc().count() << " ms: filter chain\n";
+  }
+
+  tic();
+
+  Eigen::Isometry3d pose_robot = Eigen::Isometry3d::Identity();
+  tf::StampedTransform transform;
+  try {
+    listener_->waitForTransform("/odom", "/base", ros::Time(0), ros::Duration(10.0) );
+    listener_->lookupTransform("/odom", "/base", ros::Time(0), transform);
+  } catch (tf::TransformException ex) {
+    ROS_ERROR("%s",ex.what());
+  }
+
+  tf::transformTFToEigen(transform, pose_robot);
+
+  // Threshold traversability conservatively
+  grid_map::Matrix& data = output_map["traversability_clean"];
+  for (grid_map::GridMapIterator iterator(output_map); !iterator.isPastEnd(); ++iterator){
+    const grid_map::Index index(*iterator);
+
+    // make cells very near robot traversable
+    grid_map::Position pos_cell;
+    output_map.getPosition(index, pos_cell);
+    grid_map::Position pos_robot(pose_robot.translation().head(2));
+    double dist = (pos_robot - pos_cell).norm();
+    if (dist <1.0){
+      data(index(0), index(1)) = 1.0;
+    }
+
+    if (data(index(0), index(1)) < traversability_threshold_){
+      data(index(0), index(1)) =0.0;
+    }else{
+      data(index(0), index(1)) =1.0;
+    }
+  }
+
+  // Erode the traversable image
+  cv::Mat original_image, erode_image;
+  grid_map::GridMapCvConverter::toImage<unsigned short, 1>(output_map, "traversability_clean", CV_16UC1, 0.0, 0.3, original_image);
+  //std::cout << "write original\n";
+  //cv::imwrite( "original_image.png", original_image);
+
+  int erode_size =  int(floor(erode_radius_ / msg.info.resolution)); // was 25 for conservative
+  cv::Mat element = cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                       cv::Size(2*erode_size + 1, 2*erode_size + 1),
+                                       cv::Point(erode_size, erode_size));
+  /// Apply the dilation operation
+  cv::erode(original_image, erode_image, element);
+  //std::cout << "write eroded\n";
+  //cv::imwrite( "erode_image.png", erode_image);
+  grid_map::GridMapCvConverter::addLayerFromImage<unsigned short, 1>(erode_image, "traversability_clean_eroded", output_map, 0.0, 0.3);
+
+  if (verbose_timer_) {
+    std::cout << toc().count() << " ms: traversability edition (i.e. erosion)\n";
+  }
+
+  // Publish filtered output grid map.
+  grid_map_msgs::GridMap output_msg;
+  grid_map::GridMapRosConverter::toMessage(output_map, output_msg);
+  filtered_map_pub_.publish(output_msg);
+
+  std::vector<std::string> outlayers, inlayers;
+  outlayers = output_map.getLayers();
+  inlayers = input_map.getLayers();
+  std::cout << "Input map layers: " << std::endl;
+  for (size_t i=0; i<inlayers.size(); ++i){
+      std::cout << inlayers[i] << std::endl;
+  }
+  std::cout << "Output map layers: " << std::endl;
+  for (size_t i=0; i<outlayers.size(); ++i){
+      std::cout << outlayers[i] << std::endl;
+  }
+
+
+  return;
 
 }
