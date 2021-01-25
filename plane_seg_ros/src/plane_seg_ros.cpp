@@ -629,8 +629,8 @@ void Pass::extractNthCloud(std::string filename, int n){
             if (frame == n){
                 std::cin.get();
                 grid_map_msgs::GridMap n;
-                gridMapCallback(*s);
-                elevationMapCallback(*s);
+                n = gridMapCallback(*s);
+                elevationMapCallback(n);
 //                elev_map_pub_.publish(*s);
 //                imageProcessingCallback(*s);
             }
@@ -673,7 +673,7 @@ std::chrono::duration<double> Pass::toc(){
   return elapsed_time;
 }
 
-void Pass::gridMapCallback(const grid_map_msgs::GridMap& msg){
+grid_map_msgs::GridMap Pass::gridMapCallback(const grid_map_msgs::GridMap& msg){
   tic();
 
   // Convert message to map.
@@ -684,9 +684,9 @@ void Pass::gridMapCallback(const grid_map_msgs::GridMap& msg){
   grid_map::GridMap output_map;
   if (!filter_chain_.update(input_map, output_map)) {
     std::cout << "couldn't update the grid map filter chain" << std::endl;
-//    grid_map_msgs::GridMap failmessage;
-//    grid_map::GridMapRosConverter::toMessage(input_map, failmessage);
-    return;
+    grid_map_msgs::GridMap failmessage;
+    grid_map::GridMapRosConverter::toMessage(input_map, failmessage);
+    return failmessage;
   }
 
   if (verbose_timer_) {
@@ -765,6 +765,6 @@ void Pass::gridMapCallback(const grid_map_msgs::GridMap& msg){
   }
 
 
-  return;
+  return output_msg;
 
 }

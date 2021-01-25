@@ -49,7 +49,7 @@ class Pass{
     void extractNthCloud(std::string filename, int n);
     void tic();
     std::chrono::duration<double> toc();
-    void gridMapCallback(const grid_map_msgs::GridMap& msg);
+    grid_map_msgs::GridMap gridMapCallback(const grid_map_msgs::GridMap& msg);
 
   private:
     ros::NodeHandle node_;
