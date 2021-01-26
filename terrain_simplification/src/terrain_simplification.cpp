@@ -56,28 +56,26 @@ TerrainSimplification::advance() {
 void
 TerrainSimplification::setGridMap(
     const grid_map::GridMap& map) {
+  std::lock_guard<std::mutex> lock(mutex_); // to write map_full_ and received_
   map_full_ = map;
   received_ = true;
 }
 
 double
 TerrainSimplification::getRobotYaw() {
-  mutex_state_.lock();
+  std::lock_guard<std::mutex> lock(mutex_state_); // to read and write
   double yaw_prev = yaw_prev_;
   const double q0 = robot_orientation_.w();
   const double q1 = robot_orientation_.x();
   const double q2 = robot_orientation_.y();
   const double q3 = robot_orientation_.z();
-
   double yaw   = atan2(2*(q0*q3+q1*q2), 1-2*(q2*q2+q3*q3));
 
   // unwrap angle (see MATLAB's unwrap() for more info)
   double d = yaw - yaw_prev;
   d = d > M_PI ? d - 2.0*M_PI : (d < -M_PI ? d + 2.0*M_PI : d);
   yaw_prev += d;
-
   yaw_prev_ = yaw_prev;
-  mutex_state_.unlock();
   return yaw_prev;
 }
 
@@ -89,7 +87,10 @@ TerrainSimplification::simplifyGridMap () {
   mutex_state_.lock();
   grid_map::Position robot_position(robot_position_[0], robot_position_[1]);
   mutex_state_.unlock();
+
+  mutex_.lock(); // to read map_full_
   map_sub_ = map_full_.getSubmap(robot_position, grid_map::Length(map_size_.x(), map_size_.y()), success);
+  mutex_.unlock();
 
   // Create empty map
   grid_map::GridMap map_simplified_wo_traversability({"simplified"});
@@ -244,7 +245,7 @@ TerrainSimplification::getValueAtPosition(
     const Eigen::Vector2d& position,
     bool& is_inside) {
   grid_map::Position p(position);
-  mutex_.lock();
+  std::lock_guard<std::mutex> lock(mutex_);
   double value = 0.0;
   if (map_simplified_.isInside(p)) {
     is_inside = true;
@@ -252,7 +253,6 @@ TerrainSimplification::getValueAtPosition(
   } else {
     is_inside = false;
   }
-  mutex_.unlock();
   return value;
 }
 }

@@ -21,7 +21,7 @@
 
 #include <thread>
 #include <atomic>
-#include <boost/thread/pthread/shared_mutex.hpp>
+#include <mutex>
 
 namespace terrain_simplification {
 
@@ -230,8 +230,8 @@ private:
   double yaw_prev_ = 0.0;                   ///< robot's base orientation (yaw) in the base frame, aligned with the world frame
 
   // Mutex
-  boost::shared_mutex mutex_;               ///< mutex for map_ and img_ variables
-  boost::shared_mutex mutex_state_;         ///< mutex for robot's position and orientation variables
+  std::mutex mutex_;               ///< mutex for map_ and img_ variables
+  std::mutex mutex_state_;         ///< mutex for robot's position and orientation variables
 
 };
 
