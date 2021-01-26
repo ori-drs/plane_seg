@@ -44,17 +44,35 @@ public:
   ~TerrainSimplificationRos() = default;
 
 protected:
-  void subGridMap(const grid_map_msgs::GridMap& msg);
-  void subRobotPose(const geometry_msgs::PoseWithCovarianceStamped& msg);
+  /**
+   * @brief The callback function used to get the elevation map
+   * @param[in] msg elevation map message
+   */
+  void subGridMap(
+      const grid_map_msgs::GridMap& msg);
 
+
+  /**
+   * @brief The callback function used to get the pose of the robot
+   * @param[in] msg pose message
+   */
+  void subRobotPose(
+      const geometry_msgs::PoseWithCovarianceStamped& msg);
+
+  /**
+   * @brief Publish the simplified map
+   */
   void pubSimplifiedGridMap();
-
-  bool readParameters();
 
   /**
    * @brief Loads the configuration file (config.yaml)
    */
   bool loadConfigFile();
+
+  /**
+   * @brief Read ROS parameters
+   */
+  bool readParameters();
 
   /**
    * @brief The callback function used to start the run function in TerrainSimplification
