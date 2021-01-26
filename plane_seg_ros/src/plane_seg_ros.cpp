@@ -42,8 +42,8 @@
 
 using namespace planeseg;
 
-Pass::Pass(ros::NodeHandle node_):
-    node_(node_),
+Pass::Pass(ros::NodeHandle& node):
+    node_(node),
     filter_chain_("grid_map::GridMap")
 {
 

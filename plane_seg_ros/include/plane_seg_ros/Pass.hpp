@@ -21,7 +21,7 @@ namespace planeseg {
 
 class Pass{
   public:
-    Pass(ros::NodeHandle node_);
+    Pass(ros::NodeHandle& node);
 
     ~Pass(){
     }
@@ -52,7 +52,7 @@ class Pass{
     grid_map_msgs::GridMap gridMapCallback(const grid_map_msgs::GridMap& msg);
 
   private:
-    ros::NodeHandle node_;
+    ros::NodeHandle& node_;
     std::vector<double> colors_;
     std::vector<double> colors_2;
     std::vector<double> colors_3;
