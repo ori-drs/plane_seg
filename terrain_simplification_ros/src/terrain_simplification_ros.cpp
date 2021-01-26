@@ -170,7 +170,12 @@ void
 TerrainSimplificationRos::subRobotPose(
     const geometry_msgs::PoseWithCovarianceStamped& msg) {
   msg_robot_pose_ = msg;
+  setRobotPose(msg);
+}
 
+void
+TerrainSimplificationRos::setRobotPose(
+    const geometry_msgs::PoseWithCovarianceStamped &msg) {
   Eigen::Vector3d p (
         msg.pose.pose.position.x,
         msg.pose.pose.position.y,
@@ -180,11 +185,17 @@ TerrainSimplificationRos::subRobotPose(
         msg.pose.pose.orientation.x,
         msg.pose.pose.orientation.y,
         msg.pose.pose.orientation.z);
-  setRobotPose(p, o);
+  TerrainSimplification::setRobotPose(p, o);
 }
 
 void
 TerrainSimplificationRos::subGridMap(
+    const grid_map_msgs::GridMap& msg) {
+  setGridMap(msg);
+}
+
+void
+TerrainSimplificationRos::setGridMap(
     const grid_map_msgs::GridMap& msg) {
   grid_map::GridMap map;
   grid_map::GridMapRosConverter::fromMessage(msg, map);

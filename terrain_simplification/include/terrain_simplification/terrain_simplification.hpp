@@ -53,7 +53,7 @@ protected:
    * @param[in] position     the position of the robot
    * @param[in] orientation  the orientation of the robot
    */
-  void setRobotPose (
+  virtual void setRobotPose (
       const Eigen::Vector3d& position,
       const Eigen::Quaterniond& orientation) {
     robot_position_ = position;
@@ -71,7 +71,7 @@ protected:
    * @brief Sets a member variable of the full map and sets received_ flag to true.
    * @param[in] map  the full elevation map
    */
-  void setGridMap(
+  virtual void setGridMap(
       const grid_map::GridMap& map);
 
   /**

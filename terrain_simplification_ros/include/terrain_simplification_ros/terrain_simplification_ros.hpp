@@ -51,12 +51,25 @@ protected:
   void subGridMap(
       const grid_map_msgs::GridMap& msg);
 
+  /**
+   * @brief Directly sets the gridmap member variable of the the base class.
+   * @param[in] msg elevation map message
+   */
+  void setGridMap(
+      const grid_map_msgs::GridMap& msg);
 
   /**
    * @brief The callback function used to get the pose of the robot
    * @param[in] msg pose message
    */
   void subRobotPose(
+      const geometry_msgs::PoseWithCovarianceStamped& msg);
+
+  /**
+   * @brief Directly sets the position and orientation member variables of the the base class.
+   * @param[in] msg pose message
+   */
+  void setRobotPose(
       const geometry_msgs::PoseWithCovarianceStamped& msg);
 
   /**
