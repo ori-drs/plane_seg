@@ -1,5 +1,6 @@
 #include "plane_seg/ImageProcessor.hpp"
 #include <opencv2/highgui.hpp>
+#include <boost/filesystem/operations.hpp>
 
 namespace planeseg {
 
@@ -37,7 +38,21 @@ void ImageProcessor::saveImage(cv_bridge::CvImage image_){
     std::string imagename;
     std::cout << "Enter filename to save image (don't forget .png!): " << std::endl;
     std::cin >> imagename;
-    cv::imwrite("/home/christos/rosbags/" + imagename, image_.image);
+    std::string homedir = getenv("HOME");
+    if(!homedir.empty()){
+      boost::filesystem::path output_path(homedir + "/rosbags/");
+      if(!boost::filesystem::is_directory(output_path))
+        if(boost::filesystem::create_directory(output_path)){
+          std::cout << "Creating directory " << output_path.string() << " ... " << std::endl;
+        } else {
+          std::cerr << "ERROR: directory " << output_path.string() << " does not exists and couln't be created." << std::endl;
+          return;
+        }
+      cv::imwrite(output_path.string() + imagename, image_.image);
+    } else {
+      std::cerr << "ERROR: the $HOME variable is empty!" << std::endl;
+      return;
+    }
 }
 
 void ImageProcessor::erodeImage(cv_bridge::CvImage originalImage){
