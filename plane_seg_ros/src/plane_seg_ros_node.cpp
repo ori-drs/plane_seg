@@ -22,7 +22,7 @@ int main( int argc, char** argv ){
 
   bool run_test_program = false;
   nh.param("/plane_seg/run_test_program", run_test_program, false);
-  std::cout << "run_test_program: " << run_test_program << "\n";
+  std::cout << "run_test_program: " << std::boolalpha << run_test_program << "\n";
 
 
   // Enable this to run the test programs
@@ -42,7 +42,7 @@ int main( int argc, char** argv ){
 
   bool run_sequential_test = false;
   nh.param("/plane_seg/run_sequential_test", run_sequential_test, false);
-  std::cout << "run_sequential_test: " << run_sequential_test << "\n";
+  std::cout << "run_sequential_test: " << std::boolalpha << run_sequential_test << "\n";
 
   //Enable this to run the sequential test
   if (run_sequential_test){
@@ -58,15 +58,16 @@ int main( int argc, char** argv ){
 
   bool run_nth_cloud = false;
   nh.param("/plane_seg/run_nth_cloud", run_nth_cloud, false);
-  std::cout << "run_nth_cloud: " << run_nth_cloud << "\n";
+  std::cout << "run_nth_cloud: " << std::boolalpha << run_nth_cloud << "\n";
 
   // Enable this to run nth coud
   if (run_nth_cloud){
-      std::cout << "Running nth cloud\n";
+    int n_ = 1;
+    nh.getParam("n", n_);
+      std::cout << "Running " << n_ << "-th cloud\n";
       std::string filename_;
       nh.getParam("rosbag_path", filename_);
-      int n_;
-      nh.getParam("n", n_);
+
       app->extractNthCloud(filename_, n_);
       std::cout << "Finshed!\n";
       exit(-1);
