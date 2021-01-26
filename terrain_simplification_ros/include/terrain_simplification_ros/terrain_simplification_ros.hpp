@@ -52,6 +52,11 @@ protected:
   bool readParameters();
 
   /**
+   * @brief Loads the configuration file (config.yaml)
+   */
+  bool loadConfigFile();
+
+  /**
    * @brief The callback function used to start the run function in TerrainSimplification
    */
   bool run(

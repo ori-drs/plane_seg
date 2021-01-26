@@ -7,7 +7,11 @@ TerrainSimplificationRos::TerrainSimplificationRos(
     ros::NodeHandle& nh)
   : ros_nh_(nh),
     TerrainSimplification() {
-
+  // Load config file
+  if (!loadConfigFile()) {
+    success = false;
+    return;
+  }
   // Read ros parameters
   if (!readParameters()) {
     success = false;
@@ -111,28 +115,52 @@ double TerrainSimplificationRos::getTraversability(
 }
 
 bool
+TerrainSimplificationRos::loadConfigFile() {
+  try {
+    // load standard config
+    std::string cmd = "rosparam load " + ros::package::getPath("terrain_simplification_ros") + "/config/config.yaml";
+    int sys_rtrn = system(cmd.c_str());
+
+    // load filter chain config
+    cmd = "rosparam load " + ros::package::getPath("terrain_simplification_ros") + "/config/filter_chain.yaml";
+    sys_rtrn = system(cmd.c_str());
+
+    // load non-standard config
+    std::string config_path;
+    ros_nh_.getParam("/terrain_simplification/config_path", config_path);
+    cmd = "rosparam load " + config_path;
+    sys_rtrn = system(cmd.c_str());
+  }
+  catch (std::exception& e) {
+    ROS_ERROR_STREAM("Wrong path to configuration (config) file!");
+  }
+  return true;
+}
+
+
+bool
 TerrainSimplificationRos::readParameters() {
-  if (!ros_nh_.getParam("/terrain_simplification_ros_node/topic_elevation_map", topic_elevation_map_)){
-    ROS_ERROR("Could not read parameter `terrain_simplification_ros_node/topic_elevation_map`.");
+  if (!ros_nh_.getParam("/terrain_simplification/topic_elevation_map", topic_elevation_map_)){
+    ROS_ERROR("Could not read parameter `terrain_simplification/topic_elevation_map`.");
     return false;
   }
-  if (!ros_nh_.getParam("/terrain_simplification_ros_node/topic_robot_state", topic_robot_state_)){
-    ROS_ERROR("Could not read parameter `terrain_simplification_ros_node/topic_robot_state`.");
+  if (!ros_nh_.getParam("/terrain_simplification/topic_robot_state", topic_robot_state_)){
+    ROS_ERROR("Could not read parameter `terrain_simplification/topic_robot_state`.");
     return false;
   }
-  if (!ros_nh_.getParam("/terrain_simplification_ros_node/topic_map_simplified", topic_map_simplified_)){
-    ROS_ERROR("Could not read parameter `terrain_simplification_ros_node/topic_robot_state`.");
+  if (!ros_nh_.getParam("/terrain_simplification/topic_map_simplified", topic_map_simplified_)){
+    ROS_ERROR("Could not read parameter `terrain_simplification/topic_robot_state`.");
     return false;
   }
   if (!ros_nh_.getParam("/terrain_simplification_ros_node/filter_chain_parameter_name", filter_chain_parameters_name_)){
-    ROS_ERROR("Could not read parameter `terrain_simplification_ros_node/filter_chain_parameter_name`.");
+    ROS_ERROR("Could not read parameter `terrain_simplification/filter_chain_parameter_name`.");
     return false;
   }
 
-  ros_nh_.param("/terrain_simplification_ros_node/gridmap_size_x",   map_size_.x(),    2.5);
-  ros_nh_.param("/terrain_simplification_ros_node/gridmap_size_y",   map_size_.y(),    2.5);
-  ros_nh_.param("/terrain_simplification_ros_node/h_nominal",        h_nominal_,       0.53);
-  ros_nh_.param("/terrain_simplification_ros_node/map_res_scaling",  map_res_scaling_, 0.4);
+  ros_nh_.param("/terrain_simplification/gridmap_size_x",   map_size_.x(),    2.5);
+  ros_nh_.param("/terrain_simplification/gridmap_size_y",   map_size_.y(),    2.5);
+  ros_nh_.param("/terrain_simplification/h_nominal",        h_nominal_,       0.53);
+  ros_nh_.param("/terrain_simplification/map_res_scaling",  map_res_scaling_, 0.4);
   setMapSize(map_size_);
 
   return true;
