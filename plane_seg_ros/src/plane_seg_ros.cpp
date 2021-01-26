@@ -48,7 +48,9 @@ Pass::Pass(ros::NodeHandle& node):
 {
 
   std::string input_body_pose_topic;
-  node_.getParam("input_body_pose_topic", input_body_pose_topic);
+  if(!node_.getParam("input_body_pose_topic", input_body_pose_topic)){
+   ROS_WARN_STREAM("Couldn't get parameter: input_body_pose_topic");
+  }
 //  std::string filename;
 //  node_.getParm("/rosbag_pass/filename", filename);
 /*
@@ -77,17 +79,30 @@ Pass::Pass(ros::NodeHandle& node):
   tracking_ = planeseg::Tracker();
   visualizer_ = planeseg::Visualizer();
   imgprocessor_ = planeseg::ImageProcessor();
-  listener_ = new tf::TransformListener();
 
-  node_.param("input_topic", elevation_map_topic_, std::string("/rooster_elevation_mapping/elevation_map"));
-  node_.param("erode_radius", erode_radius_, 0.2);
+  if(!node_.param("input_topic", elevation_map_topic_, std::string("/rooster_elevation_mapping/elevation_map"))){
+    ROS_WARN_STREAM("Couldn't get parameter: input_topic");
+  }
+  if(!node_.param("erode_radius", erode_radius_, 0.2)){
+    ROS_WARN_STREAM("Couldn't get parameter: erode_radius");
+  }
   ROS_INFO("Erode Radius [%f]", erode_radius_);
-  node_.param("traversability_threshold", traversability_threshold_, 0.8);
+  if(!node_.param("traversability_threshold", traversability_threshold_, 0.8)){
+    ROS_WARN_STREAM("Couldn't get parameter: traversability_threshold");
+  }
   ROS_INFO("traversability_threshold [%f]", traversability_threshold_);
-  node_.param("verbose_timer", verbose_timer_, true);
+  if(!node_.param("verbose_timer", verbose_timer_, true)){
+    ROS_WARN_STREAM("Couldn't get parameter: verbose_timer");
+  }
+  std::string param_name = "grid_map_filters";
+  XmlRpc::XmlRpcValue config;
+  if(!node_.getParam(param_name, config)) {
+    ROS_ERROR("Could not load the filter chain configuration from parameter %s, are you sure it was pushed to the parameter server? Assuming that you meant to leave it empty.", param_name.c_str());
+    return;
+  }
 
   // Setup filter chain
-  if (!filter_chain_.configure("grid_map_filters", node_)){
+  if (!filter_chain_.configure(param_name, node_)){
       std::cout << "couldn't configure filter chain" << std::endl;
       return;
   }
@@ -688,6 +703,18 @@ grid_map_msgs::GridMap Pass::gridMapCallback(const grid_map_msgs::GridMap& msg){
     grid_map::GridMapRosConverter::toMessage(input_map, failmessage);
     return failmessage;
   }
+
+/* DEBUG PRINT INPUT AND OUTPUT LAYERS
+  std::vector<std::string> in_layers = input_map.getLayers();
+  for(const auto& it : in_layers){
+    std::cerr << "||||||||||| IN  LAYER: " << it << std::endl;
+  }
+
+  std::vector<std::string> layers = output_map.getLayers();
+  for(const auto& it : layers){
+    std::cerr << "||||||||||| OUT LAYER: " << it << std::endl;
+  }
+*/
 
   if (verbose_timer_) {
     std::cout << toc().count() << " ms: filter chain\n";
