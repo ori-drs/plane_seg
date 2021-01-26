@@ -21,8 +21,9 @@ int main( int argc, char** argv ){
   ROS_INFO_STREAM("=============================");
 
   bool run_test_program = false;
-  nh.param("/plane_seg/run_test_program", run_test_program, false);
+  nh.param("run_test_program", run_test_program, false);
   std::cout << "run_test_program: " << std::boolalpha << run_test_program << "\n";
+
 
 
   // Enable this to run the test programs
@@ -37,11 +38,11 @@ int main( int argc, char** argv ){
     //app->processFromFile(5);
 
     std::cout << "Finished!\n";
-    exit(-1);
+    return 0;
   }
 
   bool run_sequential_test = false;
-  nh.param("/plane_seg/run_sequential_test", run_sequential_test, false);
+  nh.param("run_sequential_test", run_sequential_test, false);
   std::cout << "run_sequential_test: " << std::boolalpha << run_sequential_test << "\n";
 
   //Enable this to run the sequential test
@@ -53,11 +54,11 @@ int main( int argc, char** argv ){
 
       app->stepThroughFile(filename_);
       std::cout << "Finished!\n";
-      exit(-1);
+      return 0;
   }
 
   bool run_nth_cloud = false;
-  nh.param("/plane_seg/run_nth_cloud", run_nth_cloud, false);
+  nh.param("run_nth_cloud", run_nth_cloud, false);
   std::cout << "run_nth_cloud: " << std::boolalpha << run_nth_cloud << "\n";
 
   // Enable this to run nth coud
