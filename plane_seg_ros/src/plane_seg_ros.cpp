@@ -698,8 +698,8 @@ grid_map_msgs::GridMap Pass::gridMapCallback(const grid_map_msgs::GridMap& msg){
   Eigen::Isometry3d pose_robot = Eigen::Isometry3d::Identity();
   tf::StampedTransform transform;
   try {
-    listener_->waitForTransform("/odom", "/base", ros::Time(0), ros::Duration(10.0) );
-    listener_->lookupTransform("/odom", "/base", ros::Time(0), transform);
+    listener_.waitForTransform("odom", "base", ros::Time(0), ros::Duration(10.0) );
+    listener_.lookupTransform("odom", "base", ros::Time(0), transform);
   } catch (tf::TransformException ex) {
     ROS_ERROR("%s",ex.what());
   }
