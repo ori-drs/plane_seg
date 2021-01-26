@@ -107,7 +107,7 @@ double TerrainSimplificationRos::getHeight(
 double TerrainSimplificationRos::getTraversability(
     const Eigen::Vector2d& location,
     bool& is_inside) {
-  TerrainSimplification::getValueAtPosition("traversability", location, is_inside);
+  return TerrainSimplification::getValueAtPosition("traversability", location, is_inside);
 }
 
 bool
