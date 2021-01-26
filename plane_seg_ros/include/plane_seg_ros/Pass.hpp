@@ -66,7 +66,7 @@ class Pass{
     planeseg::Visualizer visualizer_;
     planeseg::ImageProcessor imgprocessor_;
     filters::FilterChain<grid_map::GridMap> filter_chain_;
-    tf::TransformListener* listener_;
+    tf::TransformListener listener_;
     std::string elevation_map_topic_;
     std::string filter_chain_parameters_name_;
     std::string filtered_map_topic_;
