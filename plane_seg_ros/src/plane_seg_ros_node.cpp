@@ -70,7 +70,7 @@ int main( int argc, char** argv ){
 
       app->extractNthCloud(filename_, n_);
       std::cout << "Finshed!\n";
-      exit(-1);
+      return 0;
   }
 
   ROS_INFO_STREAM("Waiting for ROS messages");
