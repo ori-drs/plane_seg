@@ -28,8 +28,7 @@
 
 namespace terrain_simplification_ros {
 
-class TerrainSimplificationRos
-    : public terrain_simplification::TerrainSimplification {
+class TerrainSimplificationRos {
 
 public:
   TerrainSimplificationRos();
@@ -146,6 +145,8 @@ protected:
       bool& is_inside);
 
 private:
+  std::shared_ptr<terrain_simplification::TerrainSimplification > terr_simp_; ///< pointer to the base-class object
+
   // ROS
   ros::NodeHandle     ros_nh_;              ///< node handle
   ros::Subscriber     ros_sub_robot_pose_;  ///< subscriber robot pose

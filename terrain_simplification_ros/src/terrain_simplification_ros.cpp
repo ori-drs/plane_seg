@@ -5,8 +5,10 @@ namespace terrain_simplification_ros {
 TerrainSimplificationRos::TerrainSimplificationRos(
     bool& success,
     ros::NodeHandle& nh)
-  : ros_nh_(nh),
-    TerrainSimplification() {
+  : ros_nh_(nh) {
+
+  terr_simp_ = std::make_shared<terrain_simplification::TerrainSimplification>();
+
   // Load config file
   if (!loadConfigFile()) {
     success = false;
@@ -24,7 +26,7 @@ TerrainSimplificationRos::TerrainSimplificationRos(
     success = false;
     return;
   }
-  setFilterChain(filter_chain_);
+  terr_simp_->setFilterChain(filter_chain_);
 
   // ROS
   ros_sub_robot_pose_ = ros_nh_.subscribe(topic_robot_state_, 2, &TerrainSimplificationRos::subRobotPose, this);
@@ -42,24 +44,24 @@ TerrainSimplificationRos::TerrainSimplificationRos(
 bool TerrainSimplificationRos::run(
     std_srvs::Empty::Request& request,
     std_srvs::Empty::Response& response) {
-  setRun(true);
+  terr_simp_->setRun(true);
   return true;
 }
 
 bool TerrainSimplificationRos::stop(
     std_srvs::Empty::Request& request,
     std_srvs::Empty::Response& response) {
-  setRun(false);
+  terr_simp_->setRun(false);
   return true;
 }
 
 bool TerrainSimplificationRos::pub(
     std_srvs::Empty::Request& request,
     std_srvs::Empty::Response& response) {
-  if (isReady()) {
+  if (terr_simp_->isReady()) {
     pubSimplifiedGridMap();
   } else {
-    if (!isReceived()) {
+    if (!terr_simp_->isReceived()) {
       ROS_WARN_STREAM("The elevation map was not received. "
                       "It either must be published on topic = " << topic_elevation_map_ <<
                       " or manually provided via setGridMap().");
@@ -83,7 +85,7 @@ bool TerrainSimplificationRos::getValueAtPosition(
     terrain_simplification_ros::GetValueAtPosition::Response &response) {
   Eigen::Vector2d p(request.x, request.y);
   bool is_inside = false;
-  double val = TerrainSimplification::getValueAtPosition(request.layer, p, is_inside);
+  double val = terr_simp_->getValueAtPosition(request.layer, p, is_inside);
 
   if (is_inside) {
     if (request.layer == "simplified") {
@@ -103,7 +105,7 @@ double TerrainSimplificationRos::getHeight(
     const Eigen::Vector2d& location,
     bool& is_inside,
     const bool& apply_h_offset) {
-  double h = TerrainSimplification::getValueAtPosition("simplified", location, is_inside);
+  double h = terr_simp_->getValueAtPosition("simplified", location, is_inside);
   if (apply_h_offset) h += h_nominal_;
   return  h;
 }
@@ -111,7 +113,7 @@ double TerrainSimplificationRos::getHeight(
 double TerrainSimplificationRos::getTraversability(
     const Eigen::Vector2d& location,
     bool& is_inside) {
-  return TerrainSimplification::getValueAtPosition("traversability", location, is_inside);
+  return terr_simp_->getValueAtPosition("traversability", location, is_inside);
 }
 
 bool
@@ -161,7 +163,7 @@ TerrainSimplificationRos::readParameters() {
   ros_nh_.param("/terrain_simplification/gridmap_size_y",   map_size_.y(),    2.5);
   ros_nh_.param("/terrain_simplification/h_nominal",        h_nominal_,       0.53);
   ros_nh_.param("/terrain_simplification/map_res_scaling",  map_res_scaling_, 0.4);
-  setMapSize(map_size_);
+  terr_simp_->setMapSize(map_size_);
 
   return true;
 }
@@ -185,7 +187,7 @@ TerrainSimplificationRos::setRobotPose(
         msg.pose.pose.orientation.x,
         msg.pose.pose.orientation.y,
         msg.pose.pose.orientation.z);
-  TerrainSimplification::setRobotPose(p, o);
+  terr_simp_->setRobotPose(p, o);
 }
 
 void
@@ -199,13 +201,13 @@ TerrainSimplificationRos::setGridMap(
     const grid_map_msgs::GridMap& msg) {
   grid_map::GridMap map;
   grid_map::GridMapRosConverter::fromMessage(msg, map);
-  TerrainSimplification::setGridMap(map);
+  terr_simp_->setGridMap(map);
 }
 
 void
 TerrainSimplificationRos::pubSimplifiedGridMap() {
   grid_map::GridMap map, map_h_offset;
-  getSimplifiedGridMap(map, map_res_scaling_);
+  terr_simp_->getSimplifiedGridMap(map, map_res_scaling_);
   Eigen::Isometry3d transf = Eigen::Isometry3d::Identity();
   Eigen::Vector3d translation(0.0, 0.0, h_nominal_);
   transf.translate(translation);

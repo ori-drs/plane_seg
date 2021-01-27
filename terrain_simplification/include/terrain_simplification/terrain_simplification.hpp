@@ -38,7 +38,6 @@ public:
    */
   ~TerrainSimplification();
 
-protected:
   /**
    * @brief Assigns a shared pointer to the filter_chain_ object
    * @param[in] filter_chain  shared pointer to a filter chain object in the derived class (ros).
