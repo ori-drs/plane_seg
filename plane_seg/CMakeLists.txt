@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6.0)
+cmake_minimum_required(VERSION 3.0.2)
 
 project(plane_seg)
 
@@ -9,7 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
 )
 
-find_package(OpenCV 3.0 QUIET)
+find_package(OpenCV REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS
@@ -21,6 +21,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 
@@ -61,3 +62,6 @@ install(TARGETS plane_seg
         ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
+
+# Mark header files for installation
+install(DIRECTORY include/${PROJECT_NAME}/ DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
