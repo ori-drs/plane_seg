@@ -42,6 +42,12 @@ public:
       ros::NodeHandle& nh);
   ~TerrainSimplificationRos() = default;
 
+  /**
+   * @brief Get the pointer to the base-class object
+   * @returns shared_ptr of the base-class object
+   */
+  std::shared_ptr<terrain_simplification::TerrainSimplification > getTerrainSimplification() { return terr_simp_; }
+
 protected:
   /**
    * @brief The callback function used to get the elevation map
@@ -143,12 +149,6 @@ protected:
   double getTraversability(
       const Eigen::Vector2d& location,
       bool& is_inside);
-
-  /**
-   * @brief Get the pointer to the base-class object
-   * @returns shared_ptr of the base-class object
-   */
-  std::shared_ptr<terrain_simplification::TerrainSimplification > getTerrainSimplification() { return terr_simp_; }
 
 private:
   std::shared_ptr<terrain_simplification::TerrainSimplification > terr_simp_; ///< pointer to the base-class object
