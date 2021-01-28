@@ -154,7 +154,7 @@ TerrainSimplificationRos::readParameters() {
     ROS_ERROR("Could not read parameter `terrain_simplification/topic_robot_state`.");
     return false;
   }
-  if (!ros_nh_.getParam("/terrain_simplification_ros_node/filter_chain_parameter_name", filter_chain_parameters_name_)){
+  if (!ros_nh_.getParam("/terrain_simplification/filter_chain_parameter_name", filter_chain_parameters_name_)){
     ROS_ERROR("Could not read parameter `terrain_simplification/filter_chain_parameter_name`.");
     return false;
   }
