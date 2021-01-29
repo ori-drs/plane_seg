@@ -206,19 +206,20 @@ TerrainSimplification::getSimplifiedGridMap(
     map_simplified_scaled_.setPosition(map_simplified_wo_traversability_.getPosition());
     mutex_.unlock();
 
-    // Scale
-    mutex_.lock(); // to read img_simplified_
-    scaleCvImage(scale, img_simplified_, img_simplified_scaled_);
-    mutex_.unlock();
-
-    convertCvImageToGridMap("simplified", img_simplified_scaled_, map_simplified_scaled_);
-
+    // Convert GridMap layers to images
     mutex_.lock(); // to read map_simplified_
     convertGridMapToCvImage("traversability", map_simplified_, img_traversability_);
     mutex_.unlock();
 
+    // Scale images
+    mutex_.lock(); // to read img_simplified_
+    scaleCvImage(scale, img_simplified_, img_simplified_scaled_);
+    mutex_.unlock();
     scaleCvImage(scale, img_traversability_, img_traversability_scaled_);
+
+    // Convert scaled images to GridMap layers
     convertCvImageToGridMap("traversability", img_traversability_scaled_, map_simplified_scaled_);
+    convertCvImageToGridMap("simplified", img_simplified_scaled_, map_simplified_scaled_);
 
     simplified_map = map_simplified_scaled_;
   } else {
