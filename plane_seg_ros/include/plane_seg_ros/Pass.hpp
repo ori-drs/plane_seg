@@ -50,6 +50,8 @@ class Pass{
     void tic();
     std::chrono::duration<double> toc();
     grid_map_msgs::GridMap gridMapCallback(const grid_map_msgs::GridMap& msg);
+    void saveGridMapMsgAsPCD(const grid_map_msgs::GridMap& msg, int frame);
+    void replaceNan(grid_map::GridMap::Matrix& m, const double newValue);
 
   private:
     ros::NodeHandle& node_;

@@ -6,7 +6,7 @@
     <param name="rosbag_path" value="$(arg rosbag_path)" />
   </node>
 
-<node name="rviz_sequential" pkg="rviz" type="rviz" output="screen" args="-d $(find elevation_map_plane_seg)/config/plane_seg_sequential_config.rviz">>
+<node name="rviz_sequential" pkg="rviz" type="rviz" output="screen" args="-d $(find plane_seg_ros)/config/plane_seg_sequential_config.rviz">>
 	</node>
 
 </launch>
