@@ -25,6 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   )
 
+find_package(OpenCV REQUIRED)
 # Generate messages in the 'msg' folder
 #add_message_files(
 #        FILES
@@ -61,15 +62,18 @@ add_library(${PROJECT_NAME}
 
 include_directories(
   include
+  ${OpenCV_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
   )
 
 add_dependencies(${PROJECT_NAME} 
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${OpenCV_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS})
 
 
 target_link_libraries(${PROJECT_NAME}
+  ${OpenCV_LIBS}
   ${catkin_LIBRARIES}
   )
 
