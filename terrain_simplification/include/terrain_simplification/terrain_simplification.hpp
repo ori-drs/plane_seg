@@ -25,6 +25,33 @@
 
 namespace terrain_simplification {
 
+enum Dim { X=0, Y, XY };
+
+struct D {
+  cv::Mat d;
+  cv::Mat dx;
+  cv::Mat dy;
+};
+
+struct DD {
+  cv::Mat dd;
+  cv::Mat dxdx;
+  cv::Mat dxdy;
+  cv::Mat dydx;
+  cv::Mat dydy;
+};
+
+struct MD {
+  cv::Mat m;
+  D f;
+};
+
+struct MDD {
+  cv::Mat m;
+  D f;
+  DD s;
+};
+
 class TerrainSimplification {
 
 public:
