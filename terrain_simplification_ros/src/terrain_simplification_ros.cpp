@@ -211,7 +211,7 @@ TerrainSimplificationRos::pubSimplifiedGridMap() {
   Eigen::Isometry3d transf = Eigen::Isometry3d::Identity();
   Eigen::Vector3d translation(0.0, 0.0, h_nominal_);
   transf.translate(translation);
-  map_h_offset = map.getTransformedMap(transf, "simplified", "point_cloud_odom", 1.0);
+  map_h_offset = map.getTransformedMap(transf, "simplified", "point_cloud_odom", 0.0);
 
   grid_map_msgs::GridMap msg;
   grid_map::GridMapRosConverter::toMessage(map_h_offset, msg);
