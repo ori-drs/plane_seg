@@ -117,6 +117,39 @@ public:
       cv::Mat& image);
 
   /**
+   * @brief Converts images of first- and second-order derivatives to layers of a gridmap
+   * @param[in]  layer_name  the common name of the layers
+   * @param[in]  images      the input images
+   * @param[out] map         the output gridmap
+   */
+  void convertCvImagesOfFirstAndSecondOrderDerivativesToGridMap(
+      const std::string& layer_name,
+      const MDD& images,
+      grid_map::GridMap& map);
+
+  /**
+   * @brief Converts images of first-order derivatives to layers of a gridmap
+   * @param[in]  layer_name  the common name of the layers
+   * @param[in]  images       the input images
+   * @param[out] map         the output gridmap
+   */
+  void convertCvImagesOfFirstOrderDerivativesToGridMap(
+      const std::string& layer_name,
+      const D& images,
+      grid_map::GridMap& map);
+
+  /**
+   * @brief Converts images of second-order derivatives to layers of a gridmap
+   * @param[in]  layer_name  the common name of the layers
+   * @param[in]  images      the input images
+   * @param[out] map         the output gridmap
+   */
+  void convertCvImagesOfSecondOrderDerivativesToGridMap(
+      const std::string& layer_name,
+      const DD& images,
+      grid_map::GridMap& map);
+
+  /**
    * @brief Converts an image to a layer of a gridmap
    * @param[in]  layer_name  the name of the layer
    * @param[in]  image       the input image
@@ -132,9 +165,74 @@ public:
    * @param[in]     image           the input image
    * @param[in/out] image_filtered  the output image
    */
-  void filterCvImage(
+  void applyDirectionalGaussianBlurToCvImage(
       const cv::Mat& image,
       cv::Mat& image_filtered);
+
+  /**
+   * @brief Filters an image using OpenCV filters by applying first- and second-order (Sobel) derivatives
+   * @param[in]     image           the input image
+   * @param[in/out] images_filtered the output images (d, dx, dy, dd, dxdx, dxdy, dydx, dydy)
+   * @param[in]     size            the size of the kernel
+   * @param[in]     denoise         flag to apply Gaussian blur as a method of removing noise
+   */
+  void applyFirstAndSecondOrderDerivativesToCvImage(
+      const cv::Mat& image,
+      MDD& images_filtered,
+      const int& size,
+      const bool& denoise);
+
+  /**
+   * @brief Filters an image using OpenCV filters by applying second-order (Sobel) derivatives
+   * @param[in]     image           the input images (dx, dy)
+   * @param[in/out] images_filtered the output images (dd, dxdx, dxdy, dydx, dydy)
+   * @param[in]     size            the size of the kernel
+   * @param[in]     denoise         flag to apply Gaussian blur as a method of removing noise
+   */
+  void applySecondOrderDerivativesToCvImage(
+      const D& image,
+      DD& images_filtered,
+      const int& size,
+      const bool& denoise);
+
+  /**
+   * @brief Filters an image using OpenCV filters by applying first-order (Sobel) derivatives
+   * @param[in]     image           the input image
+   * @param[in/out] images_filtered the output images (d, dx, dy)
+   * @param[in]     size            the size of the kernel
+   * @param[in]     denoise         flag to apply Gaussian blur as a method of removing noise
+   */
+  void applyFirstOrderDerivativesToCvImage(
+      const cv::Mat& image,
+      D& images_filtered,
+      const int& size,
+      const bool& denoise);
+
+  /**
+   * @brief Filters an image using OpenCV filters by applying first-order (Sobel) derivative
+   * @param[in]     image           the input image
+   * @param[in/out] image_filtered  the output image
+   * @param[in]     size            the size of the kernel
+   * @param[in]     dim             dimension {x, Y} with respect to which to take the derivative
+   * @param[in]     denoise         flag to apply Gaussian blur as a method of removing noise
+   */
+  void applyDerivativeToCvImage(
+      const cv::Mat& image,
+      cv::Mat& image_filtered,
+      const int& size,
+      const Dim& dim,
+      const bool& denoise);
+
+  /**
+   * @brief Filters an image using OpenCV filters by applying Gaussian blur
+   * @param[in]     image           the input image
+   * @param[in/out] image_filtered  the output image
+    @param[in]      size            the size of the kernel
+   */
+  void applyGaussianBlurToCvImage(
+      const cv::Mat& image,
+      cv::Mat& image_filtered,
+      const int& size);
 
   /**
    * @brief Scales an image
@@ -245,10 +343,14 @@ private:
 
   // Images
   cv::Mat img_raw_;                         ///< image of the raw elevation map
-  cv::Mat img_simplified_;                  ///< image of the simplified map
-  cv::Mat img_simplified_scaled_;           ///< scaled image of the simplified map
+  MD img_simplified_;                       ///< images of the simplified map and its first-order derivatives
+  MD img_simplified_scaled_;                ///< scaled images of the simplified map and its first-order derivatives
+  MDD img_elevation_;                       ///< images of the elevation map and its second-order derivatives
+  MDD img_elevation_scaled_;                ///< scaled images of the elevation map and its second-order derivatives
   cv::Mat img_traversability_;              ///< image of the traversability map
   cv::Mat img_traversability_scaled_;       ///< scaled image of the traversability map
+  cv::Mat img_slope_;                       ///< image of the slope map
+  cv::Mat img_slope_scaled_;                ///< scaled image of the slope map
 
   // Robot's state
   Eigen::Vector3d robot_position_;          ///< robot's xyz position in the world (odom) frame

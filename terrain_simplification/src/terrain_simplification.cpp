@@ -107,14 +107,27 @@ TerrainSimplification::simplifyGridMap () {
 
   // Simplify the terrain
   convertGridMapToCvImage("elevation", map_sub_, img_raw_);             // takes 0.5 ms
+  MD img_simplified;
+  MDD img_elevation;
+  img_elevation.m = img_raw_;
+  applyDirectionalGaussianBlurToCvImage(img_elevation.m, img_simplified.m);                             // takes 1-10 ms
+  applyFirstOrderDerivativesToCvImage(img_simplified.m, img_simplified.f, 3, false);
+  applyFirstAndSecondOrderDerivativesToCvImage(img_elevation.m, img_elevation, 3, true);
+
+  convertCvImagesOfFirstOrderDerivativesToGridMap("simplified", img_simplified.f, map_simplified_wo_traversability);
+  convertCvImagesOfFirstAndSecondOrderDerivativesToGridMap("elevation", img_elevation, map_simplified_wo_traversability);
+  convertCvImageToGridMap("simplified", img_simplified.m, map_simplified_wo_traversability); // takes 1-2 ms
+  convertCvImageToGridMap("elevation", img_elevation.m, map_simplified_wo_traversability); // takes 1-2 ms
   mutex_.lock(); // to write and img_simplified_
-  filterCvImage(img_raw_, img_simplified_);                             // takes 1-10 ms
-  convertCvImageToGridMap("simplified", img_simplified_, map_simplified_wo_traversability); // takes 1-2 ms
+  img_simplified_ = img_simplified;
+  img_elevation_ = img_elevation;
   mutex_.unlock();
 
   // Apply the filter chain to create a separate map with a traversability layer
   grid_map::GridMap map_simplified({"simplified"});
   applyFilterChain(map_simplified_wo_traversability, map_simplified);                       // takes ~100-200 ms
+
+  convertGridMapToCvImage("slope", map_simplified_wo_traversability, img_slope_);
 
   mutex_.lock(); // to write map_filtered_ and map_simplified_
   map_simplified_wo_traversability_ = map_simplified_wo_traversability;
@@ -134,6 +147,37 @@ TerrainSimplification::convertGridMapToCvImage (
 }
 
 void
+TerrainSimplification::convertCvImagesOfFirstAndSecondOrderDerivativesToGridMap(
+    const std::string &layer_name,
+    const MDD &images,
+    grid_map::GridMap &map) {
+  convertCvImagesOfFirstOrderDerivativesToGridMap(layer_name, images.f, map);
+  convertCvImagesOfSecondOrderDerivativesToGridMap(layer_name, images.s, map);
+}
+
+void
+TerrainSimplification::convertCvImagesOfFirstOrderDerivativesToGridMap(
+    const std::string &layer_name,
+    const D &images,
+    grid_map::GridMap &map) {
+  convertCvImageToGridMap(layer_name + "_d",  images.d,  map);
+  convertCvImageToGridMap(layer_name + "_dx", images.dx, map);
+  convertCvImageToGridMap(layer_name + "_dy", images.dy, map);
+}
+
+void
+TerrainSimplification::convertCvImagesOfSecondOrderDerivativesToGridMap(
+    const std::string &layer_name,
+    const DD &images,
+    grid_map::GridMap &map) {
+  convertCvImageToGridMap(layer_name + "_dd",   images.dd,   map);
+  convertCvImageToGridMap(layer_name + "_dxdx", images.dxdx, map);
+  convertCvImageToGridMap(layer_name + "_dxdy", images.dxdy, map);
+  convertCvImageToGridMap(layer_name + "_dydx", images.dydx, map);
+  convertCvImageToGridMap(layer_name + "_dydy", images.dydy, map);
+}
+
+void
 TerrainSimplification::convertCvImageToGridMap (
     const std::string& layer_name,
     const cv::Mat& image,
@@ -143,22 +187,105 @@ TerrainSimplification::convertCvImageToGridMap (
 }
 
 void
-TerrainSimplification::filterCvImage (
+TerrainSimplification::applyDirectionalGaussianBlurToCvImage (
     const cv::Mat& image,
     cv::Mat& image_filtered) {
-
-  cv::Mat image_median; cv::medianBlur(image, image_median, 5);
-
-  // not used
-  //  cv::Mat image_gaussian;
-  //  int size_x = abs(2*floor((sin(getRobotYaw())*51.)/2.)+1);
-  //  int size_y = abs(2*floor((cos(getRobotYaw())*51.)/2.)+1);
-  //  cv::GaussianBlur(image_median, image_gaussian, cv::Size(size_x, size_y), 0.0, 0.0);
-
+  cv::Mat image_median;
+  cv::medianBlur(image, image_median, 5);
   cv::Mat image_directional;
   cv::filter2D(image_median, image_directional, -1, getDirectionalBlurKernel());
 
   image_filtered = image_directional;
+}
+
+void
+TerrainSimplification::applyGaussianBlurToCvImage (
+    const cv::Mat& image,
+    cv::Mat& image_filtered,
+    const int& size) {
+  cv::Mat image_gaussian;
+  cv::GaussianBlur(image, image_gaussian, cv::Size(size, size), 0.0, 0.0);
+
+  image_filtered = image_gaussian;
+}
+
+void
+TerrainSimplification::applyDerivativeToCvImage(
+    const cv::Mat& image,
+    cv::Mat& image_filtered,
+    const int& size,
+    const Dim& dim,
+    const bool& denoise) {
+  // IF denoise, apply Gaussian Blur, ELSE copy image
+  cv::Mat image_denoised, image_denoised_signed;
+  if (denoise) {
+    cv::GaussianBlur(image, image_denoised, cv::Size(3,3), 0, 0);
+  } else {
+    image_denoised = image;
+  }
+  // Compute the gradient with respect to the specified dimension
+  cv::Mat image_grad, image_grad_unsigned;
+  // Convert from insigned int [0, 65,535] to signed int [−32,767, +32,767]
+  image_denoised.convertTo(image_denoised_signed, CV_16S, 0.5);       // note: multiplying by 0.5
+  if (dim == X) {
+    cv::Sobel(image_denoised_signed, image_grad, CV_16S, 0, 1, size); // note: 0, 1
+  } else if (dim == Y) {
+    cv::Sobel(image_denoised_signed, image_grad, CV_16S, 1, 0, size); // note: 1, 0
+  } else {
+    image_grad = image_denoised_signed;
+  }
+
+  image_grad.convertTo(image_grad_unsigned, CV_16UC1, 2.0, 32767.);    // note: multiplying by 2.0
+  image_filtered = image_grad_unsigned;
+}
+
+void
+TerrainSimplification::applyFirstOrderDerivativesToCvImage(
+    const cv::Mat& image,
+    D& images_filtered,
+    const int& size,
+    const bool& denoise) {
+   applyDerivativeToCvImage(image, images_filtered.dx, size, X,  denoise);
+   applyDerivativeToCvImage(image, images_filtered.dy, size, Y,  denoise);
+
+   images_filtered.d = cv::Mat::zeros(images_filtered.dx.size().height, images_filtered.dx.size().width, CV_16UC1);
+   int n_rows = images_filtered.dx.size().height;
+   int n_cols = images_filtered.dx.size().width;
+   mutex_state_.lock();
+   double yaw = yaw_prev_;
+   mutex_state_.unlock();
+   double cos_yaw = cos(yaw);
+   double sin_yaw = sin(yaw);
+   for (int i = 0; i < n_rows; i++) {
+     unsigned short* d_row        = images_filtered.d.ptr<unsigned short>(i);
+     const unsigned short* dx_row = images_filtered.dx.ptr<unsigned short>(i);
+     const unsigned short* dy_row = images_filtered.dy.ptr<unsigned short>(i);
+     for (int j = 0; j < n_cols; j++) {
+       d_row[j] = static_cast<unsigned short>(cos_yaw*(dx_row[j]-32767.) + sin_yaw*(dy_row[j]-32767.) + 32767.);
+     }
+   }
+}
+
+void
+TerrainSimplification::applySecondOrderDerivativesToCvImage(
+    const D& image,
+    DD& images_filtered,
+    const int& size,
+    const bool& denoise) {
+  applyDerivativeToCvImage(image.dx, images_filtered.dxdx, size, X,  denoise);
+  applyDerivativeToCvImage(image.dx, images_filtered.dxdy, size, Y,  denoise);
+  applyDerivativeToCvImage(image.dy, images_filtered.dydx, size, X,  denoise);
+  applyDerivativeToCvImage(image.dy, images_filtered.dydy, size, Y,  denoise);
+}
+
+void
+TerrainSimplification::applyFirstAndSecondOrderDerivativesToCvImage(
+    const cv::Mat& image,
+    MDD& images_filtered,
+    const int& size,
+    const bool& denoise) {
+  applyFirstOrderDerivativesToCvImage(image, images_filtered.f, size, denoise);
+  applySecondOrderDerivativesToCvImage(images_filtered.f, images_filtered.s, size, false);
 }
 
 cv::Mat
@@ -198,7 +325,6 @@ TerrainSimplification::getSimplifiedGridMap(
 
   // IF the returned map is to be scaled ELSE not scaled
   if (scale != 1.0) {
-
     // Set up the map object
     mutex_.lock(); // to read map_filtered_
     map_simplified_scaled_.setFrameId("point_cloud_odom");
@@ -209,17 +335,39 @@ TerrainSimplification::getSimplifiedGridMap(
     // Convert GridMap layers to images
     mutex_.lock(); // to read map_simplified_
     convertGridMapToCvImage("traversability", map_simplified_, img_traversability_);
+    convertGridMapToCvImage("slope", map_simplified_, img_slope_);
     mutex_.unlock();
 
     // Scale images
     mutex_.lock(); // to read img_simplified_
-    scaleCvImage(scale, img_simplified_, img_simplified_scaled_);
+    MD img_simplified = img_simplified_;
+    MDD img_elevation = img_elevation_;
     mutex_.unlock();
+
+    scaleCvImage(scale, img_simplified.m,    img_simplified_scaled_.m);
+    scaleCvImage(scale, img_simplified.f.d,  img_simplified_scaled_.f.d);
+    scaleCvImage(scale, img_simplified.f.dx, img_simplified_scaled_.f.dx);
+    scaleCvImage(scale, img_simplified.f.dy, img_simplified_scaled_.f.dy);
+
+    scaleCvImage(scale, img_elevation.m,      img_elevation_scaled_.m);
+    scaleCvImage(scale, img_elevation.f.d,    img_elevation_scaled_.f.d);
+    scaleCvImage(scale, img_elevation.f.dx,   img_elevation_scaled_.f.dx);
+    scaleCvImage(scale, img_elevation.f.dy,   img_elevation_scaled_.f.dy);
+    scaleCvImage(scale, img_elevation.s.dxdx, img_elevation_scaled_.s.dxdx);
+    scaleCvImage(scale, img_elevation.s.dxdy, img_elevation_scaled_.s.dxdy);
+    scaleCvImage(scale, img_elevation.s.dydx, img_elevation_scaled_.s.dydx);
+    scaleCvImage(scale, img_elevation.s.dydy, img_elevation_scaled_.s.dydy);
+
     scaleCvImage(scale, img_traversability_, img_traversability_scaled_);
+    scaleCvImage(scale, img_slope_, img_slope_scaled_);
 
     // Convert scaled images to GridMap layers
+    convertCvImageToGridMap("slope", img_slope_scaled_, map_simplified_scaled_);
     convertCvImageToGridMap("traversability", img_traversability_scaled_, map_simplified_scaled_);
-    convertCvImageToGridMap("simplified", img_simplified_scaled_, map_simplified_scaled_);
+    convertCvImageToGridMap("simplified", img_simplified_scaled_.m, map_simplified_scaled_);
+    convertCvImagesOfFirstOrderDerivativesToGridMap("simplified", img_simplified_scaled_.f, map_simplified_scaled_);
+    convertCvImagesOfFirstAndSecondOrderDerivativesToGridMap("elevation", img_elevation_scaled_, map_simplified_scaled_);
+    convertCvImageToGridMap("elevation", img_elevation_scaled_.m, map_simplified_scaled_); // takes 1-2 ms
 
     simplified_map = map_simplified_scaled_;
   } else {
