@@ -3,9 +3,9 @@ terrain_simplification/topic_robot_state:           /state_estimator/pose_in_odo
 terrain_simplification/topic_map_simplified:        /terrain_simplification/map_simplified
 
 terrain_simplification/gridmap_size_x:              2.5
-terrain_simplification/gridmap_size_y:              0.6
+terrain_simplification/gridmap_size_y:              2.5
 terrain_simplification/h_nominal:                   0.53
-terrain_simplification/map_res_scaling:             0.4
+terrain_simplification/map_res_scaling:             1.0
 
 terrain_simplification/erode_radius:                0.11
 terrain_simplification/traversability_threshold:    0.7
