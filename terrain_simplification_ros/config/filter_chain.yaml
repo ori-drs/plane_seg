@@ -37,13 +37,13 @@ grid_map_filters:
       output_layer: slope
       expression: acos(normal_vectors_z)
 
-#  # Reduce noise with a radial blurring filter.
-#  - name: mean_in_radius2
-#    type: gridMapFilters/MeanInRadiusFilter
-#    params:
-#      input_layer: slope
-#      output_layer: slope_smooth
-#      radius: 0.4
+  # Reduce noise with a radial blurring filter.
+  - name: mean_in_radius2
+    type: gridMapFilters/MeanInRadiusFilter
+    params:
+      input_layer: slope
+      output_layer: slope_smooth
+      radius: 0.4
 
   # Boxblur as an alternative to the inpaint and radial blurring filter above.
   - name: boxblur
