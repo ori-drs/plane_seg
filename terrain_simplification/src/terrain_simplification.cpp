@@ -89,6 +89,16 @@ TerrainSimplification::simplifyGridMap () {
   mutex_state_.unlock();
 
   mutex_.lock(); // to read map_full_
+  // check that robot position is inside the map
+  if (std::pow(std::pow(robot_position[0] - map_full_.getPosition()[0], 2.), 0.5) > map_full_.getLength()[0]/2. ||
+      std::pow(std::pow(robot_position[1] - map_full_.getPosition()[1], 2.), 0.5) > map_full_.getLength()[1]/2.) {
+    std::cout << "[TerrainSimplification::simplifyGridMap] The position of the robot (" << robot_position[0] << ", " << robot_position[1]
+              << ") lays outside of the map centered at (" << map_full_.getPosition()[0] << ", " << map_full_.getPosition()[1]
+              << "), of size (" << map_full_.getLength()[0] << ", " << map_full_.getLength()[1] << "). Will reattempt." << std::endl;
+    mutex_.unlock();
+    usleep(1000000);
+    return;
+  }
   map_sub_ = map_full_.getSubmap(robot_position, grid_map::Length(map_size_.x(), map_size_.y()), success);
   mutex_.unlock();
 
