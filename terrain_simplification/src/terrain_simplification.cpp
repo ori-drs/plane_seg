@@ -180,7 +180,7 @@ TerrainSimplification::convertCvImagesOfSecondOrderDerivativesToGridMap(
     const std::string &layer_name,
     const DD &images,
     grid_map::GridMap &map) {
-  convertCvImageToGridMap(layer_name + "_dd",   images.dd,   map);
+//  convertCvImageToGridMap(layer_name + "_dd",   images.dd,   map); // note: currently .dd is not computed
   convertCvImageToGridMap(layer_name + "_dxdx", images.dxdx, map);
   convertCvImageToGridMap(layer_name + "_dxdy", images.dxdy, map);
   convertCvImageToGridMap(layer_name + "_dydx", images.dydx, map);
