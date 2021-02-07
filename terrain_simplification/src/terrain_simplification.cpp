@@ -137,8 +137,6 @@ TerrainSimplification::simplifyGridMap () {
   grid_map::GridMap map_simplified({"simplified"});
   applyFilterChain(map_simplified_wo_traversability, map_simplified);                       // takes ~100-200 ms
 
-  convertGridMapToCvImage("slope", map_simplified_wo_traversability, img_slope_);
-
   mutex_.lock(); // to write map_filtered_ and map_simplified_
   map_simplified_wo_traversability_ = map_simplified_wo_traversability;
   map_simplified_ = map_simplified;
