@@ -400,6 +400,9 @@ TerrainSimplification::getValueAtPosition(
     is_inside = true;
     value = map_simplified_.atPosition(layer, p);
   } else {
+    std::cerr << "[TerrainSimplification::getValueAtPosition] Error: the queried position (" << position
+              << ") lays outside of the map centered at (" << map_simplified_.getPosition()[0] << ", " << map_simplified_.getPosition()[1]
+              << "), of size (" << map_simplified_.getLength()[0] << ", " << map_simplified_.getLength()[1] << ")." << std::endl;
     is_inside = false;
   }
   return value;
