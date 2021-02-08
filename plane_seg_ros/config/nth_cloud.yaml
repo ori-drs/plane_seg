@@ -71,3 +71,14 @@ plane_seg:
         output_layer: slope
         expression: acos(normal_vectors_z)
 
+#   grid_map_mask_filter:
+#
+#    - name: buffer_normalizer
+#      type: gridMapFilters/BufferNormalizerFilter
+
+  # Use output from image processor as mask over elevation
+#    - name: masking
+#      type: gridMapFilters/MathExpressionFilter
+#      params:
+#	output_layer: masked
+#	expression: elevation * slope

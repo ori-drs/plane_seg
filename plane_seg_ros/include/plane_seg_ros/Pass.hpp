@@ -30,7 +30,7 @@ class Pass{
     void elevationMapCallback(const grid_map_msgs::GridMap& msg);
     void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr &msg);
     void robotPoseCallBack(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg);
-    void imageProcessingCallback(const grid_map_msgs::GridMap &msg);
+    grid_map_msgs::GridMap imageProcessingCallback(const grid_map_msgs::GridMap &msg);
 
     void processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f origin, Eigen::Vector3f lookDir);
     void processFromFile(int test_example);
@@ -52,6 +52,8 @@ class Pass{
     grid_map_msgs::GridMap gridMapCallback(const grid_map_msgs::GridMap& msg);
     void saveGridMapMsgAsPCD(const grid_map_msgs::GridMap& msg, int frame);
     void replaceNan(grid_map::GridMap::Matrix& m, const double newValue);
+    void replaceZeroToNan(grid_map::GridMap::Matrix& m);
+    void multiplyLayers(grid_map::GridMap::Matrix& factor1, grid_map::GridMap::Matrix& factor2, grid_map::GridMap::Matrix& result);
 
   private:
     ros::NodeHandle& node_;
@@ -68,6 +70,7 @@ class Pass{
     planeseg::Visualizer visualizer_;
     planeseg::ImageProcessor imgprocessor_;
     filters::FilterChain<grid_map::GridMap> filter_chain_;
+//    filters::FilterChain<grid_map::GridMap> mask_filter_;
     tf::TransformListener listener_;
     std::string elevation_map_topic_;
     std::string filter_chain_parameters_name_;

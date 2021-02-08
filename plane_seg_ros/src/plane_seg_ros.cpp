@@ -11,6 +11,7 @@
 #include "plane_seg/Tracker.hpp"
 
 #include <grid_map_cv/grid_map_cv.hpp>
+#include <grid_map_cv/GridMapCvConverter.hpp>
 
 #include <eigen_conversions/eigen_msg.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -106,6 +107,19 @@ Pass::Pass(ros::NodeHandle& node):
       std::cout << "couldn't configure filter chain" << std::endl;
       return;
   }
+/*
+  std::string mask_name = "grid_map_mask_filter";
+  XmlRpc::XmlRpcValue config2;
+  if(!node_.getParam(mask_name, config2)) {
+      ROS_ERROR("Could not load mask filter configuration from parameter %s, are you sure it was pushed to the parameter server? Assuming that you meant to leave it empty.", mask_name.c_str());
+      return;
+  }
+
+  // Setup mask filter
+  if (!mask_filter_.configure(mask_name, node_)){
+      std::cout << "couldn't configure mask filter" << std::endl;
+      return;
+  }*/
 
   colors_ = {
       1, 1, 1, // 42
@@ -151,7 +165,7 @@ void Pass::elevationMapCallback(const grid_map_msgs::GridMap& msg){
   grid_map::GridMap map;
   grid_map::GridMapRosConverter::fromMessage(msg, map);
   sensor_msgs::PointCloud2 pointCloud;
-  grid_map::GridMapRosConverter::toPointCloud(map, "elevation", pointCloud);
+  grid_map::GridMapRosConverter::toPointCloud(map, "product", pointCloud); // used to take layer "elevation"
   planeseg::LabeledCloud::Ptr inCloud(new planeseg::LabeledCloud());
   pcl::fromROSMsg(pointCloud, *inCloud);
 
@@ -644,11 +658,12 @@ void Pass::extractNthCloud(std::string filename, int n){
             ++frame;
             if (frame == n){
                 std::cin.get();
-                grid_map_msgs::GridMap n;
+                grid_map_msgs::GridMap n, p;
                 n = gridMapCallback(*s);
-                elevationMapCallback(n);
 //                elev_map_pub_.publish(*s);
-                imageProcessingCallback(n);
+                p = imageProcessingCallback(n);
+
+                elevationMapCallback(p);
             }
         }
 
@@ -665,18 +680,36 @@ void Pass::extractNthCloud(std::string filename, int n){
 bag.close();
 }
 
-void Pass::imageProcessingCallback(const grid_map_msgs::GridMap &msg){
+grid_map_msgs::GridMap Pass::imageProcessingCallback(const grid_map_msgs::GridMap &msg){
     grid_map::GridMap gridmap;
     grid_map::GridMapRosConverter::fromMessage(msg, gridmap);
     const float nanValue = 1;
     replaceNan(gridmap.get("slope"), nanValue);
     grid_map::GridMapRosConverter::toCvImage(gridmap, "slope", sensor_msgs::image_encodings::MONO8, imgprocessor_.original_img_);
 
-//                cv_bridge::CvImage img_rgb;
-//                cv::applyColorMap(image.image, img_rgb.image, cv::COLORMAP_JET);
-
     imgprocessor_.process();
+    imgprocessor_.displayResult();
+    sensor_msgs::ImagePtr mask_layer;
+    mask_layer = imgprocessor_.final_img_.toImageMsg();
 
+    grid_map::GridMapRosConverter::addLayerFromImage(*mask_layer, "mask", gridmap, 0.0, 1.0);
+    // need to fix the actual masking of mask over elevation map
+    // maybe multiply as 0/1 binary image first then replace zeros with NANs?
+    gridmap.add("product");
+
+
+//    gridmap["sum"] = gridmap["mask"]  gridmap["elevation"];
+    multiplyLayers(gridmap.get("elevation"), gridmap.get("mask"), gridmap.get("product"));
+
+    replaceZeroToNan(gridmap.get("product"));
+
+
+    // Publish updated grid map.
+    grid_map_msgs::GridMap output_msg;
+    grid_map::GridMapRosConverter::toMessage(gridmap, output_msg);
+    filtered_map_pub_.publish(output_msg);
+
+    return output_msg;
 }
 
 void Pass::tic(){
@@ -737,8 +770,8 @@ void Pass::saveGridMapMsgAsPCD(const grid_map_msgs::GridMap& msg, int frame){
     std::cout << "Saved " << point_cloud.size () << " data points to " << pcd_filename << std::endl;
 }
 
-void Pass::replaceNan(grid_map::GridMap::Matrix& m, const double newValue)
-{
+void Pass::replaceNan(grid_map::GridMap::Matrix& m, const double newValue){
+
   for(int r = 0; r < m.rows(); r++)
   {
     for(int c = 0; c < m.cols(); c++)
@@ -747,6 +780,31 @@ void Pass::replaceNan(grid_map::GridMap::Matrix& m, const double newValue)
       {
         m(r,c) = newValue;
       }
+    }
+  }
+}
+
+void Pass::replaceZeroToNan(grid_map::GridMap::Matrix& m){
+
+  for(int r = 0; r < m.rows(); r++)
+  {
+    for(int c = 0; c < m.cols(); c++)
+    {
+      if (m(r,c) == 0)
+      {
+        m(r,c) = NAN;
+      }
+    }
+  }
+}
+
+void Pass::multiplyLayers(grid_map::GridMap::Matrix& factor1, grid_map::GridMap::Matrix& factor2, grid_map::GridMap::Matrix& result){
+
+  for(int r = 0; r < result.rows(); r++)
+  {
+    for(int c = 0; c < result.cols(); c++)
+    {
+        result(r,c) = factor1(r,c) * factor2(r,c);
     }
   }
 }
