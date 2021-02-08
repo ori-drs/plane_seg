@@ -9,7 +9,7 @@ using namespace planeseg;
 
 PlaneSegmenter::
 PlaneSegmenter() {
-  setMaxError(0.02);
+  setMaxError(0.02); //0.02
   setMaxAngle(30);
   setSearchRadius(0.03);
   setMinPoints(500);

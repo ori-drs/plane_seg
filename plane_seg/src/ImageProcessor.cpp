@@ -6,80 +6,123 @@
 
 namespace planeseg {
 
+void contours::filterMinConvexity(int min_convexity){
+
+    std::vector<std::vector<cv::Point>> temp;
+    temp = contours_;
+    contours_.clear();
+
+    for (size_t p = 0; p < temp.size(); ++p){
+        std::vector<cv::Point> hull;
+        double hull_perimeter;
+        double contour_perimeter;
+        double convexity;
+
+        cv::convexHull(temp[p], hull);
+        hull_perimeter = cv::arcLength(hull, true);
+        contour_perimeter = cv::arcLength(temp[p], true);
+        convexity = hull_perimeter / contour_perimeter;
+
+        if (convexity >= min_convexity){
+            contours_.push_back(temp[p]);
+        }
+    }
+}
+
+void contours::filterMinElongation(int min_elongation){
+
+    std::vector<std::vector<cv::Point>> temp;
+    temp = contours_;
+    contours_.clear();
+
+    for (size_t r = 0; r < temp.size(); ++r){
+        double elongation;
+        cv::RotatedRect minarea_rect;
+        minarea_rect = cv::minAreaRect(temp[r]);
+        double major_axis = std::max(minarea_rect.size.height, minarea_rect.size.width);
+        double minor_axis = std::min(minarea_rect.size.height, minarea_rect.size.width);
+        elongation = major_axis / minor_axis;
+
+        if (elongation >= min_elongation){
+            contours_.push_back(temp[r]);
+        }
+    }
+}
+
+void contours::approxAsPoly(){
+
+    std::vector<std::vector<cv::Point>> temp;
+    temp = contours_;
+    contours_.clear();
+
+    for(size_t l = 0; l < temp.size(); ++l){
+        double epsilon;
+        epsilon = 3;
+        std::vector<cv::Point> approx;
+        cv::approxPolyDP(temp[l], approx, epsilon, true);
+        contours_.push_back(approx);
+    }
+}
+
 ImageProcessor::ImageProcessor(){
 }
 
 ImageProcessor::~ImageProcessor(){}
 
 void ImageProcessor::process(){
-    displayImage(original_img_, "original");
-/*
-    std::cout << "Press 's' to save, 't' to threshold, anything else to close" << std::endl;
-//    displayImage(original_img_, "white NaN");
-    int l = cv::waitKey(0);
-    if (l == 's'){
-        saveImage(original_img_);
-    }
-    else if (l == 't'){
-        thresholdImage(original_img_);
-        displayImage(threshold_img_, "threshold");
-        std::cout << "Press 's' to save both images, original then thresholded, or 'd' to dilate!" << std::endl;
-        int k = cv::waitKey(0);
-        if (k == 's'){
-            saveImage(original_img_);
-            saveImage(threshold_img_);
-        } else if (k == 'd'){
-            dilateImage(threshold_img_);
-            displayImage(dilate_img_, "dilated");
-            std::cout <<"Press 's' to save all three images, original, threshold, then dilated; 'e' to erode" << std::endl;
-            int j = cv::waitKey(0);
-            if (j == 's'){
-                saveImage(original_img_);
-                saveImage(threshold_img_);
-                saveImage(dilate_img_);
-            } else if (j == 'e'){
-                erodeImage(dilate_img_);
-                displayImage(erode_img_, "eroded");
-                std::cout <<"Press 's' to save all four images, original, threshold, dilated then eroded" << std::endl;
-                int h = cv::waitKey(0);
-                if (h == 's'){
-                    saveImage(original_img_);
-                    saveImage(threshold_img_);
-                    saveImage(dilate_img_);
-                    saveImage(erode_img_);
-                }
-            }
-        }
-    }
-    */
-    thresholdImage(original_img_);
-    erodeImage(threshold_img_, 1);
-    dilateImage(erode_img_, 1);
-    dilateImage(dilate_img_, 2);
-    erodeImage(dilate_img_, 2);
-    removeBlobs(erode_img_);
 
-//    blobDetector(erode_img_);
-//    erodeImage(erode_img_);
-//    dilateImage(erode_img_);
+    copyOrigToProc();
+    displayImage("original");
 
-    displayImage(threshold_img_, "threshold");
-    displayImage(dilate_img_, "dilated");
-    displayImage(erode_img_, "eroded");
-    displayImage(large_contours_, "large contours");
-    displayImage(small_contours_, "small contours");
+    thresholdImage(70);
+    displayImage("threshold");
+    erodeImage(1);
+    dilateImage(1);
+    dilateImage(2);
+    erodeImage(2);
+    displayImage("erode/dilate");
 
+    extractContours();
+    splitContours();
+    drawContours(med_contours_, "med_contours");
+    drawContours(large_contours_, "large contours");
+    med_contours_.filterMinConvexity(0.8);
+    drawContours(med_contours_, "filtered by convexity");
+    med_contours_.filterMinElongation(2.5);
+    drawContours(med_contours_, "filtered by elongation");
+    mergeContours();
+
+    displayResult();
+    final_img_ = processed_img_;
 
     int p = cv::waitKey(0);
     if (p == 's'){
-        saveImage(dilate_img_);
+        saveImage(original_img_);
     }
 }
 
+void ImageProcessor::copyOrigToProc(){
+    processed_img_ = original_img_;
+}
 
-void ImageProcessor::displayImage(cv_bridge::CvImage image, std::string process){
+void ImageProcessor::displayImage(std::string process){
+
+    cv_bridge::CvImage temp;
+    temp = processed_img_;
     cv::namedWindow(process, cv::WINDOW_AUTOSIZE);
-    cv::imshow(process, image.image);
+    cv::imshow(process, temp.image);
+}
+
+void ImageProcessor::displayResult(){
+
+    final_img_.image = cv::Mat::zeros(original_img_.image.size(), CV_8U);
+
+    for(size_t i = 0; i < all_contours_.contours_.size(); ++i){
+        cv::drawContours(final_img_.image, all_contours_.contours_, i, cv::Scalar(255), cv::FILLED);
+    }
+
+    cv::namedWindow("final", cv::WINDOW_AUTOSIZE);
+    cv::imshow("final", final_img_.image);
 }
 
 void ImageProcessor::saveImage(cv_bridge::CvImage image_){
@@ -104,35 +147,35 @@ void ImageProcessor::saveImage(cv_bridge::CvImage image_){
     }
 }
 
-void ImageProcessor::erodeImage(cv_bridge::CvImage originalImage, int erode_size){
+void ImageProcessor::erodeImage(int erode_size){
 
     cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT,
                                                 cv::Size(2*erode_size + 1, 2*erode_size + 1),
                                                 cv::Point(erode_size, erode_size)
                                                 );
-    cv::erode(originalImage.image, erode_img_.image, element);
+
+    cv::erode(processed_img_.image, processed_img_.image, element);
 }
 
-void ImageProcessor::dilateImage(cv_bridge::CvImage originalImage, int dilate_size){
+void ImageProcessor::dilateImage(int dilate_size){
 
     cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT,
                                                 cv::Size(2*dilate_size+1, 2*dilate_size +1),
                                                 cv::Point(dilate_size, dilate_size)
                                                 );
-    cv::dilate(originalImage.image, dilate_img_.image, element);
+    cv::dilate(processed_img_.image, processed_img_.image, element);
 }
 
-void ImageProcessor::thresholdImage(cv_bridge::CvImage image){
+void ImageProcessor::thresholdImage(int threshold_value){
 
-    int threshold_value = 70;
     int threshold_type = cv::ThresholdTypes::THRESH_BINARY_INV;
     double maxval = 255;
 
-    cv::threshold(image.image, threshold_img_.image, threshold_value, maxval, threshold_type);
+    cv::threshold(processed_img_.image, processed_img_.image, threshold_value, maxval, threshold_type);
 
 }
 
-
+/*
 void ImageProcessor::blobDetector(cv_bridge::CvImage image){
 
     cv::SimpleBlobDetector::Params params;
@@ -164,38 +207,90 @@ void ImageProcessor::blobDetector(cv_bridge::CvImage image){
 
     cv::drawKeypoints(image.image, keypoints, detect_img_.image, cv::Scalar(0,0,255), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
 }
+*/
 
+void ImageProcessor::extractContours(){
+    cv::findContours(processed_img_.image, all_contours_.contours_, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+}
 
-void ImageProcessor::removeBlobs(cv_bridge::CvImage image){
+void ImageProcessor::splitContours(){
 
-    large_contours_.image = cv::Mat::zeros(image.image.size(), CV_8U);
-    small_contours_.image = cv::Mat::zeros(image.image.size(), CV_8U);
-    std::vector<std::vector<cv::Point>> contours;
-    std::vector<std::vector<cv::Point>> large_contours;
-    std::vector<std::vector<cv::Point>> small_contours;
+    double area;
+    for(size_t k = 0; k < all_contours_.contours_.size(); ++k){
+        area = fabs(cv::contourArea(all_contours_.contours_[k]));
 
-    cv::findContours(image.image, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-
-
-    for(size_t k = 0; k < contours.size(); ++k){
-        double area = cv::contourArea(contours[k]);
-
-        if (area >= 200){
-            large_contours.push_back(contours[k]);
+        if (area >= 1000){
+            large_contours_.contours_.push_back(all_contours_.contours_[k]);
+        } else if (area >=200 && area <= 1000){
+            med_contours_.contours_.push_back(all_contours_.contours_[k]);
         }
-        else{
-            small_contours.push_back(contours[k]);
-        }
-
-     for(size_t i = 0; i < large_contours.size(); ++i){
-        cv::drawContours(large_contours_.image, large_contours, i, cv::Scalar(255), cv::FILLED);
-     }
-
-     for(size_t j = 0; j < small_contours.size(); ++j){
-        cv::drawContours(small_contours_.image, small_contours, j, cv::Scalar(255), cv::FILLED);
-     }
     }
 }
 
+void ImageProcessor::mergeContours(){
+    all_contours_.contours_.clear();
+    for (size_t v = 0; v < large_contours_.contours_.size(); ++v){
+    all_contours_.contours_.push_back(large_contours_.contours_[v]);
+    }
+    for (size_t w = 0; w < med_contours_.contours_.size(); ++w){
+    all_contours_.contours_.push_back(med_contours_.contours_[w]);
+    }
+}
+
+void ImageProcessor::drawContours(contours contour, std::string process){
+    cv_bridge::CvImage temp;
+    temp.image = cv::Mat::zeros(original_img_.image.size(), CV_8U);
+
+    for(size_t i = 0; i < contour.contours_.size(); ++i){
+        cv::drawContours(temp.image, contour.contours_, i, cv::Scalar(255), cv::FILLED);
+    }
+
+    cv::namedWindow(process, cv::WINDOW_AUTOSIZE);
+    cv::imshow(process, temp.image);
+}
+
+void ImageProcessor::fourierTransform(cv_bridge::CvImage image){
+    cv::Mat padded;
+    int m = cv::getOptimalDFTSize(image.image.rows);
+    int n = cv::getOptimalDFTSize(image.image.cols);
+    cv::copyMakeBorder(image.image, padded, m - image.image.rows, 0, n - image.image.cols, 0, cv::BORDER_CONSTANT, cv::Scalar::all(0));
+
+    cv::Mat planes[] = {cv::Mat_<float>(padded), cv::Mat::zeros(padded.size(), CV_32F)};
+    cv::Mat complexI;
+    cv::merge(planes, 2, complexI);
+    cv::dft(complexI, complexI);
+
+    // compute the magnitude and switch to logarithmic scale
+    // => log(1 + sqrt(Re(DFT(I))^2 + Im(DFT(I))^2))
+    cv::split(complexI, planes);
+    cv::magnitude(planes[0], planes[1], planes[0]);
+    magI.image = planes[0];
+
+    magI.image += cv::Scalar::all(1);
+    cv::log(magI.image, magI.image);
+
+    // crop the spectrum, if it has an odd number of rows or columns
+    magI.image = magI.image(cv::Rect(0, 0, magI.image.cols & -2, magI.image.rows & -2));
+
+    // rearrange the quadrants of Fourier image so that the origin is at the image centre
+    int cx = magI.image.cols/2;
+    int cy = magI.image.cols/2;
+
+    cv::Mat q0(magI.image, cv::Rect(0, 0, cx, cy)); // Top-left
+    cv::Mat q1(magI.image, cv::Rect(cx, 0, cx, cy));  // Top-Right
+    cv::Mat q2(magI.image, cv::Rect(0, cy, cx, cy));  // Bottom-Left
+    cv::Mat q3(magI.image, cv::Rect(cx, cy, cx, cy)); // Bottom-Right
+
+    cv::Mat tmp;
+    q0.copyTo(tmp);
+    q3.copyTo(q0);
+    tmp.copyTo(q3);
+    q1.copyTo(tmp);
+    q2.copyTo(q1);
+    tmp.copyTo(q2);
+
+    cv::normalize(magI.image, magI.image, 0, 1, CV_MINMAX);
+
+}
 
 } //namespace planeseg
