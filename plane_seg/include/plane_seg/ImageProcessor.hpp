@@ -8,6 +8,7 @@ struct contours{
     void filterSmallContours();
     void filterMinConvexity(int min_convexity);
     void filterMinElongation(int min_elongation);
+    void fitMinAreaRect();
     void approxAsPoly();
 };
 
@@ -29,26 +30,14 @@ public:
     void extractContours();
     void splitContours();
     void mergeContours();
-    void drawContours(contours contour, std::string process);
+    void drawContoursIP(contours contour, std::string process);
     void displayResult();
+    void reset();
     void fourierTransform(cv_bridge::CvImage image);
     cv_bridge::CvImage original_img_;
     cv_bridge::CvImage processed_img_;
     cv_bridge::CvImage final_img_;
 
-/*
-    cv_bridge::CvImage filled_img_;
-    cv_bridge::CvImage bit32_img_;
-    cv_bridge::CvImage detect_img_;
-    cv_bridge::CvImage large_contours_;
-    cv_bridge::CvImage medium_contours_;
-    cv_bridge::CvImage small_contours_;
-    cv_bridge::CvImage poly_img_;
-    cv_bridge::CvImage convex_img_;
-    cv_bridge::CvImage elongation_img_;
-    cv_bridge::CvImage step_img_;
-
-   */
     cv_bridge::CvImage fourier_img1_;
     cv_bridge::CvImage fourier_img2_;
     cv_bridge::CvImage magI;

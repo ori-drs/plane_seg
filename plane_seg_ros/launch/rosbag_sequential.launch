@@ -4,6 +4,12 @@
   <arg name="rosbag_path" default="" />
   <node name="plane_seg" pkg="plane_seg_ros" type="plane_seg_ros_node" output="screen">
     <param name="rosbag_path" value="$(arg rosbag_path)" />
+
+    <param name="input_topic" value="/rooster_elevation_mapping/elevation_map" />
+    <param name="erode_radius" value="0.11" />
+    <param name="traversability_threshold" value="0.7" />
+    <param name="verbose_timer" value="true" />
+
   </node>
 
 <node name="rviz_sequential" pkg="rviz" type="rviz" output="screen" args="-d $(find plane_seg_ros)/config/plane_seg_sequential_config.rviz">>

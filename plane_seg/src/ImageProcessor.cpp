@@ -2,7 +2,10 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/core/types.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <opencv2/opencv.hpp>
+#include <vector>
 
 namespace planeseg {
 
@@ -64,6 +67,31 @@ void contours::approxAsPoly(){
     }
 }
 
+void contours::fitMinAreaRect(){
+
+    std::vector<std::vector<cv::Point>> temp;
+    temp = contours_;
+    contours_.clear();
+
+    for (size_t r = 0; r < temp.size(); ++r){
+        cv::RotatedRect minarea_rect;
+        cv::Point2f point2f_box[4];
+        minarea_rect = cv::minAreaRect(temp[r]);
+        minarea_rect.points(point2f_box);
+        std::vector<cv::Point> point_box;
+        for (int i = 0; i < 4; ++i){
+            cv::Point pnt;
+            pnt.x = point2f_box[i].x;
+            pnt.y = point2f_box[i].y;
+            point_box.push_back(pnt);
+        }
+
+        contours_.push_back(point_box);
+
+    }
+
+}
+
 ImageProcessor::ImageProcessor(){
 }
 
@@ -84,20 +112,21 @@ void ImageProcessor::process(){
 
     extractContours();
     splitContours();
-    drawContours(med_contours_, "med_contours");
-    drawContours(large_contours_, "large contours");
-    med_contours_.filterMinConvexity(0.8);
-    drawContours(med_contours_, "filtered by convexity");
+    drawContoursIP(med_contours_, "med_contours");
+    drawContoursIP(large_contours_, "large contours");
+    med_contours_.filterMinConvexity(0.9); // have another look at the threshold for convexity
+    drawContoursIP(med_contours_, "filtered by convexity");
     med_contours_.filterMinElongation(2.5);
-    drawContours(med_contours_, "filtered by elongation");
+    drawContoursIP(med_contours_, "filtered by elongation");
+    med_contours_.fitMinAreaRect();
     mergeContours();
 
     displayResult();
-    final_img_ = processed_img_;
+//    final_img_ = processed_img_;
 
     int p = cv::waitKey(0);
     if (p == 's'){
-        saveImage(original_img_);
+        saveImage(final_img_);
     }
 }
 
@@ -115,12 +144,13 @@ void ImageProcessor::displayImage(std::string process){
 
 void ImageProcessor::displayResult(){
 
-    final_img_.image = cv::Mat::zeros(original_img_.image.size(), CV_8U);
+    processed_img_.image = cv::Mat::zeros(original_img_.image.size(), CV_8U);
 
     for(size_t i = 0; i < all_contours_.contours_.size(); ++i){
-        cv::drawContours(final_img_.image, all_contours_.contours_, i, cv::Scalar(255), cv::FILLED);
+        cv::drawContours(processed_img_.image, all_contours_.contours_, i, cv::Scalar(255), cv::FILLED);
     }
 
+    final_img_ = processed_img_;
     cv::namedWindow("final", cv::WINDOW_AUTOSIZE);
     cv::imshow("final", final_img_.image);
 }
@@ -131,7 +161,7 @@ void ImageProcessor::saveImage(cv_bridge::CvImage image_){
     std::cin >> imagename;
     std::string homedir = getenv("HOME");
     if(!homedir.empty()){
-      boost::filesystem::path output_path(homedir + "/rosbags/image_processing");
+      boost::filesystem::path output_path(homedir + "/rosbags/image_processing/");
       if(!boost::filesystem::is_directory(output_path)){
         if(boost::filesystem::create_directory(output_path)){
           std::cout << "Creating directory " << output_path.string() << " ... " << std::endl;
@@ -175,40 +205,6 @@ void ImageProcessor::thresholdImage(int threshold_value){
 
 }
 
-/*
-void ImageProcessor::blobDetector(cv_bridge::CvImage image){
-
-    cv::SimpleBlobDetector::Params params;
-
-    params.minThreshold = 10;
-    params.maxThreshold = 100;
-    params.thresholdStep = 10;
-
-    params.filterByColor = true;
-    params.blobColor = 255;
-
-    params.filterByArea = true;
-    params.minArea = 1;
-    params.maxArea = 200;
-
-    params.filterByCircularity = false;
-    params.maxCircularity = 0.1;
-
-    params.filterByConvexity = false;
-    params.minConvexity = 0.87;
-
-    params.filterByInertia = false;
-    params.maxInertiaRatio = 0.1;
-
-    cv::Ptr<cv::SimpleBlobDetector> detector = cv::SimpleBlobDetector::create(params);
-
-    std::vector<cv::KeyPoint> keypoints;
-    detector->detect(image.image, keypoints);
-
-    cv::drawKeypoints(image.image, keypoints, detect_img_.image, cv::Scalar(0,0,255), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
-}
-*/
-
 void ImageProcessor::extractContours(){
     cv::findContours(processed_img_.image, all_contours_.contours_, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 }
@@ -237,7 +233,7 @@ void ImageProcessor::mergeContours(){
     }
 }
 
-void ImageProcessor::drawContours(contours contour, std::string process){
+void ImageProcessor::drawContoursIP(contours contour, std::string process){
     cv_bridge::CvImage temp;
     temp.image = cv::Mat::zeros(original_img_.image.size(), CV_8U);
 
@@ -245,9 +241,21 @@ void ImageProcessor::drawContours(contours contour, std::string process){
         cv::drawContours(temp.image, contour.contours_, i, cv::Scalar(255), cv::FILLED);
     }
 
+//    processed_img_ = temp;
+//    displayImage(process);
     cv::namedWindow(process, cv::WINDOW_AUTOSIZE);
     cv::imshow(process, temp.image);
 }
+
+/*
+void ImageProcessor::reset(){
+    original_img_.image = cv::Mat();
+    processed_img_.image = cv::Mat();
+    final_img_.image = cv::Mat();
+    all_contours_.contours_.clear();
+    large_contours_.contours_.clear();
+    med_contours_.contours_.clear();
+}*/
 
 void ImageProcessor::fourierTransform(cv_bridge::CvImage image){
     cv::Mat padded;
