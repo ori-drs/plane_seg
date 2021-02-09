@@ -55,9 +55,11 @@ TerrainSimplification::advance() {
 
 void
 TerrainSimplification::setGridMap(
-    const grid_map::GridMap& map) {
+    const grid_map::GridMap& map,
+    const Eigen::Isometry3d& o_T_pco) {
   std::lock_guard<std::mutex> lock(mutex_); // to write map_full_ and received_
-  map_full_ = map;
+  map_full_pco_ = map;
+  o_T_pco_ = o_T_pco;
   received_ = true;
 }
 
@@ -88,7 +90,9 @@ TerrainSimplification::simplifyGridMap () {
   grid_map::Position robot_position(robot_position_[0], robot_position_[1]);
   mutex_state_.unlock();
 
-  mutex_.lock(); // to read map_full_
+  mutex_.lock(); // to read map_full_pco_
+  map_full_ = map_full_pco_.getTransformedMap(o_T_pco_, "elevation", "odom", 0.0);
+
   // check that robot position is inside the map
   if (std::pow(std::pow(robot_position[0] - map_full_.getPosition()[0], 2.), 0.5) > map_full_.getLength()[0]/2. ||
       std::pow(std::pow(robot_position[1] - map_full_.getPosition()[1], 2.), 0.5) > map_full_.getLength()[1]/2.) {
@@ -99,12 +103,13 @@ TerrainSimplification::simplifyGridMap () {
     usleep(1000000);
     return;
   }
+
   map_sub_ = map_full_.getSubmap(robot_position, grid_map::Length(map_size_.x(), map_size_.y()), success);
   mutex_.unlock();
 
   // Create empty map
   grid_map::GridMap map_simplified_wo_traversability({"simplified"});
-  map_simplified_wo_traversability.setFrameId("point_cloud_odom");
+  map_simplified_wo_traversability.setFrameId("odom");
   map_simplified_wo_traversability.setGeometry(map_sub_.getLength(), 0.02);
   map_simplified_wo_traversability.setPosition(robot_position);
 
@@ -127,6 +132,7 @@ TerrainSimplification::simplifyGridMap () {
   convertCvImagesOfFirstOrderDerivativesToGridMap("simplified", img_simplified.f, map_simplified_wo_traversability);
   convertCvImagesOfFirstAndSecondOrderDerivativesToGridMap("elevation", img_elevation, map_simplified_wo_traversability);
   convertCvImageToGridMap("simplified", img_simplified.m, map_simplified_wo_traversability); // takes 1-2 ms
+  map_full_ = map_full_pco_.getTransformedMap(o_T_pco_, "elevation", "odom", 0.0);
   convertCvImageToGridMap("elevation", img_elevation.m, map_simplified_wo_traversability); // takes 1-2 ms
   mutex_.lock(); // to write and img_simplified_
   img_simplified_ = img_simplified;
@@ -335,7 +341,7 @@ TerrainSimplification::getSimplifiedGridMap(
   if (scale != 1.0) {
     // Set up the map object
     mutex_.lock(); // to read map_filtered_
-    map_simplified_scaled_.setFrameId("point_cloud_odom");
+    map_simplified_scaled_.setFrameId("odom");
     map_simplified_scaled_.setGeometry(map_simplified_wo_traversability_.getLength(), 0.02/scale);
     map_simplified_scaled_.setPosition(map_simplified_wo_traversability_.getPosition());
     mutex_.unlock();

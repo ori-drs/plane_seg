@@ -26,6 +26,9 @@ TerrainSimplificationRos::TerrainSimplificationRos(
     success = false;
     return;
   }
+  // TF
+  tf_listener_ = std::make_shared<tf::TransformListener>();
+
   terr_simp_->setFilterChain(filter_chain_);
 
   // ROS
@@ -201,7 +204,20 @@ TerrainSimplificationRos::setGridMap(
     const grid_map_msgs::GridMap& msg) {
   grid_map::GridMap map;
   grid_map::GridMapRosConverter::fromMessage(msg, map);
-  terr_simp_->setGridMap(map);
+  
+
+  // Get transformation to convert point clouds into base frame
+  tf::StampedTransform o_T_pco_transform;
+  Eigen::Isometry3d o_T_pco;
+  tf_listener_->waitForTransform("odom", "point_cloud_odom", ros::Time(0), ros::Duration(2.0));
+  try {
+    tf_listener_->lookupTransform("odom", "point_cloud_odom", ros::Time(0), o_T_pco_transform);
+    tf::transformTFToEigen (o_T_pco_transform, o_T_pco);
+  } catch (tf::TransformException& ex) {
+    ROS_ERROR_STREAM("Couldn't find transform from frame [" << "point_cloud_odom" << "] to base frame [" << "odom" << "]");
+  }
+
+  terr_simp_->setGridMap(map, o_T_pco);
 }
 
 void
@@ -211,7 +227,7 @@ TerrainSimplificationRos::pubSimplifiedGridMap() {
   Eigen::Isometry3d transf = Eigen::Isometry3d::Identity();
   Eigen::Vector3d translation(0.0, 0.0, h_nominal_);
   transf.translate(translation);
-  map_h_offset = map.getTransformedMap(transf, "simplified", "point_cloud_odom", 0.0);
+  map_h_offset = map.getTransformedMap(transf, "simplified", "odom", 0.0);
 
   grid_map_msgs::GridMap msg;
   grid_map::GridMapRosConverter::toMessage(map_h_offset, msg);

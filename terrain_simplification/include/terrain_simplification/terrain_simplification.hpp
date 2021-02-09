@@ -95,10 +95,12 @@ public:
 
   /**
    * @brief Sets a member variable of the full map and sets received_ flag to true.
-   * @param[in] map  the full elevation map
+   * @param[in] map      the full elevation map
+   * @param[in] o_T_pco  the transformation from point_cloud_odom to odom frame
    */
   virtual void setGridMap(
-      const grid_map::GridMap& map);
+      const grid_map::GridMap& map,
+      const Eigen::Isometry3d& o_T_pco);
 
   /**
    * @brief Simplifies the acquired elevation map and stores the result in a member variable.
@@ -327,7 +329,11 @@ private:
   std::thread thread_run_;        ///< thread for run()
   std::atomic_bool thread_loop_;  ///< flag for the thread
 
+  // Transformations
+  Eigen::Isometry3d o_T_pco_;     ///< a transformation from point_cloud_odom to odom frame
+
   // Gridmaps
+  grid_map::GridMap map_full_pco_;          ///< submap of the full elevation map in point_cloud_odom frame
   grid_map::GridMap map_full_;              ///< full elevation map
   grid_map::GridMap map_sub_;               ///< submap of the full elevation map
   grid_map::GridMap map_simplified_wo_traversability_;  ///< filtered submap, without the Filter Chain applied (because the class is multi-threaded and applying the filter takes significant time)

@@ -23,6 +23,8 @@
 #include <std_msgs/Header.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <filters/filter_chain.h>
+#include <tf/transform_listener.h>
+#include <tf_conversions/tf_eigen.h>
 
 #include <Eigen/Eigen>
 
@@ -152,6 +154,9 @@ protected:
 
 private:
   std::shared_ptr<terrain_simplification::TerrainSimplification > terr_simp_; ///< pointer to the base-class object
+
+  // TF
+  std::shared_ptr<tf::TransformListener> tf_listener_;
 
   // ROS
   ros::NodeHandle     ros_nh_;              ///< node handle

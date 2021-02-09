@@ -26,6 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
   grid_map_cv
   message_generation
   terrain_simplification
+  tf_conversions
   )
 
 add_service_files(
