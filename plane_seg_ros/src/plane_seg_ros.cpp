@@ -271,9 +271,15 @@ void Pass::stepThroughFile(std::string filename){
             std::cout << "frames = " << frame << std::endl;
 //            std::cout << "received gridmap at time " << m.getTime().toNSec() << " with resolution:" <<   s->info.resolution << "and time: " << s->info.header.stamp << std::endl;
             std::cout << "rosbag time: " << s->info.header.stamp << std::endl;
-            elevationMapCallback(*s);
-            elev_map_pub_.publish(*s);
+//            elevationMapCallback(*s);
+//            elev_map_pub_.publish(*s);
 //            saveGridMapMsgAsPCD(*s, frame);
+            grid_map_msgs::GridMap n, p;
+            n = gridMapCallback(*s);
+//                elev_map_pub_.publish(*s);
+            p = imageProcessingCallback(n);
+
+            elevationMapCallback(p);
             std::cout << "Press [Enter] to continue to next gridmap message" << std::endl;
         }
 
@@ -681,6 +687,7 @@ bag.close();
 }
 
 grid_map_msgs::GridMap Pass::imageProcessingCallback(const grid_map_msgs::GridMap &msg){
+
     grid_map::GridMap gridmap;
     grid_map::GridMapRosConverter::fromMessage(msg, gridmap);
     const float nanValue = 1;
@@ -691,6 +698,7 @@ grid_map_msgs::GridMap Pass::imageProcessingCallback(const grid_map_msgs::GridMa
     imgprocessor_.displayResult();
     sensor_msgs::ImagePtr mask_layer;
     mask_layer = imgprocessor_.final_img_.toImageMsg();
+//    imgprocessor_.reset();
 
     grid_map::GridMapRosConverter::addLayerFromImage(*mask_layer, "mask", gridmap, 0.0, 1.0);
     // need to fix the actual masking of mask over elevation map
