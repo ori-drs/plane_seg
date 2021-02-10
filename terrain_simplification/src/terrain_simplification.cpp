@@ -132,7 +132,6 @@ TerrainSimplification::simplifyGridMap () {
   convertCvImagesOfFirstOrderDerivativesToGridMap("simplified", img_simplified.f, map_simplified_wo_traversability);
   convertCvImagesOfFirstAndSecondOrderDerivativesToGridMap("elevation", img_elevation, map_simplified_wo_traversability);
   convertCvImageToGridMap("simplified", img_simplified.m, map_simplified_wo_traversability); // takes 1-2 ms
-  map_full_ = map_full_pco_.getTransformedMap(o_T_pco_, "elevation", "odom", 0.0);
   convertCvImageToGridMap("elevation", img_elevation.m, map_simplified_wo_traversability); // takes 1-2 ms
   mutex_.lock(); // to write and img_simplified_
   img_simplified_ = img_simplified;
