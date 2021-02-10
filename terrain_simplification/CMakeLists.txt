@@ -16,27 +16,13 @@ endif()
 add_definitions(-DMELO_FUNCTION_PRINTS)
 
 find_package(catkin REQUIRED COMPONENTS
-  std_msgs
-  geometry_msgs
-  visualization_msgs
   grid_map_core
   grid_map_filters
   grid_map_cv
-  message_generation
   )
 
 find_package(OpenCV REQUIRED)
-# Generate messages in the 'msg' folder
-#add_message_files(
-#        FILES
-#        XXX.msg
-#)
-#
-#generate_messages(
-#        DEPENDENCIES
-#        std_msgs
-#        geometry_msgs
-#)
+
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -48,9 +34,6 @@ catkin_package(
   grid_map_core
   grid_map_filters
   grid_map_cv
-  message_runtime
-  std_msgs
-  geometry_msgs
   )
 
 ###########
@@ -94,10 +77,4 @@ install(
   DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
   FILES_MATCHING PATTERN "*.hpp"
-  )
-
-# Mark other files for installation
-install(
-  DIRECTORY launch config
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   )
