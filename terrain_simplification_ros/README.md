@@ -17,10 +17,14 @@ To set the rate of the publisher:
 rosparam set /terrain_simplification_ros_service_caller/rate 1
 ```
 
-Some (most useful) ROS parameters (defaults are set in `terrain_simplification_ros.launch`):
+Some (most useful) ROS parameters (defaults are set in `config/config.yaml`):
 ```
 /terrain_simplification_ros_node/map_res_scaling
-/terrain_simplification_ros_node/gridmap_size_x               
-/terrain_simplification_ros_node/gridmap_size_y               
+/terrain_simplification_ros_node/gridmap_size_x
+/terrain_simplification_ros_node/gridmap_size_y
 /terrain_simplification_ros_node/h_nominal 
+```
+These can be set and re-read using:
+```
+rosservice call /terrain_simplification/read
 ```
