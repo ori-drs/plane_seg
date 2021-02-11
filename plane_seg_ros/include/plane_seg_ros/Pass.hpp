@@ -54,6 +54,7 @@ class Pass{
     void replaceNan(grid_map::GridMap::Matrix& m, const double newValue);
     void replaceZeroToNan(grid_map::GridMap::Matrix& m);
     void multiplyLayers(grid_map::GridMap::Matrix& factor1, grid_map::GridMap::Matrix& factor2, grid_map::GridMap::Matrix& result);
+    bool convertGridmapToFloatImage(const grid_map::GridMap& gridMap, const std::string& layer, cv_bridge::CvImage& cvImage);
 
   private:
     ros::NodeHandle& node_;
