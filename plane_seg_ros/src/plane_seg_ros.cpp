@@ -265,7 +265,7 @@ void Pass::stepThroughFile(std::string filename){
         grid_map_msgs::GridMap::ConstPtr s = m.instantiate<grid_map_msgs::GridMap>();
 
         if (s != NULL){
-            std::cin.get();
+//            std::cin.get();
             ++frame;
 
             std::cout << "frames = " << frame << std::endl;
@@ -692,13 +692,16 @@ grid_map_msgs::GridMap Pass::imageProcessingCallback(const grid_map_msgs::GridMa
     grid_map::GridMapRosConverter::fromMessage(msg, gridmap);
     const float nanValue = 1;
     replaceNan(gridmap.get("slope"), nanValue);
-    grid_map::GridMapRosConverter::toCvImage(gridmap, "slope", sensor_msgs::image_encodings::MONO8, imgprocessor_.original_img_);
+//    grid_map::GridMapRosConverter::toCvImage(gridmap, "slope", sensor_msgs::image_encodings::TYPE_32FC1, imgprocessor_.original_img_);
+    convertGridmapToFloatImage(gridmap, "slope", imgprocessor_.original_img_);
+    std::cout << imgprocessor_.original_img_.image.type() << std::endl;
+
 
     imgprocessor_.process();
     imgprocessor_.displayResult();
     sensor_msgs::ImagePtr mask_layer;
     mask_layer = imgprocessor_.final_img_.toImageMsg();
-//    imgprocessor_.reset();
+    imgprocessor_.reset();
 
     grid_map::GridMapRosConverter::addLayerFromImage(*mask_layer, "mask", gridmap, 0.0, 1.0);
     // need to fix the actual masking of mask over elevation map
@@ -815,4 +818,16 @@ void Pass::multiplyLayers(grid_map::GridMap::Matrix& factor1, grid_map::GridMap:
         result(r,c) = factor1(r,c) * factor2(r,c);
     }
   }
+}
+
+bool Pass::convertGridmapToFloatImage(const grid_map::GridMap& gridMap, const std::string& layer, cv_bridge::CvImage& cvImage){
+
+    cvImage.header.stamp.fromNSec(gridMap.getTimestamp());
+    cvImage.header.frame_id = gridMap.getFrameId();
+    cvImage.encoding = CV_32F;
+
+    const float minValue = gridMap.get(layer).minCoeffOfFinites();
+    const float maxValue = gridMap.get(layer).maxCoeffOfFinites();
+
+    return grid_map::GridMapCvConverter::toImage<float, 1>(gridMap, layer, CV_32F, minValue, maxValue, cvImage.image);
 }

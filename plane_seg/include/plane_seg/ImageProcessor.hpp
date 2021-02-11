@@ -3,15 +3,30 @@
 
 namespace planeseg {
 
+//struct colour{
+//    double r;
+//    double g;
+//    double b;
+//};
+
 struct contours{
     std::vector<std::vector<cv::Point>> contours_;
+    std::vector<std::vector<cv::Point>> contours_rect_;
     void filterSmallContours();
     void filterMinConvexity(int min_convexity);
     void filterMinElongation(int min_elongation);
     void fitMinAreaRect();
     void approxAsPoly();
+//    void setColors();
+//    void assignColors();
+//    void assignIDs();
+//    double getR(int id);
+//    double getG(int id);
+//    double getB(int id);
+//    std::vector<colour> contour_colours_;
+//    std::vector<int> ids;
+//    std::vector<double> colors_;
 };
-
 
 class ImageProcessor {
 public:
@@ -20,7 +35,8 @@ public:
 
     void process();
     void copyOrigToProc();
-    void displayImage(std::string process);
+    void convertImgType(cv::Mat img, int type);
+    void displayImage(std::string process, cv::Mat img, int n = 0);
     void saveImage(cv_bridge::CvImage image);
     void erodeImage(int erode_size);
     void thresholdImage(int threshold_value);
@@ -30,17 +46,16 @@ public:
     void extractContours();
     void splitContours();
     void mergeContours();
-    void drawContoursIP(contours contour, std::string process);
+    void drawContoursIP(contours contour, std::string process, int n = 0);
     void displayResult();
     void reset();
-    void fourierTransform(cv_bridge::CvImage image);
+    void histogram(cv_bridge::CvImage img);
+    cv::Mat createMask(cv_bridge::CvImage img);
     cv_bridge::CvImage original_img_;
     cv_bridge::CvImage processed_img_;
     cv_bridge::CvImage final_img_;
+    cv_bridge::CvImage colour_img_;
 
-    cv_bridge::CvImage fourier_img1_;
-    cv_bridge::CvImage fourier_img2_;
-    cv_bridge::CvImage magI;
     contours all_contours_;
     contours large_contours_;
     contours med_contours_;
