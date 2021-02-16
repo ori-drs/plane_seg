@@ -11,6 +11,7 @@
 #include <plane_seg/Tracker.hpp>
 #include <plane_seg_ros/Visualizer.hpp>
 #include <plane_seg/ImageProcessor.hpp>
+#include <plane_seg/StepCreator.hpp>
 #include <chrono>
 #include <tf_conversions/tf_eigen.h>
 #include <tf/transform_listener.h>
@@ -46,6 +47,7 @@ class Pass{
     void publishCentroidsAsSpheres();
     void publishHullsAsMarkers();
     void publishLineStrips();
+    void publishRectangles();
     void extractNthCloud(std::string filename, int n);
     void tic();
     std::chrono::duration<double> toc();
@@ -63,13 +65,14 @@ class Pass{
     std::vector<double> colors_3;
 
     ros::Subscriber point_cloud_sub_, grid_map_sub_, pose_sub_;
-    ros::Publisher received_cloud_pub_, hull_cloud_pub_, hull_markers_pub_, look_pose_pub_, elev_map_pub_, pose_pub_, id_strings_pub_, centroids_pub_, hulls_pub_, linestrips_pub_, filtered_map_pub_;
+    ros::Publisher received_cloud_pub_, hull_cloud_pub_, hull_markers_pub_, look_pose_pub_, elev_map_pub_, pose_pub_, id_strings_pub_, centroids_pub_, hulls_pub_, linestrips_pub_, filtered_map_pub_, rectangles_pub_;
 
     Eigen::Isometry3d last_robot_pose_;
     planeseg::BlockFitter::Result result_;
     planeseg::Tracker tracking_;
     planeseg::Visualizer visualizer_;
     planeseg::ImageProcessor imgprocessor_;
+    planeseg::StepCreator stepcreator_;
     filters::FilterChain<grid_map::GridMap> filter_chain_;
 //    filters::FilterChain<grid_map::GridMap> mask_filter_;
     tf::TransformListener listener_;

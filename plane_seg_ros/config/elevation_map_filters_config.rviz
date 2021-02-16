@@ -11,6 +11,7 @@ Panels:
         - /GridMap1
         - /PoseWithCovariance1
         - /GridMap2
+        - /Polygon1
       Splitter Ratio: 0.5058823823928833
     Tree Height: 726
   - Class: rviz/Selection
@@ -191,6 +192,14 @@ Visualization Manager:
       Unreliable: false
       Use Rainbow: true
       Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Topic: /opencv/rectangles
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -226,18 +235,18 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 2.565027952194214
-        Y: 2.0226247310638428
-        Z: 1.0681487321853638
+        X: 2.0951638221740723
+        Y: 1.109635353088379
+        Z: 1.0255918502807617
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5247978568077087
+      Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.05730084329843521
+      Yaw: 3.1723060607910156
     Saved: ~
 Window Geometry:
   Displays:

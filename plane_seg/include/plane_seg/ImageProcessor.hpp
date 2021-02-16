@@ -2,30 +2,36 @@
 #include <cv_bridge/cv_bridge.h>
 
 namespace planeseg {
-
-//struct colour{
-//    double r;
-//    double g;
-//    double b;
-//};
-
+/*
+struct colour{
+    double r;
+    double g;
+    double b;
+};
+*/
 struct contours{
     std::vector<std::vector<cv::Point>> contours_;
     std::vector<std::vector<cv::Point>> contours_rect_;
     void filterSmallContours();
     void filterMinConvexity(int min_convexity);
     void filterMinElongation(int min_elongation);
+    void filterMinRectangularity(int min_rectangularity);
     void fitMinAreaRect();
     void approxAsPoly();
-//    void setColors();
-//    void assignColors();
-//    void assignIDs();
-//    double getR(int id);
-//    double getG(int id);
-//    double getB(int id);
-//    std::vector<colour> contour_colours_;
-//    std::vector<int> ids;
-//    std::vector<double> colors_;
+    void fitSquare();
+    bool isSquare(std::vector<cv::Point> contour_);
+
+/*
+    void setColors();
+    void assignColors();
+    void assignIDs();
+    double getR(int id);
+    double getG(int id);
+    double getB(int id);
+    std::vector<colour> contour_colours_;
+    std::vector<int> ids;
+    std::vector<double> colors_;
+*/
 };
 
 class ImageProcessor {
@@ -35,15 +41,15 @@ public:
 
     void process();
     void copyOrigToProc();
-    void convertImgType(cv::Mat img, int type);
     void displayImage(std::string process, cv::Mat img, int n = 0);
     void saveImage(cv_bridge::CvImage image);
     void erodeImage(int erode_size);
-    void thresholdImage(int threshold_value);
+    void thresholdImage(float threshold_value);
     void dilateImage(int dilate_size);
     void blobDetector(cv_bridge::CvImage image);
     void removeBlobs(cv_bridge::CvImage image);
     void extractContours();
+    void fillContours();
     void splitContours();
     void mergeContours();
     void drawContoursIP(contours contour, std::string process, int n = 0);
@@ -53,6 +59,7 @@ public:
     cv::Mat createMask(cv_bridge::CvImage img);
     cv_bridge::CvImage original_img_;
     cv_bridge::CvImage processed_img_;
+    cv_bridge::CvImage rect_img_;
     cv_bridge::CvImage final_img_;
     cv_bridge::CvImage colour_img_;
 

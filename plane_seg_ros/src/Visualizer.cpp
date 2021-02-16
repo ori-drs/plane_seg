@@ -1,12 +1,14 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 #include "plane_seg_ros/Visualizer.hpp"
+//#include "plane_seg/StepCreator.hpp"
 #include <sensor_msgs/PointCloud2.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/Point.h>
 #include "plane_seg/Tracker.hpp"
 #include <ros/time.h>
+#include <geometry_msgs/PolygonStamped.h>
 
 #include <pcl/io/pcd_io.h>
 #include <pcl_ros/point_cloud.h>
@@ -223,6 +225,29 @@ visualization_msgs::Marker Visualizer::displayHull(planeseg::plane plane){
     }
 
     return hullMarker;
+}
+
+geometry_msgs::PolygonStamped Visualizer::displayRectangle(planeseg::contour contour){
+
+    geometry_msgs::PolygonStamped rectMarker;
+    std::vector<geometry_msgs::Point32> pointsGM(4);
+    for (size_t r = 0; r < contour.points_.size(); ++r){
+
+        float x, y, z;
+        x = static_cast<float>(contour.points_[r].x);
+        y = static_cast<float>(contour.points_[r].y);
+        z = static_cast<float>(contour.elevation_[0]);
+
+        pointsGM[r].x = x;
+        pointsGM[r].y = y;
+        pointsGM[r].z = z;
+    }
+
+    rectMarker.polygon.points = pointsGM;
+    rectMarker.header.frame_id = "odom";
+    rectMarker.header.stamp = ros::Time();
+
+    return rectMarker;
 }
 
 double Visualizer::getR(int id){
