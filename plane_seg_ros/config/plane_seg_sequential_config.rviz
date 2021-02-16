@@ -31,7 +31,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: PointCloud2
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -92,7 +92,7 @@ Visualization Manager:
       Marker Topic: /plane_seg/hull_markers
       Name: Marker
       Namespaces:
-        hull lines: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 0.20000000298023224
@@ -151,7 +151,7 @@ Visualization Manager:
       Marker Topic: /plane_seg/id_strings
       Name: MarkerArray
       Namespaces:
-        strings: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -167,17 +167,17 @@ Visualization Manager:
       Marker Topic: /plane_seg/linestrips
       Name: MarkerArray
       Namespaces:
-        linestrips: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 0.20000000298023224
       Autocompute Intensity Bounds: true
       Class: grid_map_rviz_plugin/GridMap
       Color: 200; 200; 200
-      Color Layer: elevation
+      Color Layer: product
       Color Transformer: GridMapLayer
       Enabled: true
-      Height Layer: elevation
+      Height Layer: product
       Height Transformer: GridMapLayer
       History Length: 1
       Invert Rainbow: false
@@ -190,6 +190,14 @@ Visualization Manager:
       Topic: /rooster_elevation_mapping/filtered_map
       Unreliable: false
       Use Rainbow: true
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Topic: /opencv/rectangles
+      Unreliable: false
       Value: true
   Enabled: true
   Global Options:
@@ -219,25 +227,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 6.1330952644348145
+      Distance: 3.7735743522644043
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.9186757802963257
-        Y: 0.04618240147829056
-        Z: -0.26492729783058167
+        X: 0.6848497986793518
+        Y: 0.09153835475444794
+        Z: -0.7343938946723938
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8402029275894165
+      Pitch: 1.2452025413513184
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.375433921813965
+      Yaw: 3.335430145263672
     Saved: ~
 Window Geometry:
   Displays:

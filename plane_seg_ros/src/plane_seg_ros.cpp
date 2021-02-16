@@ -9,6 +9,7 @@
 #include "plane_seg/ImageProcessor.hpp"
 #include "plane_seg/BlockFitter.hpp"
 #include "plane_seg/Tracker.hpp"
+//#include "plane_seg/StepCreator.hpp"
 
 #include <grid_map_cv/grid_map_cv.hpp>
 #include <grid_map_cv/GridMapCvConverter.hpp>
@@ -74,12 +75,14 @@ Pass::Pass(ros::NodeHandle& node):
   hulls_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/hulls", 10);
   linestrips_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/linestrips", 10);
   filtered_map_pub_ = node_.advertise<grid_map_msgs::GridMap>("/rooster_elevation_mapping/filtered_map", 1, true);
+  rectangles_pub_ = node_.advertise<geometry_msgs::PolygonStamped>("/opencv/rectangles", 10);
 
   last_robot_pose_ = Eigen::Isometry3d::Identity();
 
   tracking_ = planeseg::Tracker();
   visualizer_ = planeseg::Visualizer();
   imgprocessor_ = planeseg::ImageProcessor();
+  stepcreator_ = planeseg::StepCreator();
 
   if(!node_.param("input_topic", elevation_map_topic_, std::string("/rooster_elevation_mapping/elevation_map"))){
     ROS_WARN_STREAM("Couldn't get parameter: input_topic");
@@ -437,86 +440,7 @@ void Pass::publishHullsAsCloud(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr 
 }
 
 
-void Pass::publishHullsAsMarkersOLD(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_ptrs,
-                                 int secs, int nsecs){
-  geometry_msgs::Point point;
-  std_msgs::ColorRGBA point_color;
-  visualization_msgs::Marker marker;
-  std::string frameID;
 
-  // define markers
-  marker.header.frame_id = "odom";
-  marker.header.stamp = ros::Time(secs, nsecs);
-  marker.ns = "hull lines";
-  marker.id = 0;
-  marker.type = visualization_msgs::Marker::LINE_LIST; //visualization_msgs::Marker::POINTS;
-  marker.action = visualization_msgs::Marker::ADD;
-  marker.pose.position.x = 0;
-  marker.pose.position.y = 0;
-  marker.pose.position.z = 0;
-  marker.pose.orientation.x = 0.0;
-  marker.pose.orientation.y = 0.0;
-  marker.pose.orientation.z = 0.0;
-  marker.pose.orientation.w = 1.0;
-  marker.scale.x = 0.03;
-  marker.scale.y = 0.03;
-  marker.scale.z = 0.03;
-  marker.color.a = 1.0;
-
-  for (size_t i = 0; i < cloud_ptrs.size (); i++){
-
-    int nColor = i % (colors_.size()/3);
-    double r = colors_[nColor*3]*255.0;
-    double g = colors_[nColor*3+1]*255.0;
-    double b = colors_[nColor*3+2]*255.0;
-
-    for (size_t j = 1; j < cloud_ptrs[i]->points.size (); j++){
-      point.x = cloud_ptrs[i]->points[j-1].x;
-      point.y = cloud_ptrs[i]->points[j-1].y;
-      point.z = cloud_ptrs[i]->points[j-1].z;
-      point_color.r = r;
-      point_color.g = g;
-      point_color.b = b;
-      point_color.a = 1.0;
-      marker.colors.push_back(point_color);
-      marker.points.push_back(point);
-
-      //
-      point.x = cloud_ptrs[i]->points[j].x;
-      point.y = cloud_ptrs[i]->points[j].y;
-      point.z = cloud_ptrs[i]->points[j].z;
-      point_color.r = r;
-      point_color.g = g;
-      point_color.b = b;
-      point_color.a = 1.0;
-      marker.colors.push_back(point_color);
-      marker.points.push_back(point);
-    }
-
-    // start to end line:
-    point.x = cloud_ptrs[i]->points[0].x;
-    point.y = cloud_ptrs[i]->points[0].y;
-    point.z = cloud_ptrs[i]->points[0].z;
-    point_color.r = r;
-    point_color.g = g;
-    point_color.b = b;
-    point_color.a = 1.0;
-    marker.colors.push_back(point_color);
-    marker.points.push_back(point);
-
-    point.x = cloud_ptrs[i]->points[ cloud_ptrs[i]->points.size()-1 ].x;
-    point.y = cloud_ptrs[i]->points[ cloud_ptrs[i]->points.size()-1 ].y;
-    point.z = cloud_ptrs[i]->points[ cloud_ptrs[i]->points.size()-1 ].z;
-    point_color.r = r;
-    point_color.g = g;
-    point_color.b = b;
-    point_color.a = 1.0;
-    marker.colors.push_back(point_color);
-    marker.points.push_back(point);
-  }
-  marker.frame_locked = true;
-//  hull_markers_pub_.publish(marker);
-}
 
 void Pass::publishIdsAsStrings(){
     visualization_msgs::MarkerArray strings_array;
@@ -642,6 +566,16 @@ void Pass::publishLineStrips(){
     linestrips_pub_.publish(linestrips_array);
 }
 
+void Pass::publishRectangles(){
+    std::cout << "Entered publishRectangles" << std::endl;
+    for (size_t i = 0; i < stepcreator_.rectangles_.size(); ++i){
+        geometry_msgs::PolygonStamped rectangle;
+        std::cout << "2" << std::endl;
+        rectangle = visualizer_.displayRectangle(stepcreator_.rectangles_[i]);
+        std::cout << "3" << std::endl;
+        rectangles_pub_.publish(rectangle);
+    }
+}
 
 void Pass::extractNthCloud(std::string filename, int n){
 
@@ -694,24 +628,18 @@ grid_map_msgs::GridMap Pass::imageProcessingCallback(const grid_map_msgs::GridMa
     replaceNan(gridmap.get("slope"), nanValue);
 //    grid_map::GridMapRosConverter::toCvImage(gridmap, "slope", sensor_msgs::image_encodings::TYPE_32FC1, imgprocessor_.original_img_);
     convertGridmapToFloatImage(gridmap, "slope", imgprocessor_.original_img_);
-    std::cout << imgprocessor_.original_img_.image.type() << std::endl;
-
 
     imgprocessor_.process();
-    imgprocessor_.displayResult();
-    sensor_msgs::ImagePtr mask_layer;
-    mask_layer = imgprocessor_.final_img_.toImageMsg();
+    convertGridmapToFloatImage(gridmap, "elevation", stepcreator_.elevation_);
+    stepcreator_.processed_ = imgprocessor_.final_img_;
+    stepcreator_.go();
+
+    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(imgprocessor_.final_img_.image, "mask", gridmap);
+//    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(stepcreator_.elevation_masked_.image, "reconstructed", gridmap);
     imgprocessor_.reset();
 
-    grid_map::GridMapRosConverter::addLayerFromImage(*mask_layer, "mask", gridmap, 0.0, 1.0);
-    // need to fix the actual masking of mask over elevation map
-    // maybe multiply as 0/1 binary image first then replace zeros with NANs?
     gridmap.add("product");
-
-
-//    gridmap["sum"] = gridmap["mask"]  gridmap["elevation"];
     multiplyLayers(gridmap.get("elevation"), gridmap.get("mask"), gridmap.get("product"));
-
     replaceZeroToNan(gridmap.get("product"));
 
 
@@ -719,6 +647,9 @@ grid_map_msgs::GridMap Pass::imageProcessingCallback(const grid_map_msgs::GridMa
     grid_map_msgs::GridMap output_msg;
     grid_map::GridMapRosConverter::toMessage(gridmap, output_msg);
     filtered_map_pub_.publish(output_msg);
+    std::cout << "1" << std::endl;
+    publishRectangles();
+    stepcreator_.reset();
 
     return output_msg;
 }

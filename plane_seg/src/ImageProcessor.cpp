@@ -6,6 +6,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <opencv2/opencv.hpp>
 #include <vector>
+#include <numeric>
 
 namespace planeseg {
 
@@ -52,6 +53,25 @@ void contours::filterMinElongation(int min_elongation){
     }
 }
 
+void contours::filterMinRectangularity(int min_rectangularity){
+
+    std::vector<std::vector<cv::Point>> temp;
+    temp = contours_;
+    contours_.clear();
+
+    for (size_t r = 0; r < temp.size(); ++r){
+        double rectangularity, contour_area;
+        cv::RotatedRect minarea_rect;
+        minarea_rect = cv::minAreaRect(temp[r]);
+        contour_area = cv::contourArea(temp[r]);
+        rectangularity = contour_area / minarea_rect.size.area();
+
+        if (rectangularity >= min_rectangularity){
+            contours_.push_back(temp[r]);
+        }
+    }
+}
+
 void contours::approxAsPoly(){
 
     std::vector<std::vector<cv::Point>> temp;
@@ -90,6 +110,37 @@ void contours::fitMinAreaRect(){
 
     }
 }
+
+bool contours::isSquare(std::vector<cv::Point> contour_){
+    double elongation, rectangularity, contour_area;
+    cv::RotatedRect minarea_rect;
+    minarea_rect = cv::minAreaRect(contour_);
+    double major_axis = std::max(minarea_rect.size.height, minarea_rect.size.width);
+    double minor_axis = std::min(minarea_rect.size.height, minarea_rect.size.width);
+    elongation = major_axis / minor_axis;
+
+    contour_area = cv::contourArea(contour_);
+    rectangularity = contour_area / minarea_rect.size.area();
+
+    if(elongation > 0.5 && elongation < 1.5 && rectangularity > 0.75){
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void contours::fitSquare(){
+
+    contours_rect_.clear();
+    for(size_t i = 0; i < contours_.size(); ++i){
+        if (isSquare(contours_[i])){
+            fitMinAreaRect();
+        } else {
+            contours_rect_.push_back(contours_[i]);
+        }
+    }
+}
+
 /*
 void contours::setColors(){
     colors_ = {
@@ -129,6 +180,7 @@ void contours::assignIDs(){
 }
 
 void contours::assignColors(){
+    setColors();
     for (size_t i = 0; i < contours_.size(); ++i){
         contour_colours_[i].r = getR(ids[i]);
         contour_colours_[i].g = getG(ids[i]);
@@ -161,38 +213,35 @@ ImageProcessor::~ImageProcessor(){}
 
 void ImageProcessor::process(){
 
-//    copyOrigToProc();
     displayImage("original", original_img_.image, 0);
-//    double min, max;
-//    cv::minMaxLoc(original_img_.image, &min, &max);
-//    std::cout << "min = " << min << ", max = " << max << std::endl;
-    histogram(original_img_);
-    thresholdImage(1);
-    convertImgType(processed_img_.image, CV_8U);
-    std::cout << "processed_img_ has type " << processed_img_.image.type() << std::endl;
-    displayImage("threshold", processed_img_.image, 1);
+//    histogram(original_img_);
+    thresholdImage(0.2);
+
+    processed_img_.image.convertTo(processed_img_.image, CV_8U);
+//    displayImage("threshold", processed_img_.image, 1);
+
     erodeImage(1);
     dilateImage(2);
     erodeImage(1);
-//    erodeImage(2);
-//    dilateImage(2);
-    displayImage("erode/dilate", processed_img_.image, 2);
+//    displayImage("erode/dilate", processed_img_.image, 2);
 
     extractContours();
     splitContours();
-    drawContoursIP(med_contours_, "med_contours", 3);
-    drawContoursIP(large_contours_, "large contours", 4);
+
     med_contours_.filterMinConvexity(0.9); // have another look at the threshold for convexity
-    drawContoursIP(med_contours_, "filtered by convexity", 5);
-    med_contours_.filterMinElongation(2.5);
-    drawContoursIP(med_contours_, "filtered by elongation", 6);
+//    drawContoursIP(med_contours_, "filtered by convexity", 6);
+    med_contours_.filterMinElongation(3);
+//    drawContoursIP(med_contours_, "filtered by elongation", 7);
+    med_contours_.filterMinRectangularity(0.6);
+//    drawContoursIP(med_contours_, "filtered by rectangularity", 8);
     med_contours_.fitMinAreaRect();
+    large_contours_.filterMinRectangularity(0.6);
+    large_contours_.fitSquare();
     mergeContours();
 //    all_contours_.assignIDs();
 //    all_contours_.assignColors();
 
     displayResult();
-//    final_img_ = processed_img_;
 
     int p = cv::waitKey(0);
     if (p == 's'){
@@ -204,38 +253,31 @@ void ImageProcessor::copyOrigToProc(){
     processed_img_ = original_img_;
 }
 
-void ImageProcessor::convertImgType(cv::Mat img, int type){
-    img.convertTo(img, type);
-}
-
 void ImageProcessor::displayImage(std::string process, cv::Mat img, int n) {
 
-    std::cout << "Entered displayImage()" << std::endl;
     cv::namedWindow(process, cv::WINDOW_AUTOSIZE);
-    std::cout << 3 << std::endl;
     cv::moveWindow(process, 100 + img.cols * n, 50);
-    std::cout << 4 << std::endl;
     cv::imshow(process, img);
-    std::cout << 5 << std::endl;
 }
 
 void ImageProcessor::displayResult(){
 
     colour_img_.image = cv::Mat::zeros(original_img_.image.size(), CV_8UC3);
-    processed_img_.image = cv::Mat::zeros(original_img_.image.size(), CV_8U);
+    rect_img_.image = cv::Mat::zeros(original_img_.image.size(), CV_8UC1);
 
     for(size_t i = 0; i < all_contours_.contours_.size(); ++i){
         cv::RNG rng;
         cv::Scalar color(rand()&255, rand()&255, rand()&255);
         cv::drawContours(colour_img_.image, all_contours_.contours_, i, color, cv::FILLED);
-        cv::drawContours(processed_img_.image, all_contours_.contours_, i, cv::Scalar(255), cv::FILLED);
+//        cv::drawContours(processed_img_.image, all_contours_.contours_, i, cv::Scalar(255), cv::FILLED);
     }
     for(size_t j = 0; j < all_contours_.contours_rect_.size(); ++j){
         cv::drawContours(colour_img_.image, all_contours_.contours_rect_, j, cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
+        cv::drawContours(rect_img_.image, all_contours_.contours_rect_, j, cv::Scalar(255), cv::FILLED);
     }
 
-    final_img_ = processed_img_;
-    displayImage("final", colour_img_.image, 7);
+    final_img_ = rect_img_;
+    displayImage("final", colour_img_.image, 9);
 }
 
 void ImageProcessor::saveImage(cv_bridge::CvImage image_){
@@ -249,7 +291,7 @@ void ImageProcessor::saveImage(cv_bridge::CvImage image_){
         if(boost::filesystem::create_directory(output_path)){
           std::cout << "Creating directory " << output_path.string() << " ... " << std::endl;
         } else {
-          std::cerr << "ERROR: directory " << output_path.string() << " does not exists and couln't be created." << std::endl;
+          std::cerr << "ERROR: directory " << output_path.string() << " does not exists and couldn't be created." << std::endl;
           return;
         }
       }
@@ -279,13 +321,17 @@ void ImageProcessor::dilateImage(int dilate_size){
     cv::dilate(processed_img_.image, processed_img_.image, element);
 }
 
-void ImageProcessor::thresholdImage(int threshold_value){
+void ImageProcessor::thresholdImage(float threshold_value){
 
     int threshold_type = cv::ThresholdTypes::THRESH_BINARY_INV;
     double maxval = 255;
 
     cv::threshold(original_img_.image, processed_img_.image, threshold_value, maxval, threshold_type);
 
+}
+
+void ImageProcessor::fillContours(){
+    drawContoursIP(all_contours_, "fill", 3);
 }
 
 void ImageProcessor::extractContours(){
@@ -310,6 +356,7 @@ void ImageProcessor::mergeContours(){
     all_contours_.contours_.clear();
     all_contours_.contours_rect_.clear();
 
+    // populate all_contours.contours_
     for (size_t v = 0; v < large_contours_.contours_.size(); ++v){
     all_contours_.contours_.push_back(large_contours_.contours_[v]);
     }
@@ -317,7 +364,13 @@ void ImageProcessor::mergeContours(){
     all_contours_.contours_.push_back(med_contours_.contours_[w]);
     }
 
-    all_contours_.contours_rect_ = med_contours_.contours_rect_;
+    // populate all_contours.contours_rect_
+    for (size_t v = 0; v < large_contours_.contours_rect_.size(); ++v){
+    all_contours_.contours_rect_.push_back(large_contours_.contours_rect_[v]);
+    }
+    for (size_t w = 0; w < med_contours_.contours_rect_.size(); ++w){
+    all_contours_.contours_rect_.push_back(med_contours_.contours_rect_[w]);
+    }
 }
 
 void ImageProcessor::drawContoursIP(contours contour, std::string process, int n){
@@ -328,10 +381,7 @@ void ImageProcessor::drawContoursIP(contours contour, std::string process, int n
         cv::drawContours(temp.image, contour.contours_, i, cv::Scalar(255), cv::FILLED);
     }
 
-//    processed_img_ = temp;
     displayImage(process, temp.image, n);
-//    cv::namedWindow(process, cv::WINDOW_AUTOSIZE);
-//    cv::imshow(process, temp.image);
 }
 
 void ImageProcessor::histogram(cv_bridge::CvImage img){
@@ -342,11 +392,9 @@ void ImageProcessor::histogram(cv_bridge::CvImage img){
     bool uniform = true, accumulate = false;
     cv::Mat hist, mask;
     mask = createMask(img);
-    std::cout << "Exited createMask()" << std::endl;
-//    displayImage("mask", mask, 1);
-    std::cout << "Exited displayImage()" << std::endl;
-//    convertImgType(mask, CV_8UC1);
-    cv::calcHist(&img.image, 1, 0, cv::Mat(), hist, 1, &histSize, &histRange, uniform, accumulate);
+    mask.convertTo(mask, CV_8U);
+    std::cout << "Mask type: " << mask.type() << std::endl;
+    cv::calcHist(&img.image, 1, 0, mask, hist, 1, &histSize, &histRange, uniform, accumulate);
 
     int hist_w = 512, hist_h = 400;
     int bin_w = cvRound( (double) hist_w/bins );
@@ -373,29 +421,23 @@ void ImageProcessor::reset(){
 
 
 cv::Mat ImageProcessor::createMask(cv_bridge::CvImage img){
-//    std::cout<< img.image << std::endl;
-    std::cout << "Entered createMask()" << std::endl;
-    cv::Mat mask_;
-    mask_ = cv::Mat::zeros(img.image.size(), CV_8UC1);
 
-//    std::cout << "Image size: " << img.image.size() << std::endl;
-//    std::cout << "Mask size: " << mask.size() << std::endl;
+    cv::Mat mask_;
+    mask_ = cv::Mat::ones(img.image.size(), CV_32F);
+
     for(int r = 0; r < img.image.rows; r++)
     {
         for(int c = 0; c < img.image.cols; c++)
         {
             if (img.image.at<float>(r,c) > 0.64085822 && img.image.at<float>(r,c) < 0.64085824)
             {
-                mask_.at<int>(r,c) = 255;
+                mask_.at<float>(r,c) = 0;
             }
         }
     }
 
-    std::cout << "Image type: " << img.image.type() << std::endl;
-    std::cout << "Mask size: " << mask_.type() << std::endl;
-
-//    displayImage("mask", mask, 8);
-//    cv::waitKey(0);
+    displayImage("mask", mask_, 8);
+    std::cout << "Exited displayImage()" << std::endl;
 
     return mask_;
 }
