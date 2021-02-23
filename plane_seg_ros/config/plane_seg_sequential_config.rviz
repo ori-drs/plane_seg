@@ -191,13 +191,13 @@ Visualization Manager:
       Unreliable: false
       Use Rainbow: true
       Value: true
-    - Alpha: 1
-      Class: rviz/Polygon
-      Color: 25; 255; 0
+    - Class: rviz/MarkerArray
       Enabled: true
-      Name: Polygon
-      Topic: /opencv/rectangles
-      Unreliable: false
+      Marker Topic: /opencv/rectangles
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -227,7 +227,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.7735743522644043
+      Distance: 15.087727546691895
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1

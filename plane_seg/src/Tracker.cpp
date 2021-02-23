@@ -83,6 +83,7 @@ int Tracker::get_plane_id(planeseg::plane plane){
 
             distz = fabs(oldStairs[i].centroid.z - plane.centroid.z);
 
+            // is distz small enough to suggest that this point cloud represents the next iteration of an existing frame?
               if(distz < threshold){
   //              distance = pcl::euclideanDistance(oldStairs[i].centroid, plane.centroid);
 

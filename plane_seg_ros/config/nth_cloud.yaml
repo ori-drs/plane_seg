@@ -58,11 +58,11 @@ plane_seg:
         normal_vector_positive_axis: z
 
   # Add a color layer for visualization based on the surface normal.
-    - name: normal_color_map
-      type: gridMapFilters/NormalColorMapFilter
-      params:
-        input_layers_prefix: normal_vectors_
-        output_layer: normal_color
+  #  - name: normal_color_map
+  #    type: gridMapFilters/NormalColorMapFilter
+  #    params:
+  #      input_layers_prefix: normal_vectors_
+  #      output_layer: normal_color
 
   # Compute slope from surface normal.
     - name: slope

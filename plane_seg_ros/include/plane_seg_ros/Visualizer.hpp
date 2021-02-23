@@ -22,7 +22,7 @@ public:
     visualization_msgs::Marker displayString(planeseg::plane plane);
     visualization_msgs::Marker displayLineStrip(planeseg::plane plane);
     visualization_msgs::Marker displayHull(planeseg::plane plane);
-    geometry_msgs::PolygonStamped displayRectangle(planeseg::contour contour);
+//    geometry_msgs::PolygonStamped displayRectangle(planeseg::contour contour);
     double getR(int id);
     double getG(int id);
     double getB(int id);

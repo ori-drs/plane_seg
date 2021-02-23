@@ -5,7 +5,7 @@ namespace planeseg {
 
 struct contour{
     std::vector<cv::Point> points_;
-    cv::Scalar elevation_;
+    double elevation_;
 };
 
 
@@ -21,10 +21,12 @@ public:
     void displayImage(std::string process, cv::Mat img, int n);
     void maskElevation(cv::Mat mask_);
     void reset();
+    double medianMat(cv::Mat Input);
     cv::Mat createMask(contour cntr);
     cv_bridge::CvImage processed_;
     cv_bridge::CvImage elevation_;
     cv_bridge::CvImage elevation_masked_;
+    cv_bridge::CvImage reconstructed_;
     std::vector<contour> rectangles_;
 
 private:

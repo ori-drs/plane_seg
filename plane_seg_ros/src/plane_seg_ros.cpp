@@ -5,6 +5,7 @@
 #include <ros/time.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
+#include <numeric>
 
 #include "plane_seg/ImageProcessor.hpp"
 #include "plane_seg/BlockFitter.hpp"
@@ -25,6 +26,7 @@
 
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_ros/GridMapRosConverter.hpp>
+#include <grid_map_core/grid_map_core.hpp>
 #include <image_transport/image_transport.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -75,7 +77,8 @@ Pass::Pass(ros::NodeHandle& node):
   hulls_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/hulls", 10);
   linestrips_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/linestrips", 10);
   filtered_map_pub_ = node_.advertise<grid_map_msgs::GridMap>("/rooster_elevation_mapping/filtered_map", 1, true);
-  rectangles_pub_ = node_.advertise<geometry_msgs::PolygonStamped>("/opencv/rectangles", 10);
+  rectangles_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/opencv/rectangles", 100);
+  test_pub_ = node_.advertise<visualization_msgs::Marker>("/opencv/test", 10);
 
   last_robot_pose_ = Eigen::Isometry3d::Identity();
 
@@ -168,7 +171,7 @@ void Pass::elevationMapCallback(const grid_map_msgs::GridMap& msg){
   grid_map::GridMap map;
   grid_map::GridMapRosConverter::fromMessage(msg, map);
   sensor_msgs::PointCloud2 pointCloud;
-  grid_map::GridMapRosConverter::toPointCloud(map, "product", pointCloud); // used to take layer "elevation"
+  grid_map::GridMapRosConverter::toPointCloud(map, "product", pointCloud); // takes "product" for masking algorithm, else "elevation"
   planeseg::LabeledCloud::Ptr inCloud(new planeseg::LabeledCloud());
   pcl::fromROSMsg(pointCloud, *inCloud);
 
@@ -263,12 +266,15 @@ void Pass::stepThroughFile(std::string filename){
     topics.push_back(std::string("/vilens/pose"));
 
     rosbag::View view(bag, rosbag::TopicQuery(topics));
+    std::vector<double> timing_vector;
 
     foreach(rosbag::MessageInstance const m, view){
         grid_map_msgs::GridMap::ConstPtr s = m.instantiate<grid_map_msgs::GridMap>();
 
         if (s != NULL){
 //            std::cin.get();
+            tic();
+
             ++frame;
 
             std::cout << "frames = " << frame << std::endl;
@@ -282,8 +288,12 @@ void Pass::stepThroughFile(std::string filename){
 //                elev_map_pub_.publish(*s);
             p = imageProcessingCallback(n);
 
-            elevationMapCallback(p);
+//            elevationMapCallback(p);
             std::cout << "Press [Enter] to continue to next gridmap message" << std::endl;
+            double frame_time;
+            frame_time = toc().count();
+            std::cout << frame_time << " ms: frame_" << frame << std::endl;
+            timing_vector.push_back(frame_time);
         }
 
         geometry_msgs::PoseWithCovarianceStamped::ConstPtr i = m.instantiate<geometry_msgs::PoseWithCovarianceStamped>();
@@ -295,6 +305,15 @@ void Pass::stepThroughFile(std::string filename){
     }
 
     bag.close();
+
+
+    double average, sum;
+    for (size_t k = 0; k < timing_vector.size(); ++k){
+        sum = sum + timing_vector[k];
+    }
+    average = sum / timing_vector.size();
+//    average = std::accumulate(timing_vector.begin(), timing_vector.end(), 0.0)/timing_vector.size();
+    std::cout << "The average time per frame is" << average << std::endl;
 }
 
 
@@ -568,13 +587,62 @@ void Pass::publishLineStrips(){
 
 void Pass::publishRectangles(){
     std::cout << "Entered publishRectangles" << std::endl;
+    visualization_msgs::MarkerArray rectangles_array;
+
+    std::cout << "Elevation values: " << std::endl;
     for (size_t i = 0; i < stepcreator_.rectangles_.size(); ++i){
-        geometry_msgs::PolygonStamped rectangle;
-        std::cout << "2" << std::endl;
-        rectangle = visualizer_.displayRectangle(stepcreator_.rectangles_[i]);
-        std::cout << "3" << std::endl;
-        rectangles_pub_.publish(rectangle);
+
+        std::cout << stepcreator_.rectangles_[i].elevation_ << std::endl;
+
+        planeseg::contour contour = stepcreator_.rectangles_[i];
+
+        visualization_msgs::Marker rectMarker;
+        rectMarker.header.frame_id = "odom";
+        rectMarker.header.stamp = ros::Time::now();
+        rectMarker.ns = "rectangles";
+        rectMarker.id = i;
+        rectMarker.type = visualization_msgs::Marker::LINE_STRIP;
+        rectMarker.action = visualization_msgs::Marker::ADD;
+        rectMarker.pose.orientation.w = 0.0;
+        rectMarker.scale.x = 0.05;
+        rectMarker.color.r = 255;
+        rectMarker.color.g = 255;
+        rectMarker.color.b = 1;
+        rectMarker.color.a = 1;
+        std::vector<geometry_msgs::Point> pointsGM(contour.points_.size()+1);
+        int count;
+
+        for (size_t r = 0; r < contour.points_.size(); ++r){
+
+            float x, y, z;
+            x = (static_cast<float>(contour.points_[r].x) * gm_resolution_); //contour.points_[0].x
+            y = (static_cast<float>(contour.points_[r].y) * gm_resolution_); //contour.points_[0].y
+            z = static_cast<float>(contour.elevation_);
+
+            pointsGM[r].x = -y + ((imgprocessor_.final_img_.image.rows / 2) * gm_resolution_) + gm_position_[0];
+            pointsGM[r].y = -x + ((imgprocessor_.final_img_.image.cols / 2) * gm_resolution_) + gm_position_[1];
+            pointsGM[r].z = z;
+            count = r;
+        }
+
+        // re-add first point to close the loop
+        float x, y, z;
+        x = (static_cast<float>(contour.points_[0].x) * gm_resolution_);
+        y = (static_cast<float>(contour.points_[0].y) * gm_resolution_);
+        z = static_cast<float>(contour.elevation_);
+
+        pointsGM[count+1].x = -y + ((imgprocessor_.final_img_.image.rows / 2) * gm_resolution_) + gm_position_[0];
+        pointsGM[count+1].y = -x + ((imgprocessor_.final_img_.image.cols / 2) * gm_resolution_) + gm_position_[1];
+        pointsGM[count+1].z = z;
+
+        rectMarker.points = pointsGM;
+        rectMarker.frame_locked = true;
+        rectangles_array.markers.push_back(rectMarker);
     }
+
+    std::cout << "3" << std::endl;
+    rectangles_pub_.publish(rectangles_array);
+
 }
 
 void Pass::extractNthCloud(std::string filename, int n){
@@ -598,12 +666,15 @@ void Pass::extractNthCloud(std::string filename, int n){
             ++frame;
             if (frame == n){
                 std::cin.get();
+                tic();
                 grid_map_msgs::GridMap n, p;
-                n = gridMapCallback(*s);
+//                n = gridMapCallback(*s);
 //                elev_map_pub_.publish(*s);
-                p = imageProcessingCallback(n);
+//                p = imageProcessingCallback(n);
 
                 elevationMapCallback(p);
+
+                std::cout << toc().count() << " ms: frame_" << frame << std::endl;
             }
         }
 
@@ -624,23 +695,35 @@ grid_map_msgs::GridMap Pass::imageProcessingCallback(const grid_map_msgs::GridMa
 
     grid_map::GridMap gridmap;
     grid_map::GridMapRosConverter::fromMessage(msg, gridmap);
+    std::cout << "Gridmap resolution = " << gridmap.getResolution() << std::endl;
+    std::cout << "Gridmap position = " << gridmap.getPosition()[0] << ", " << gridmap.getPosition()[1] << std::endl;
+    gm_resolution_ = gridmap.getResolution();
+    gm_position_.clear();
+    gm_position_.push_back(gridmap.getPosition()[0]);
+    gm_position_.push_back(gridmap.getPosition()[1]);
     const float nanValue = 1;
     replaceNan(gridmap.get("slope"), nanValue);
 //    grid_map::GridMapRosConverter::toCvImage(gridmap, "slope", sensor_msgs::image_encodings::TYPE_32FC1, imgprocessor_.original_img_);
-    convertGridmapToFloatImage(gridmap, "slope", imgprocessor_.original_img_);
+    convertGridmapToFloatImage(gridmap, "slope", imgprocessor_.original_img_, true);
 
     imgprocessor_.process();
-    convertGridmapToFloatImage(gridmap, "elevation", stepcreator_.elevation_);
+    convertGridmapToFloatImage(gridmap, "elevation", stepcreator_.elevation_, true);
+
+//    double min, max;
+//    cv::minMaxLoc(stepcreator_.elevation_.image, &min, &max);
+//    std::cout << "Min = " << min << ", max = " << max << std::endl;
+
+    // ***instead of drawing the image in imgprocessor and reextracting contours - maybe just pass the contours straight to stepcreator?????***
     stepcreator_.processed_ = imgprocessor_.final_img_;
     stepcreator_.go();
+//    std::cout << "Image size: " << imgprocessor_.final_img_.image.rows << ", " << imgprocessor_.final_img_.image.cols << std::endl;
 
-    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(imgprocessor_.final_img_.image, "mask", gridmap);
-//    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(stepcreator_.elevation_masked_.image, "reconstructed", gridmap);
-    imgprocessor_.reset();
+//    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(imgprocessor_.final_img_.image, "mask", gridmap);
+    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(stepcreator_.elevation_masked_.image, "reconstructed", gridmap);
 
-    gridmap.add("product");
-    multiplyLayers(gridmap.get("elevation"), gridmap.get("mask"), gridmap.get("product"));
-    replaceZeroToNan(gridmap.get("product"));
+//    gridmap.add("product");
+//    multiplyLayers(gridmap.get("elevation"), gridmap.get("mask"), gridmap.get("product"));
+//    replaceZeroToNan(gridmap.get("product"));
 
 
     // Publish updated grid map.
@@ -649,6 +732,7 @@ grid_map_msgs::GridMap Pass::imageProcessingCallback(const grid_map_msgs::GridMa
     filtered_map_pub_.publish(output_msg);
     std::cout << "1" << std::endl;
     publishRectangles();
+    imgprocessor_.reset();
     stepcreator_.reset();
 
     return output_msg;
@@ -667,7 +751,7 @@ std::chrono::duration<double> Pass::toc(){
 }
 
 grid_map_msgs::GridMap Pass::gridMapCallback(const grid_map_msgs::GridMap& msg){
-  tic();
+//  tic();
 
   // Convert message to map.
   grid_map::GridMap input_map;
@@ -681,13 +765,13 @@ grid_map_msgs::GridMap Pass::gridMapCallback(const grid_map_msgs::GridMap& msg){
     grid_map::GridMapRosConverter::toMessage(input_map, failmessage);
     return failmessage;
   }
-
+/*
   if (verbose_timer_) {
     std::cout << toc().count() << " ms: filter chain\n";
   }
 
   tic();
-
+*/
   // Publish filtered output grid map.
   grid_map_msgs::GridMap output_msg;
   grid_map::GridMapRosConverter::toMessage(output_map, output_msg);
@@ -751,14 +835,46 @@ void Pass::multiplyLayers(grid_map::GridMap::Matrix& factor1, grid_map::GridMap:
   }
 }
 
-bool Pass::convertGridmapToFloatImage(const grid_map::GridMap& gridMap, const std::string& layer, cv_bridge::CvImage& cvImage){
-
+bool Pass::convertGridmapToFloatImage(const grid_map::GridMap& gridMap, const std::string& layer, cv_bridge::CvImage& cvImage, bool negative){
+    std::cout << "Entered convertGridmapToFloatImage" << std::endl;
     cvImage.header.stamp.fromNSec(gridMap.getTimestamp());
     cvImage.header.frame_id = gridMap.getFrameId();
     cvImage.encoding = CV_32F;
 
-    const float minValue = gridMap.get(layer).minCoeffOfFinites();
-    const float maxValue = gridMap.get(layer).maxCoeffOfFinites();
+    if (negative == false) {
+        return grid_map::GridMapCvConverter::toImage<float, 1>(gridMap, layer, CV_32F, 0, 1, cvImage.image);
+    } else {
+    return toImageWithNegatives(gridMap, layer, CV_32F, 0, 1, cvImage.image);
+    }
+}
 
-    return grid_map::GridMapCvConverter::toImage<float, 1>(gridMap, layer, CV_32F, minValue, maxValue, cvImage.image);
+bool Pass::toImageWithNegatives(const grid_map::GridMap& gridMap, const std::string& layer, const int encoding, const float lowerValue, const float upperValue, cv::Mat& image){
+
+  // Initialize image.
+  if (gridMap.getSize()(0) > 0 && gridMap.getSize()(1) > 0) {
+    image = cv::Mat::zeros(gridMap.getSize()(0), gridMap.getSize()(1), encoding);
+  } else {
+    std::cerr << "Invalid grid map?" << std::endl;
+    return false;
+  }
+
+  // Get max image value.
+  float imageMax;
+  imageMax = 1;
+
+  grid_map::GridMap map = gridMap;
+  const grid_map::Matrix& data = map[layer];
+
+  for (grid_map::GridMapIterator iterator(map); !iterator.isPastEnd(); ++iterator) {
+    const grid_map::Index index(*iterator);
+    const float& value = data(index(0), index(1));
+    if (std::isfinite(value)) {
+      const float imageValue = (float)(((value - lowerValue) / (upperValue - lowerValue)) * (float)imageMax);
+      const grid_map::Index imageIndex(iterator.getUnwrappedIndex());
+      unsigned int channel = 0;
+      image.at<cv::Vec<float, 1>>(imageIndex(0), imageIndex(1))[channel] = imageValue;
+    }
+  }
+
+  return true;
 }
