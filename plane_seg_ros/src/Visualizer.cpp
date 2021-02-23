@@ -8,7 +8,6 @@
 #include <geometry_msgs/Point.h>
 #include "plane_seg/Tracker.hpp"
 #include <ros/time.h>
-#include <geometry_msgs/PolygonStamped.h>
 
 #include <pcl/io/pcd_io.h>
 #include <pcl_ros/point_cloud.h>
@@ -226,7 +225,7 @@ visualization_msgs::Marker Visualizer::displayHull(planeseg::plane plane){
 
     return hullMarker;
 }
-
+/*
 geometry_msgs::PolygonStamped Visualizer::displayRectangle(planeseg::contour contour){
 
     geometry_msgs::PolygonStamped rectMarker;
@@ -249,7 +248,7 @@ geometry_msgs::PolygonStamped Visualizer::displayRectangle(planeseg::contour con
 
     return rectMarker;
 }
-
+*/
 double Visualizer::getR(int id){
     double j;
     j = id % (colors_.size()/3);

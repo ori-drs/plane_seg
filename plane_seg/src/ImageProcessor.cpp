@@ -76,14 +76,14 @@ void contours::approxAsPoly(){
 
     std::vector<std::vector<cv::Point>> temp;
     temp = contours_;
-    contours_.clear();
+    contours_rect_.clear();
 
     for(size_t l = 0; l < temp.size(); ++l){
         double epsilon;
         epsilon = 3;
         std::vector<cv::Point> approx;
         cv::approxPolyDP(temp[l], approx, epsilon, true);
-        contours_.push_back(approx);
+        contours_rect_.push_back(approx);
     }
 }
 
@@ -122,7 +122,7 @@ bool contours::isSquare(std::vector<cv::Point> contour_){
     contour_area = cv::contourArea(contour_);
     rectangularity = contour_area / minarea_rect.size.area();
 
-    if(elongation > 0.5 && elongation < 1.5 && rectangularity > 0.75){
+    if(elongation > 0.5 && elongation < 1.3 && rectangularity > 0.8){
         return true;
     } else {
         return false;
@@ -213,9 +213,9 @@ ImageProcessor::~ImageProcessor(){}
 
 void ImageProcessor::process(){
 
-    displayImage("original", original_img_.image, 0);
+//    displayImage("original", original_img_.image, 0);
 //    histogram(original_img_);
-    thresholdImage(0.2);
+    thresholdImage(0.3);
 
     processed_img_.image.convertTo(processed_img_.image, CV_8U);
 //    displayImage("threshold", processed_img_.image, 1);
@@ -235,18 +235,20 @@ void ImageProcessor::process(){
     med_contours_.filterMinRectangularity(0.6);
 //    drawContoursIP(med_contours_, "filtered by rectangularity", 8);
     med_contours_.fitMinAreaRect();
-    large_contours_.filterMinRectangularity(0.6);
-    large_contours_.fitSquare();
+    large_contours_.approxAsPoly();
+//    large_contours_.filterMinRectangularity(0.6);
+//    large_contours_.fitSquare();
     mergeContours();
 //    all_contours_.assignIDs();
 //    all_contours_.assignColors();
 
     displayResult();
-
+/*
     int p = cv::waitKey(0);
     if (p == 's'){
         saveImage(final_img_);
     }
+    */
 }
 
 void ImageProcessor::copyOrigToProc(){
@@ -277,7 +279,7 @@ void ImageProcessor::displayResult(){
     }
 
     final_img_ = rect_img_;
-    displayImage("final", colour_img_.image, 9);
+//    displayImage("final", colour_img_.image, 9);
 }
 
 void ImageProcessor::saveImage(cv_bridge::CvImage image_){
@@ -405,6 +407,7 @@ void ImageProcessor::histogram(cv_bridge::CvImage img){
     for (int i = 1; i < histSize; i++){
         cv::line(histImage, cv::Point(bin_w*(i-1), hist_h - cvRound(hist.at<float>(i-1))), cv::Point(bin_w*(i), hist_h - cvRound(hist.at<float>(i))), cv::Scalar(255, 0, 0), 2, 8, 0);
     }
+    std::cout << hist << std::endl;
 
     cv::imshow("original_img_ histogram", histImage);
     cv::waitKey(0);
@@ -429,7 +432,7 @@ cv::Mat ImageProcessor::createMask(cv_bridge::CvImage img){
     {
         for(int c = 0; c < img.image.cols; c++)
         {
-            if (img.image.at<float>(r,c) > 0.64085822 && img.image.at<float>(r,c) < 0.64085824)
+            if (img.image.at<float>(r,c) == 1)
             {
                 mask_.at<float>(r,c) = 0;
             }

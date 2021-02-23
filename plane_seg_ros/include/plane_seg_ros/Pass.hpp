@@ -56,7 +56,8 @@ class Pass{
     void replaceNan(grid_map::GridMap::Matrix& m, const double newValue);
     void replaceZeroToNan(grid_map::GridMap::Matrix& m);
     void multiplyLayers(grid_map::GridMap::Matrix& factor1, grid_map::GridMap::Matrix& factor2, grid_map::GridMap::Matrix& result);
-    bool convertGridmapToFloatImage(const grid_map::GridMap& gridMap, const std::string& layer, cv_bridge::CvImage& cvImage);
+    bool convertGridmapToFloatImage(const grid_map::GridMap& gridMap, const std::string& layer, cv_bridge::CvImage& cvImage, bool negative);
+    bool toImageWithNegatives(const grid_map::GridMap& gridMap, const std::string& layer, const int encoding, const float lowerValue, const float upperValue, cv::Mat& image);
 
   private:
     ros::NodeHandle& node_;
@@ -65,7 +66,7 @@ class Pass{
     std::vector<double> colors_3;
 
     ros::Subscriber point_cloud_sub_, grid_map_sub_, pose_sub_;
-    ros::Publisher received_cloud_pub_, hull_cloud_pub_, hull_markers_pub_, look_pose_pub_, elev_map_pub_, pose_pub_, id_strings_pub_, centroids_pub_, hulls_pub_, linestrips_pub_, filtered_map_pub_, rectangles_pub_;
+    ros::Publisher received_cloud_pub_, hull_cloud_pub_, hull_markers_pub_, look_pose_pub_, elev_map_pub_, pose_pub_, id_strings_pub_, centroids_pub_, hulls_pub_, linestrips_pub_, filtered_map_pub_, rectangles_pub_, test_pub_;
 
     Eigen::Isometry3d last_robot_pose_;
     planeseg::BlockFitter::Result result_;
@@ -82,6 +83,8 @@ class Pass{
     double erode_radius_;
     double traversability_threshold_;
     bool verbose_timer_;
+    float gm_resolution_;
+    std::vector<float> gm_position_;
     std::chrono::high_resolution_clock::time_point last_time_;
 };
 }
