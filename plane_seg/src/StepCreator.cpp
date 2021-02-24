@@ -3,6 +3,7 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/types.hpp>
+#include "plane_seg/ImageProcessor.hpp"
 
 namespace planeseg {
 
@@ -49,12 +50,13 @@ void StepCreator::setImages(cv_bridge::CvImage img1, cv_bridge::CvImage img2){
 }
 
 void StepCreator::extractContours(){
-    std::vector<std::vector<cv::Point>> pnts;
-    cv::findContours(processed_.image, pnts, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-    for (size_t j = 0; j < pnts.size(); ++j){
+//    cv::findContours(processed_.image, pnts, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+//    pnts_ =
+
+    for (size_t j = 0; j < pnts_.size(); ++j){
         contour temp;
-        temp.points_ = pnts[j];
+        temp.points_ = pnts_[j];
         rectangles_.push_back(temp);
     }
 }

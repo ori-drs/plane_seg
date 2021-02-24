@@ -28,6 +28,7 @@ public:
     cv_bridge::CvImage elevation_masked_;
     cv_bridge::CvImage reconstructed_;
     std::vector<contour> rectangles_;
+    std::vector<std::vector<cv::Point>> pnts_;
 
 private:
 
