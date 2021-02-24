@@ -63,7 +63,7 @@ public:
   /**
    * @brief Destructs the multi-threaded (2) object
    */
-  ~TerrainSimplification();
+  virtual ~TerrainSimplification();
 
   /**
    * @brief Assigns a shared pointer to the filter_chain_ object
@@ -87,7 +87,7 @@ public:
   }
 
   /**
-   * @brief Computes the yaw angle from the local copy of the robot's orientation.
+   * @brief Computes the unwrapped yaw angle from the local copy of the robot's orientation.
    * Stores the result in a member variable;
    * @return Yaw angle
    */
