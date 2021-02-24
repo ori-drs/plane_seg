@@ -18,7 +18,7 @@ TerrainSimplificationRos::TerrainSimplificationRos(ros::NodeHandle& nh)
     throw std::runtime_error("Could not configure the filter chain!");
   }
   // TF
-  tf_listener_ = std::make_shared<tf::TransformListener>();
+  tf_listener_ = std::make_shared<tf::TransformListener>();  // TODO: Upgrade to tf2_ros::TransformListener
 
   terr_simp_->setFilterChain(filter_chain_);
 
@@ -26,6 +26,7 @@ TerrainSimplificationRos::TerrainSimplificationRos(ros::NodeHandle& nh)
   ros_sub_robot_pose_ = ros_nh_.subscribe(topic_robot_state_, 2, &TerrainSimplificationRos::subRobotPose, this);
   ros_sub_map_        = ros_nh_.subscribe(topic_elevation_map_, 2, &TerrainSimplificationRos::subGridMap, this);
   ros_pub_map_        = ros_nh_.advertise<grid_map_msgs::GridMap>(topic_map_simplified_, 1, false);
+  // TODO: Do not fix the global name. These should be advertised locally to the node handle!
   ros_server_run_     = ros_nh_.advertiseService("/terrain_simplification/run", &TerrainSimplificationRos::run, this);
   ros_server_stop_    = ros_nh_.advertiseService("/terrain_simplification/stop", &TerrainSimplificationRos::stop, this);
   ros_server_pub_     = ros_nh_.advertiseService("/terrain_simplification/pub", &TerrainSimplificationRos::pub, this);
@@ -110,6 +111,7 @@ double TerrainSimplificationRos::getTraversability(
 
 bool
 TerrainSimplificationRos::readParameters() {
+  // TODO: These parameters should be local to the namespace of the node.
   if (!ros_nh_.getParam("/terrain_simplification/topic_elevation_map", topic_elevation_map_)){
     ROS_ERROR("Could not read parameter `terrain_simplification/topic_elevation_map`.");
     return false;
@@ -177,9 +179,9 @@ TerrainSimplificationRos::setGridMap(
   // Get transformation to convert point clouds into base frame
   tf::StampedTransform o_T_pco_transform;
   Eigen::Isometry3d o_T_pco;
-  tf_listener_->waitForTransform("odom", "point_cloud_odom", ros::Time(0), ros::Duration(2.0));
+  tf_listener_->waitForTransform("odom", "point_cloud_odom", ros::Time(0), ros::Duration(2.0));  // TODO: hard-coded frame names
   try {
-    tf_listener_->lookupTransform("odom", "point_cloud_odom", ros::Time(0), o_T_pco_transform);
+    tf_listener_->lookupTransform("odom", "point_cloud_odom", ros::Time(0), o_T_pco_transform);  // TODO: hard-coded frame names
     tf::transformTFToEigen (o_T_pco_transform, o_T_pco);
   } catch (tf::TransformException& ex) {
     ROS_ERROR_STREAM("Couldn't find transform from frame [" << "point_cloud_odom" << "] to base frame [" << "odom" << "]");

@@ -8,11 +8,10 @@
 #include <ros/ros.h>
 #include <iostream>
 
-using Clock = std::chrono::high_resolution_clock;
 
 namespace terrain_simplification {
 
-TerrainSimplification::TerrainSimplification ()
+TerrainSimplification::TerrainSimplification()
   : thread_loop_(true),
     thread_run_(&TerrainSimplification::run, this) {
 }
@@ -32,7 +31,7 @@ TerrainSimplification::~TerrainSimplification() {
 
 void
 TerrainSimplification::run() {
-  // continously run the thread, until stopped
+  // continuously run the thread, until stopped
   while (thread_loop_.load()) {
     // IF flags true, advance the simplifying algorithm to produce to create simplified map
     // ELSE wait for the flags
@@ -41,7 +40,7 @@ TerrainSimplification::run() {
     } else {
       // wait 0.2 seconds
       for (int i = 0; i < 100; i++) {
-        usleep(2000);
+        usleep(2000);  // TODO: Use std::this_thread::sleep_for
       }
     }
   }
@@ -109,7 +108,7 @@ TerrainSimplification::simplifyGridMap () {
 
   // Create empty map
   grid_map::GridMap map_simplified_wo_traversability({"simplified"});
-  map_simplified_wo_traversability.setFrameId("odom");
+  map_simplified_wo_traversability.setFrameId("odom");  // TODO: hard-coded frame
   map_simplified_wo_traversability.setGeometry(map_sub_.getLength(), grid_map_resolution_);  // TODO: hard-coded parameter
   map_simplified_wo_traversability.setPosition(robot_position);
 
@@ -238,7 +237,7 @@ TerrainSimplification::applyDerivativeToCvImage(
   }
   // Compute the gradient with respect to the specified dimension
   cv::Mat image_grad, image_grad_unsigned;
-  // Convert from insigned int [0, 65,535] to signed int [−32,767, +32,767]
+  // Convert from unsigned int [0, 65,535] to signed int [−32,767, +32,767]
   image_denoised.convertTo(image_denoised_signed, CV_16S, 0.5);       // note: multiplying by 0.5
   if (dim == X) {
     cv::Sobel(image_denoised_signed, image_grad, CV_16S, 0, 1, size); // note: 0, 1
@@ -340,7 +339,8 @@ TerrainSimplification::getSimplifiedGridMap(
   if (scale != 1.0) {
     // Set up the map object
     mutex_.lock(); // to read map_filtered_
-    map_simplified_scaled_.setFrameId("odom");
+    map_simplified_scaled_.setFrameId("odom");  // TODO: hard-coded parameter
+    // TODO: map_simplified_wo_traversability_ has not been set before...
     map_simplified_scaled_.setGeometry(map_simplified_wo_traversability_.getLength(), grid_map_resolution_/scale);  // TODO: hard-coded parameter
     map_simplified_scaled_.setPosition(map_simplified_wo_traversability_.getPosition());
     mutex_.unlock();
