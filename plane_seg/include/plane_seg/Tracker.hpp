@@ -17,10 +17,10 @@ struct IdAssigned{
     int id;
 };
 
-class Tracker {
+class Tracker3D {
 public:
-    Tracker();
-    ~Tracker();
+    Tracker3D();
+    ~Tracker3D();
     
     int get_plane_id(planeseg::plane plane_);
     pcl::PointXYZ find_centroid(pcl::PointCloud<pcl::PointXYZ> cloud );

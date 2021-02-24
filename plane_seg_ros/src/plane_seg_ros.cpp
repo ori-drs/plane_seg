@@ -72,7 +72,8 @@ Pass::Pass(ros::NodeHandle& node):
 
   last_robot_pose_ = Eigen::Isometry3d::Identity();
 
-  tracking_ = planeseg::Tracker();
+  tracking_ = planeseg::Tracker3D();
+  tracking2D_ = planeseg::Tracker2D();
   visualizer_ = planeseg::Visualizer();
   imgprocessor_ = planeseg::ImageProcessor();
   stepcreator_ = planeseg::StepCreator();
@@ -603,8 +604,17 @@ void Pass::publishRectangles(){
     std::cout << "Entered publishRectangles" << std::endl;
     visualization_msgs::MarkerArray rectangles_array;
 
+    std::vector<int> ids;
+    for (size_t m = 0; m < tracking2D_.newRects_.size(); ++m){
+        ids.push_back(tracking2D_.newRects_[m].id_);
+    }
+
     std::cout << "Elevation values: " << std::endl;
     for (size_t i = 0; i < stepcreator_.rectangles_.size(); ++i){
+
+        double r = visualizer_.getR(ids[i]);
+        double g = visualizer_.getG(ids[i]);
+        double b = visualizer_.getB(ids[i]);
 
         std::cout << stepcreator_.rectangles_[i].elevation_ << std::endl;
 
@@ -619,9 +629,9 @@ void Pass::publishRectangles(){
         rectMarker.action = visualization_msgs::Marker::ADD;
         rectMarker.pose.orientation.w = 0.0;
         rectMarker.scale.x = 0.05;
-        rectMarker.color.r = 255;
-        rectMarker.color.g = 255;
-        rectMarker.color.b = 1;
+        rectMarker.color.r = r;
+        rectMarker.color.g = g;
+        rectMarker.color.b = b;
         rectMarker.color.a = 1;
         std::vector<geometry_msgs::Point> pointsGM(contour.points_.size()+1);
         int count;
@@ -733,14 +743,20 @@ void Pass::stepCreation(grid_map::GridMap &gridmap){
     stepcreator_.pnts_ = imgprocessor_.all_contours_.contours_rect_;
     stepcreator_.processed_ = imgprocessor_.final_img_;
     stepcreator_.go();
+    tracking2D_.reset();
+    tracking2D_.assignIDs(stepcreator_.rectangles_);
+    tracking2D_.printIds();
 //    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(stepcreator_.elevation_masked_.image, "reconstructed", gridmap);
     publishRectangles();
+//    tracking2D_.reset();
 }
 
 void Pass::reset(){
     gm_position_.clear();
     imgprocessor_.reset();
     stepcreator_.reset();
+//    tracking_.reset();
+//    tracking2D_.reset();
 }
 
 void Pass::tic(){

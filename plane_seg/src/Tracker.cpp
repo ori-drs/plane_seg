@@ -11,13 +11,13 @@
 
 namespace planeseg {
 
-Tracker::Tracker(){
+Tracker3D::Tracker3D(){
     totalIds = 0;
 }
 
-Tracker::~Tracker(){}
+Tracker3D::~Tracker3D(){}
 
-pcl::PointXYZ Tracker::find_centroid(pcl::PointCloud<pcl::PointXYZ> cloud ){
+pcl::PointXYZ Tracker3D::find_centroid(pcl::PointCloud<pcl::PointXYZ> cloud ){
 //    std::cout << "Computing centroid" << std::endl;
     Eigen::Vector4f centroid_eigen;
     pcl::compute3DCentroid(cloud, centroid_eigen);
@@ -31,7 +31,7 @@ pcl::PointXYZ Tracker::find_centroid(pcl::PointCloud<pcl::PointXYZ> cloud ){
 }
 
 // converts the result from the BlockFitter to a vector of planes complete with pointclouds, centroids and ids, and saves it as newStairs
-void Tracker::convertResult(planeseg::BlockFitter::Result result_){
+void Tracker3D::convertResult(planeseg::BlockFitter::Result result_){
     std::cout << "entered convertResult" << std::endl;
     for (size_t i=0; i<result_.mBlocks.size(); ++i){
       pcl::PointCloud<pcl::PointXYZ> cloud;
@@ -59,7 +59,7 @@ void Tracker::convertResult(planeseg::BlockFitter::Result result_){
 
 }
 
-int Tracker::get_plane_id(planeseg::plane plane){
+int Tracker3D::get_plane_id(planeseg::plane plane){
 
 //    std::cout << "entered get_plane_id" << std::endl;
     int id;
@@ -106,13 +106,13 @@ int Tracker::get_plane_id(planeseg::plane plane){
     return id;
 }
 
-void Tracker::reset(){
+void Tracker3D::reset(){
     std::cout << "entered Tracker reset" << std::endl;
     oldStairs = newStairs;
     newStairs.clear();
     }
 
-void Tracker::printIds(){
+void Tracker3D::printIds(){
 //    std::cout << "entered printIds" << std::endl;
     std::cout << "Total number of ids assigned: " << newStairs.size() << std::endl;
     for (size_t i = 0; i < newStairs.size(); ++i){
