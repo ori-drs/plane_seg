@@ -9,11 +9,6 @@ TerrainSimplificationRos::TerrainSimplificationRos(
 
   terr_simp_ = std::make_shared<terrain_simplification::TerrainSimplification>();
 
-  // Load config file
-  if (!loadConfigFile()) {
-    success = false;
-    return;
-  }
   // Read ros parameters
   if (!readParameters()) {
     success = false;
@@ -118,30 +113,6 @@ double TerrainSimplificationRos::getTraversability(
     bool& is_inside) {
   return terr_simp_->getValueAtPosition("traversability", location, is_inside);
 }
-
-bool
-TerrainSimplificationRos::loadConfigFile() {
-  try {
-    // load standard config
-    std::string cmd = "rosparam load " + ros::package::getPath("terrain_simplification_ros") + "/config/config.yaml";
-    int sys_rtrn = system(cmd.c_str());
-
-    // load filter chain config
-    cmd = "rosparam load " + ros::package::getPath("terrain_simplification_ros") + "/config/filter_chain.yaml";
-    sys_rtrn = system(cmd.c_str());
-
-    // load non-standard config
-    std::string config_path;
-    ros_nh_.getParam("/terrain_simplification/config_path", config_path);
-    cmd = "rosparam load " + config_path;
-    sys_rtrn = system(cmd.c_str());
-  }
-  catch (std::exception& e) {
-    ROS_ERROR_STREAM("Wrong path to configuration (config) file!");
-  }
-  return true;
-}
-
 
 bool
 TerrainSimplificationRos::readParameters() {

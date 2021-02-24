@@ -3,6 +3,9 @@
 <launch>
   <!-- ############ Default Parameters ############ -->
   <arg name="gdb"                   default="" />
+
+  <rosparam file="$(find terrain_simplification_ros)/config/config.yaml" subst_value="true"/>
+  <rosparam file="$(find terrain_simplification_ros)/config/filter_chain.yaml" subst_value="true"/>
   
   <!-- ############ Main Node ############ -->
   <node 

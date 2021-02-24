@@ -85,11 +85,6 @@ protected:
   void pubSimplifiedGridMap();
 
   /**
-   * @brief Loads the configuration file (config.yaml)
-   */
-  bool loadConfigFile();
-
-  /**
    * @brief Read ROS parameters
    */
   bool readParameters();
