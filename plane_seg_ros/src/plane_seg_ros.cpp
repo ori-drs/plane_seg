@@ -55,16 +55,6 @@ Pass::Pass(ros::NodeHandle& node):
   if(!node_.getParam("input_body_pose_topic", input_body_pose_topic)){
    ROS_WARN_STREAM("Couldn't get parameter: input_body_pose_topic");
   }
-//  std::string filename;
-//  node_.getParm("/rosbag_pass/filename", filename);
-/*
-  grid_map_sub_ = node_.subscribe("/elevation_mapping/elevation_map", 100,
-                                    &Pass::elevationMapCallback, this);
-  point_cloud_sub_ = node_.subscribe("/plane_seg/point_cloud_in", 100,
-                                    &Pass::pointCloudCallback, this);
-  pose_sub_ = node_.subscribe("/state_estimator/pose_in_odom", 100,
-                                    &Pass::robotPoseCallBack, this);
-*/
 
   received_cloud_pub_ = node_.advertise<sensor_msgs::PointCloud2>("/plane_seg/received_cloud", 10);
   hull_cloud_pub_ = node_.advertise<sensor_msgs::PointCloud2>("/plane_seg/hull_cloud", 10);
@@ -87,20 +77,38 @@ Pass::Pass(ros::NodeHandle& node):
   imgprocessor_ = planeseg::ImageProcessor();
   stepcreator_ = planeseg::StepCreator();
 
-  if(!node_.param("input_topic", elevation_map_topic_, std::string("/rooster_elevation_mapping/elevation_map"))){
+  if(!node_.param("algorithm", algorithm_, std::string("A"))){
+    ROS_WARN_STREAM("Couldn't get parameter: algorithm");
+  }
+  ROS_INFO("ALGORITHM %s", algorithm_.c_str());
+
+  if(!node_.getParam("input_topic", elevation_map_topic_)){
     ROS_WARN_STREAM("Couldn't get parameter: input_topic");
   }
-  if(!node_.param("erode_radius", erode_radius_, 0.2)){
+  if(!node_.getParam("erode_radius", erode_radius_)){
     ROS_WARN_STREAM("Couldn't get parameter: erode_radius");
   }
   ROS_INFO("Erode Radius [%f]", erode_radius_);
-  if(!node_.param("traversability_threshold", traversability_threshold_, 0.8)){
+  if(!node_.getParam("traversability_threshold", traversability_threshold_)){
     ROS_WARN_STREAM("Couldn't get parameter: traversability_threshold");
   }
   ROS_INFO("traversability_threshold [%f]", traversability_threshold_);
-  if(!node_.param("verbose_timer", verbose_timer_, true)){
+  if(!node_.getParam("verbose_timer", verbose_timer_)){
     ROS_WARN_STREAM("Couldn't get parameter: verbose_timer");
   }
+  if(!node_.getParam("verbose_timer", verbose_timer_)){
+    ROS_WARN_STREAM("Couldn't get parameter: verbose_timer");
+  }
+  if(!node_.getParam("grid_map_sub_topic", grid_map_sub_topic_)){
+    ROS_WARN_STREAM("Couldn't get parameter: grid_map_sub_topic");
+  }
+  if(!node_.getParam("point_cloud_sub_topic", point_cloud_sub_topic_)){
+    ROS_WARN_STREAM("Couldn't get parameter: point_cloud_sub_topic");
+  }
+  if(!node_.getParam("pose_sub_topic", pose_sub_topic_)){
+      ROS_WARN_STREAM("Couldn't get parameter: pose_sub_topic");
+    }
+
   std::string param_name = "grid_map_filters";
   XmlRpc::XmlRpcValue config;
   if(!node_.getParam(param_name, config)) {
@@ -113,19 +121,6 @@ Pass::Pass(ros::NodeHandle& node):
       std::cout << "couldn't configure filter chain" << std::endl;
       return;
   }
-/*
-  std::string mask_name = "grid_map_mask_filter";
-  XmlRpc::XmlRpcValue config2;
-  if(!node_.getParam(mask_name, config2)) {
-      ROS_ERROR("Could not load mask filter configuration from parameter %s, are you sure it was pushed to the parameter server? Assuming that you meant to leave it empty.", mask_name.c_str());
-      return;
-  }
-
-  // Setup mask filter
-  if (!mask_filter_.configure(mask_name, node_)){
-      std::cout << "couldn't configure mask filter" << std::endl;
-      return;
-  }*/
 
   colors_ = {
       1, 1, 1, // 42
@@ -170,8 +165,33 @@ void Pass::elevationMapCallback(const grid_map_msgs::GridMap& msg){
   // convert message to GridMap, to PointCloud to LabeledCloud
   grid_map::GridMap map;
   grid_map::GridMapRosConverter::fromMessage(msg, map);
+
+  if (algorithm_ == "C"){
+      std::cout << "C" << std::endl;
+      gridMapFilterChain(map);
+      imageProcessing(map);
+      stepCreation(map);
+      reset();
+      return;
+  }
+
+  if (algorithm_ == "B"){
+      std::cout << "B" << std::endl;
+      gridMapFilterChain(map);
+      imageProcessing(map);
+      reset();
+  }
+
   sensor_msgs::PointCloud2 pointCloud;
-  grid_map::GridMapRosConverter::toPointCloud(map, "product", pointCloud); // takes "product" for masking algorithm, else "elevation"
+
+  if (algorithm_ == "A"){
+      std::cout << "A end" << std::endl;
+      grid_map::GridMapRosConverter::toPointCloud(map, "elevation", pointCloud); // takes "elevation" for legacy algorithm
+  } else {
+      std::cout << "B end" << std::endl;
+      grid_map::GridMapRosConverter::toPointCloud(map, "product", pointCloud); // takes "product" for masking algorithm
+  }
+
   planeseg::LabeledCloud::Ptr inCloud(new planeseg::LabeledCloud());
   pcl::fromROSMsg(pointCloud, *inCloud);
 
@@ -180,6 +200,7 @@ void Pass::elevationMapCallback(const grid_map_msgs::GridMap& msg){
   lookDir = convertRobotPoseToSensorLookDir(last_robot_pose_);
 
   processCloud(inCloud, origin, lookDir);
+
 }
 
 
@@ -272,7 +293,7 @@ void Pass::stepThroughFile(std::string filename){
         grid_map_msgs::GridMap::ConstPtr s = m.instantiate<grid_map_msgs::GridMap>();
 
         if (s != NULL){
-//            std::cin.get();
+            std::cin.get();
             tic();
 
             ++frame;
@@ -280,15 +301,8 @@ void Pass::stepThroughFile(std::string filename){
             std::cout << "frames = " << frame << std::endl;
 //            std::cout << "received gridmap at time " << m.getTime().toNSec() << " with resolution:" <<   s->info.resolution << "and time: " << s->info.header.stamp << std::endl;
             std::cout << "rosbag time: " << s->info.header.stamp << std::endl;
-//            elevationMapCallback(*s);
-//            elev_map_pub_.publish(*s);
-//            saveGridMapMsgAsPCD(*s, frame);
-            grid_map_msgs::GridMap n, p;
-            n = gridMapCallback(*s);
-//                elev_map_pub_.publish(*s);
-            p = imageProcessingCallback(n);
+            elevationMapCallback(*s);
 
-//            elevationMapCallback(p);
             std::cout << "Press [Enter] to continue to next gridmap message" << std::endl;
             double frame_time;
             frame_time = toc().count();
@@ -660,20 +674,12 @@ void Pass::extractNthCloud(std::string filename, int n){
     foreach(rosbag::MessageInstance const m, view){
         grid_map_msgs::GridMap::ConstPtr s = m.instantiate<grid_map_msgs::GridMap>();
 
- //       std::cout << " frame = " << frame << std::endl;
-
         if (s != NULL){
             ++frame;
             if (frame == n){
                 std::cin.get();
                 tic();
-                grid_map_msgs::GridMap n, p;
-//                n = gridMapCallback(*s);
-//                elev_map_pub_.publish(*s);
-//                p = imageProcessingCallback(n);
-
-                elevationMapCallback(p);
-
+                elevationMapCallback(*s);
                 std::cout << toc().count() << " ms: frame_" << frame << std::endl;
             }
         }
@@ -691,51 +697,50 @@ void Pass::extractNthCloud(std::string filename, int n){
 bag.close();
 }
 
-grid_map_msgs::GridMap Pass::imageProcessingCallback(const grid_map_msgs::GridMap &msg){
+void Pass::imageProcessing(grid_map::GridMap &gridmap){
 
-    grid_map::GridMap gridmap;
-    grid_map::GridMapRosConverter::fromMessage(msg, gridmap);
-    std::cout << "Gridmap resolution = " << gridmap.getResolution() << std::endl;
-    std::cout << "Gridmap position = " << gridmap.getPosition()[0] << ", " << gridmap.getPosition()[1] << std::endl;
-    gm_resolution_ = gridmap.getResolution();
-    gm_position_.clear();
-    gm_position_.push_back(gridmap.getPosition()[0]);
-    gm_position_.push_back(gridmap.getPosition()[1]);
     const float nanValue = 1;
     replaceNan(gridmap.get("slope"), nanValue);
-//    grid_map::GridMapRosConverter::toCvImage(gridmap, "slope", sensor_msgs::image_encodings::TYPE_32FC1, imgprocessor_.original_img_);
+
     convertGridmapToFloatImage(gridmap, "slope", imgprocessor_.original_img_, true);
 
-    imgprocessor_.process();
-    convertGridmapToFloatImage(gridmap, "elevation", stepcreator_.elevation_, true);
+    imgprocessor_.process();;
 
-//    double min, max;
-//    cv::minMaxLoc(stepcreator_.elevation_.image, &min, &max);
-//    std::cout << "Min = " << min << ", max = " << max << std::endl;
 
-    // ***instead of drawing the image in imgprocessor and reextracting contours - maybe just pass the contours straight to stepcreator?????***
-    stepcreator_.processed_ = imgprocessor_.final_img_;
-    stepcreator_.go();
-//    std::cout << "Image size: " << imgprocessor_.final_img_.image.rows << ", " << imgprocessor_.final_img_.image.cols << std::endl;
+    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(imgprocessor_.final_img_.image, "mask", gridmap);
 
-//    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(imgprocessor_.final_img_.image, "mask", gridmap);
-    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(stepcreator_.elevation_masked_.image, "reconstructed", gridmap);
-
-//    gridmap.add("product");
-//    multiplyLayers(gridmap.get("elevation"), gridmap.get("mask"), gridmap.get("product"));
-//    replaceZeroToNan(gridmap.get("product"));
-
+    if (algorithm_ == "B"){
+        gridmap.add("product");
+        multiplyLayers(gridmap.get("elevation"), gridmap.get("mask"), gridmap.get("product"));
+        replaceZeroToNan(gridmap.get("product"));
+    }
 
     // Publish updated grid map.
     grid_map_msgs::GridMap output_msg;
     grid_map::GridMapRosConverter::toMessage(gridmap, output_msg);
     filtered_map_pub_.publish(output_msg);
-    std::cout << "1" << std::endl;
+}
+
+void Pass::stepCreation(grid_map::GridMap &gridmap){
+
+    std::cout << "Gridmap resolution = " << gridmap.getResolution() << std::endl;
+    std::cout << "Gridmap position = " << gridmap.getPosition()[0] << ", " << gridmap.getPosition()[1] << std::endl;
+    gm_resolution_ = gridmap.getResolution();
+    gm_position_.push_back(gridmap.getPosition()[0]);
+    gm_position_.push_back(gridmap.getPosition()[1]);
+
+    convertGridmapToFloatImage(gridmap, "elevation", stepcreator_.elevation_, true);
+    stepcreator_.pnts_ = imgprocessor_.all_contours_.contours_rect_;
+    stepcreator_.processed_ = imgprocessor_.final_img_;
+    stepcreator_.go();
+//    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(stepcreator_.elevation_masked_.image, "reconstructed", gridmap);
     publishRectangles();
+}
+
+void Pass::reset(){
+    gm_position_.clear();
     imgprocessor_.reset();
     stepcreator_.reset();
-
-    return output_msg;
 }
 
 void Pass::tic(){
@@ -750,12 +755,8 @@ std::chrono::duration<double> Pass::toc(){
   return elapsed_time;
 }
 
-grid_map_msgs::GridMap Pass::gridMapCallback(const grid_map_msgs::GridMap& msg){
+void Pass::gridMapFilterChain(grid_map::GridMap& input_map){
 //  tic();
-
-  // Convert message to map.
-  grid_map::GridMap input_map;
-  grid_map::GridMapRosConverter::fromMessage(msg, input_map);
 
   // Apply filter chain.
   grid_map::GridMap output_map;
@@ -763,7 +764,7 @@ grid_map_msgs::GridMap Pass::gridMapCallback(const grid_map_msgs::GridMap& msg){
     std::cout << "couldn't update the grid map filter chain" << std::endl;
     grid_map_msgs::GridMap failmessage;
     grid_map::GridMapRosConverter::toMessage(input_map, failmessage);
-    return failmessage;
+    return;
   }
 /*
   if (verbose_timer_) {
@@ -777,8 +778,7 @@ grid_map_msgs::GridMap Pass::gridMapCallback(const grid_map_msgs::GridMap& msg){
   grid_map::GridMapRosConverter::toMessage(output_map, output_msg);
   filtered_map_pub_.publish(output_msg);
 
-  return output_msg;
-
+  input_map = output_map;
 }
 
 void Pass::saveGridMapMsgAsPCD(const grid_map_msgs::GridMap& msg, int frame){
@@ -877,4 +877,13 @@ bool Pass::toImageWithNegatives(const grid_map::GridMap& gridMap, const std::str
   }
 
   return true;
+}
+
+void Pass::setupSubscribers(){
+    grid_map_sub_ = node_.subscribe(grid_map_sub_topic_, 100,
+                                      &Pass::elevationMapCallback, this);
+    point_cloud_sub_ = node_.subscribe(point_cloud_sub_topic_, 100,
+                                      &Pass::pointCloudCallback, this);
+    pose_sub_ = node_.subscribe(pose_sub_topic_, 100,
+                                      &Pass::robotPoseCallBack, this);
 }

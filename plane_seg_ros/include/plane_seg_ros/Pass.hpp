@@ -31,7 +31,7 @@ class Pass{
     void elevationMapCallback(const grid_map_msgs::GridMap& msg);
     void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr &msg);
     void robotPoseCallBack(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg);
-    grid_map_msgs::GridMap imageProcessingCallback(const grid_map_msgs::GridMap &msg);
+    void imageProcessing(grid_map::GridMap &gridmap);
 
     void processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f origin, Eigen::Vector3f lookDir);
     void processFromFile(int test_example);
@@ -51,13 +51,16 @@ class Pass{
     void extractNthCloud(std::string filename, int n);
     void tic();
     std::chrono::duration<double> toc();
-    grid_map_msgs::GridMap gridMapCallback(const grid_map_msgs::GridMap& msg);
+    void gridMapFilterChain(grid_map::GridMap& input_map);
+    void stepCreation(grid_map::GridMap &gridmap);
+    void reset();
     void saveGridMapMsgAsPCD(const grid_map_msgs::GridMap& msg, int frame);
     void replaceNan(grid_map::GridMap::Matrix& m, const double newValue);
     void replaceZeroToNan(grid_map::GridMap::Matrix& m);
     void multiplyLayers(grid_map::GridMap::Matrix& factor1, grid_map::GridMap::Matrix& factor2, grid_map::GridMap::Matrix& result);
     bool convertGridmapToFloatImage(const grid_map::GridMap& gridMap, const std::string& layer, cv_bridge::CvImage& cvImage, bool negative);
     bool toImageWithNegatives(const grid_map::GridMap& gridMap, const std::string& layer, const int encoding, const float lowerValue, const float upperValue, cv::Mat& image);
+    void setupSubscribers();
 
   private:
     ros::NodeHandle& node_;
@@ -80,6 +83,10 @@ class Pass{
     std::string elevation_map_topic_;
     std::string filter_chain_parameters_name_;
     std::string filtered_map_topic_;
+    std::string grid_map_sub_topic_;
+    std::string point_cloud_sub_topic_;
+    std::string pose_sub_topic_;
+    std::string algorithm_;
     double erode_radius_;
     double traversability_threshold_;
     bool verbose_timer_;

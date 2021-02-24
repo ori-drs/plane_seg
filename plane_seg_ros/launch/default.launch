@@ -2,10 +2,11 @@
 <launch>
 
   <arg name="rosbag_path" default="" />
+  <arg name="algorithm" default="A" />
   <node name="plane_seg" pkg="plane_seg_ros" type="plane_seg_ros_node" output="screen">
     <rosparam command="load" file="$(find plane_seg_ros)/config/default.yaml" />
-    <param name="run_sequential_test" value="true" />
     <param name="rosbag_path" value="$(arg rosbag_path)" />
+    <param name="algorithm" value="$(arg algorithm)" />
 
   </node>
 

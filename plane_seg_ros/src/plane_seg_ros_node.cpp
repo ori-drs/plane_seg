@@ -24,8 +24,6 @@ int main( int argc, char** argv ){
   nh.param("run_test_program", run_test_program, false);
   std::cout << "run_test_program: " << std::boolalpha << run_test_program << "\n";
 
-
-
   // Enable this to run the test programs
   if (run_test_program){
     std::cout << "Running test examples\n";
@@ -74,6 +72,7 @@ int main( int argc, char** argv ){
       return 0;
   }
 
+  app->setupSubscribers();
   ROS_INFO_STREAM("Waiting for ROS messages");
   ros::spin();
 

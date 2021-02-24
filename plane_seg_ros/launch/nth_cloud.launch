@@ -1,16 +1,13 @@
 <?xml version="1.0" ?>
 <launch>
-  <rosparam command="load" file="$(find plane_seg_ros)/config/nth_cloud.yaml" />
+
   <arg name="rosbag_path" default="" />
   <arg name="n" default="" />
   <node name="plane_seg" pkg="plane_seg_ros" type="plane_seg_ros_node" output="screen" >
+    <rosparam command="load" file="$(find plane_seg_ros)/config/default.yaml" />
+    <param name="run_nth_cloud" value="true" />
     <param name="rosbag_path" value="$(arg rosbag_path)" />
     <param name="n" value="$(arg n)" />
-
-    <param name="input_topic" value="/rooster_elevation_mapping/elevation_map" />
-    <param name="erode_radius" value="0.11" />
-    <param name="traversability_threshold" value="0.7" />
-    <param name="verbose_timer" value="true" />
 
 </node>
 
