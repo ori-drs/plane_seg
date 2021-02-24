@@ -36,6 +36,7 @@ add_library(${LIB_NAME} SHARED
   src/Tracker.cpp
   src/ImageProcessor.cpp
   src/StepCreator.cpp
+  src/Tracker2D.cpp
 )
 add_dependencies(plane_seg ${catkin_EXPORTED_TARGETS})
 target_link_libraries(plane_seg ${catkin_LIBRARIES})

@@ -6,6 +6,7 @@ namespace planeseg {
 struct contour{
     std::vector<cv::Point> points_;
     double elevation_;
+    int id_;
 };
 
 

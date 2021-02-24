@@ -9,6 +9,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <plane_seg/Tracker.hpp>
+#include <plane_seg/Tracker2D.hpp>
 #include <plane_seg_ros/Visualizer.hpp>
 #include <plane_seg/ImageProcessor.hpp>
 #include <plane_seg/StepCreator.hpp>
@@ -73,10 +74,11 @@ class Pass{
 
     Eigen::Isometry3d last_robot_pose_;
     planeseg::BlockFitter::Result result_;
-    planeseg::Tracker tracking_;
+    planeseg::Tracker3D tracking_;
     planeseg::Visualizer visualizer_;
     planeseg::ImageProcessor imgprocessor_;
     planeseg::StepCreator stepcreator_;
+    planeseg::Tracker2D tracking2D_;
     filters::FilterChain<grid_map::GridMap> filter_chain_;
 //    filters::FilterChain<grid_map::GridMap> mask_filter_;
     tf::TransformListener listener_;
