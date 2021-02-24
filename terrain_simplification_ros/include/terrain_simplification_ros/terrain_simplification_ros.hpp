@@ -175,6 +175,7 @@ private:
   Eigen::Vector2d map_size_;                ///< size of simplified map
   double h_nominal_ = 0.53;                 ///< nominal robot height
   double map_res_scaling_ = 0.4;            ///< map resolution scaling
+  double map_resolution_ = 0.02;            ///< map resolution
 
   // GridMap
   grid_map::GridMap map_sub_;               ///< submap (of size map_size_) of the elevation map

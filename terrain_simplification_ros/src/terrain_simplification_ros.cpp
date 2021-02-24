@@ -131,7 +131,10 @@ TerrainSimplificationRos::readParameters() {
   ros_nh_.param("/terrain_simplification/gridmap_size_y",   map_size_.y(),    2.5);
   ros_nh_.param("/terrain_simplification/h_nominal",        h_nominal_,       0.53);
   ros_nh_.param("/terrain_simplification/map_res_scaling",  map_res_scaling_, 0.4);
+  ros_nh_.param("/terrain_simplification/map_resolution",  map_resolution_,  0.02);
+
   terr_simp_->setMapSize(map_size_);
+  terr_simp_->setMapResolution(map_resolution_);
 
   return true;
 }

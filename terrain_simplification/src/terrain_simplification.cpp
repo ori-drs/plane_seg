@@ -110,7 +110,7 @@ TerrainSimplification::simplifyGridMap () {
   // Create empty map
   grid_map::GridMap map_simplified_wo_traversability({"simplified"});
   map_simplified_wo_traversability.setFrameId("odom");
-  map_simplified_wo_traversability.setGeometry(map_sub_.getLength(), 0.02);
+  map_simplified_wo_traversability.setGeometry(map_sub_.getLength(), grid_map_resolution_);  // TODO: hard-coded parameter
   map_simplified_wo_traversability.setPosition(robot_position);
 
   // Copy orignal layers
@@ -341,7 +341,7 @@ TerrainSimplification::getSimplifiedGridMap(
     // Set up the map object
     mutex_.lock(); // to read map_filtered_
     map_simplified_scaled_.setFrameId("odom");
-    map_simplified_scaled_.setGeometry(map_simplified_wo_traversability_.getLength(), 0.02/scale);
+    map_simplified_scaled_.setGeometry(map_simplified_wo_traversability_.getLength(), grid_map_resolution_/scale);  // TODO: hard-coded parameter
     map_simplified_scaled_.setPosition(map_simplified_wo_traversability_.getPosition());
     mutex_.unlock();
 

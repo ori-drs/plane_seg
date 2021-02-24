@@ -303,6 +303,11 @@ public:
   void setMapSize(const Eigen::Vector2d& map_size) { map_size_ = map_size; }
 
   /**
+   * @brief Set the resolution of the simplified map
+   */
+  void setMapResolution(double resolution) { grid_map_resolution_ = resolution; }
+
+  /**
    * @brief The advance function for the TerrainSimplification.
    * It can be stopped by a rosservice call which sets the stop_ flag.
    * @return true if successful
@@ -326,6 +331,7 @@ private:
   bool run_ = true;               ///< flag allowing run() to execute
   bool received_ = false;         ///< flag indicating that the raw elevation map has been received
   bool ready_ = false;            ///< flag indicating that the simplified map has been created
+  double grid_map_resolution_ = 0.02;  ///< grid map resolution
   std::thread thread_run_;        ///< thread for run()
   std::atomic_bool thread_loop_;  ///< flag for the thread
 
