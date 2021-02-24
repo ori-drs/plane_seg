@@ -2,24 +2,20 @@
 
 namespace terrain_simplification_ros {
 
-TerrainSimplificationRos::TerrainSimplificationRos(
-    bool& success,
-    ros::NodeHandle& nh)
+TerrainSimplificationRos::TerrainSimplificationRos(ros::NodeHandle& nh)
   : ros_nh_(nh) {
 
   terr_simp_ = std::make_shared<terrain_simplification::TerrainSimplification>();
 
   // Read ros parameters
   if (!readParameters()) {
-    success = false;
-    return;
+    throw std::runtime_error("Could not read parameters");
   }
+
   // Setup filter chain
   filter_chain_ = std::make_shared<filters::FilterChain<grid_map::GridMap> >("grid_map::GridMap");
   if (!filter_chain_->configure(filter_chain_parameters_name_, ros_nh_)){
-    ROS_ERROR("Could not configure the filter chain!");
-    success = false;
-    return;
+    throw std::runtime_error("Could not configure the filter chain!");
   }
   // TF
   tf_listener_ = std::make_shared<tf::TransformListener>();
@@ -35,8 +31,6 @@ TerrainSimplificationRos::TerrainSimplificationRos(
   ros_server_pub_     = ros_nh_.advertiseService("/terrain_simplification/pub", &TerrainSimplificationRos::pub, this);
   ros_server_read_    = ros_nh_.advertiseService("/terrain_simplification/read", &TerrainSimplificationRos::read, this);
   ros_server_get_val_ = ros_nh_.advertiseService("/terrain_simplification/get_val", &TerrainSimplificationRos::getValueAtPosition, this);
-
-  success = true;
 }
 
 bool TerrainSimplificationRos::run(

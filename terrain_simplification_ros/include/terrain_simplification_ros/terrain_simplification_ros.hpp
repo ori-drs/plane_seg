@@ -39,9 +39,7 @@ public:
    * @brief Construct the ROS-based interface to the terrain simplification module.
    * @param node_handle
    */
-  TerrainSimplificationRos(
-      bool& success,
-      ros::NodeHandle& nh);
+  TerrainSimplificationRos(ros::NodeHandle& nh);
   ~TerrainSimplificationRos() = default;
 
   /**
