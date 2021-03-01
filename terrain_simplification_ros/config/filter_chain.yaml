@@ -23,11 +23,11 @@ grid_map_filters:
       radius: 0.03
       normal_vector_positive_axis: z
 
-  # Delete layers.
-  - name: delete_original_layers
-    type: gridMapFilters/DeletionFilter
-    params:
-      layers: [color,  upper_bound, lower_bound, uncertainty_range, normal_vectors_x, normal_vectors_y,] # List of layers.
+#  # Delete layers.
+#  - name: delete_original_layers
+#    type: gridMapFilters/DeletionFilter
+#    params:
+#      layers: [color,  upper_bound, lower_bound, uncertainty_range, normal_vectors_x, normal_vectors_y,] # List of layers.
 
 
   # Compute slope from surface normal.
@@ -64,18 +64,20 @@ grid_map_filters:
       output_layer: traversability
       expression: (1.0 - (slope_smooth / 0.6))
 
-  # Set lower threshold on traversability.
-  - name: traversability_lower_threshold
-    type: gridMapFilters/ThresholdFilter
-    params:
-      layer: traversability
-      lower_threshold: 0.0
-      set_to: 0.0
+  # # Set lower threshold on traversability.
+  # - name: traversability_lower_threshold
+  #   type: gridMapFilters/ThresholdFilter
+  #   params:
+  #     condition_layer: traversability
+  #     output_layer: traversability
+  #     lower_threshold: 0.0
+  #     set_to: 0.0
 
-  # Set upper threshold on traversability.
-  - name: traversability_upper_threshold
-    type: gridMapFilters/ThresholdFilter
-    params:
-      layer: traversability
-      upper_threshold: 1.0
-      set_to: 1.0 # Other uses: .nan, .inf
+  # # Set upper threshold on traversability.
+  # - name: traversability_upper_threshold
+  #   type: gridMapFilters/ThresholdFilter
+  #   params:
+  #     condition_layer: traversability
+  #     output_layer: traversability
+  #     upper_threshold: 1.0
+  #     set_to: 1.0 # Other uses: .nan, .inf
