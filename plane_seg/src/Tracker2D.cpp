@@ -48,7 +48,7 @@ int Tracker2D::get_contour_id(planeseg::contour contour){
         double dist;
         int closest = -1;
         // start with closestDist being far larger than anything that would ever happen
-        double closestDist = 1000000000;
+        double closestDist = 1000000;
 
         // go through each plane in oldStairs and compare it to the new plane
 
