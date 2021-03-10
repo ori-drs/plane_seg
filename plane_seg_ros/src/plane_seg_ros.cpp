@@ -166,6 +166,11 @@ void Pass::elevationMapCallback(const grid_map_msgs::GridMap& msg){
   // convert message to GridMap, to PointCloud to LabeledCloud
   grid_map::GridMap map;
   grid_map::GridMapRosConverter::fromMessage(msg, map);
+  std::vector<std::string> layers;
+  layers = map.getLayers();
+  for (size_t k = 0; k < layers.size(); ++k){
+      std::cout << layers[k] << std::endl;
+  };
 
   if (algorithm_ == "C"){
       std::cout << "C" << std::endl;
