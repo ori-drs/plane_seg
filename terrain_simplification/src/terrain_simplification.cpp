@@ -201,8 +201,15 @@ TerrainSimplification::convertCvImageToGridMap (
     const std::string& layer_name,
     const cv::Mat& image,
     grid_map::GridMap& map) {
-  grid_map::GridMapCvConverter::addLayerFromImage<unsigned short, 1>(
-        image, layer_name, map);
+  if (!grid_map::GridMapCvConverter::addLayerFromImage<unsigned short, 1>(image, layer_name, map)) {
+    mutex_.lock(); // to read map_size_
+    std::cerr << "[TerrainSimplification::convertCvImageToGridMap] The size of the image (" << image.rows << ", " << image.cols
+              << ") does not correspond to grid map size (" << map.getSize()(0) << ", " << map.getSize()(1)
+              << "); make sure that these correspond to the specified map_size [m] (" << map_size_.x() << ", " << map_size_.y()
+              << ") and resolution (" << grid_map_resolution_
+              << ")!" << std::endl;
+    mutex_.unlock();
+  }
 }
 
 void
