@@ -112,7 +112,7 @@ TerrainSimplification::simplifyGridMap () {
   map_simplified_wo_traversability.setGeometry(map_sub_.getLength(), grid_map_resolution_);  // TODO: hard-coded parameter
   map_simplified_wo_traversability.setPosition(robot_position);
 
-  // Copy orignal layers
+  // Copy original layers
   std::vector<std::string> layers = {"elevation"};
   if (!map_simplified_wo_traversability.addDataFrom(map_sub_, true, true, true, layers)) {
     ROS_ERROR("Could not add data from map_sub_ to map_filtered_.");
