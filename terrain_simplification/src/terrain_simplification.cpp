@@ -114,8 +114,8 @@ TerrainSimplification::simplifyGridMap () {
 
   // Copy original layers
   std::vector<std::string> layers = {"elevation"};
-  if (!map_simplified_wo_traversability.addDataFrom(map_sub_, true, true, true, layers)) {
-    ROS_ERROR("Could not add data from map_sub_ to map_filtered_.");
+  if (!map_simplified_wo_traversability.addDataFrom(map_sub_, false, true, false, layers)) { // NOTE: use "false, true, false" to keep the same size, overwrite data, add just "layers"
+    ROS_ERROR("Could not add data from map_sub_ to map_simplified_wo_traversability.");
     return;
   }
 
