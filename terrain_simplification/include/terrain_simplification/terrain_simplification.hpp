@@ -308,6 +308,11 @@ public:
   void setMapResolution(double resolution) { grid_map_resolution_ = resolution; }
 
   /**
+   * @brief Set the size of the simplified map
+   */
+  void setApplyFilterChain(bool apply_filter_chain) { apply_filter_chain_ = apply_filter_chain; }
+
+  /**
    * @brief The advance function for the TerrainSimplification.
    * It can be stopped by a rosservice call which sets the stop_ flag.
    * @return true if successful
@@ -331,6 +336,7 @@ private:
   bool run_ = true;               ///< flag allowing run() to execute
   bool received_ = false;         ///< flag indicating that the raw elevation map has been received
   bool ready_ = false;            ///< flag indicating that the simplified map has been created
+  bool apply_filter_chain_ = true;  ///< flag indicating that filter chain should be applied
   double grid_map_resolution_ = 0.02;  ///< grid map resolution
   std::thread thread_run_;        ///< thread for run()
   std::atomic_bool thread_loop_;  ///< flag for the thread

@@ -139,13 +139,20 @@ TerrainSimplification::simplifyGridMap () {
 
   // Apply the filter chain to create a separate map with a traversability layer
   grid_map::GridMap map_simplified({"simplified"});
-  applyFilterChain(map_simplified_wo_traversability, map_simplified);                       // takes ~100-200 ms
-
-  mutex_.lock(); // to write map_filtered_ and map_simplified_
-  map_simplified_wo_traversability_ = map_simplified_wo_traversability;
-  map_simplified_ = map_simplified;
-  ready_ = true;
-  mutex_.unlock();
+  if (apply_filter_chain_) {
+    applyFilterChain(map_simplified_wo_traversability, map_simplified);                       // takes ~100-200 ms
+   
+    mutex_.lock(); // to write map_simplified_wo_traversability_ and map_simplified_
+    map_simplified_wo_traversability_ = map_simplified_wo_traversability;
+    map_simplified_ = map_simplified;
+    ready_ = true;
+    mutex_.unlock();
+  } else {
+    mutex_.lock(); // to write  and map_simplified_
+    map_simplified_ = map_simplified_wo_traversability;
+    ready_ = true;
+    mutex_.unlock();
+  }
 }
 
 void
