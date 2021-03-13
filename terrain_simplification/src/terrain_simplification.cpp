@@ -107,7 +107,7 @@ TerrainSimplification::simplifyGridMap () {
   mutex_.unlock();
 
   // Create empty map
-  grid_map::GridMap map_simplified_wo_traversability({"simplified"});
+  grid_map::GridMap map_simplified_wo_traversability;
   map_simplified_wo_traversability.setFrameId("odom");  // TODO: hard-coded frame
   map_simplified_wo_traversability.setGeometry(map_sub_.getLength(), grid_map_resolution_);  // TODO: hard-coded parameter
   map_simplified_wo_traversability.setPosition(robot_position);
