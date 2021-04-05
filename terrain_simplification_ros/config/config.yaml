@@ -1,9 +1,9 @@
-terrain_simplification/topic_elevation_map:         /elevation_mapping/elevation_map
-terrain_simplification/topic_robot_state:           /state_estimator/pose_in_odom
+terrain_simplification/topic_elevation_map:         /elevation_mapping_lidar/elevation_map
+terrain_simplification/topic_robot_state:           /icp_odometry/corrected_pose
 terrain_simplification/topic_map_simplified:        /terrain_simplification/map_simplified
 
-terrain_simplification/gridmap_size_x:              2.5
-terrain_simplification/gridmap_size_y:              2.5
+terrain_simplification/gridmap_size_x:              8.0
+terrain_simplification/gridmap_size_y:              8.0
 terrain_simplification/h_nominal:                   0.53
 terrain_simplification/map_res_scaling:             1.0
 terrain_simplification/map_resolution:              0.02 #0.04 # 0.02
