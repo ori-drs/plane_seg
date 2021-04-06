@@ -33,17 +33,17 @@ void Tracker2D::assignIDs(std::vector<contour> contours){
 
 int Tracker2D::get_contour_id(planeseg::contour contour){
 
-    std::cout << "entered get_plane_id" << std::endl;
+//    std::cout << "entered get_plane_id" << std::endl;
     int id;
 
     if(oldRects_.empty()){
-        std::cout << "oldRects_ is empty" << std::endl;
+//        std::cout << "oldRects_ is empty" << std::endl;
         id = totalIds;
         ++totalIds;
     }
 
     else{
-        std::cout << "oldRects_ has size " << oldRects_.size() << std::endl;
+//        std::cout << "oldRects_ has size " << oldRects_.size() << std::endl;
         double threshold = 0.1;
         double dist;
         int closest = -1;
@@ -55,9 +55,9 @@ int Tracker2D::get_contour_id(planeseg::contour contour){
         for (size_t i = 0; i < oldRects_.size(); ++i){
 
             dist = fabs(oldRects_[i].elevation_ - contour.elevation_);
-            std::cout << "oldRects_[" << i << "].elevation_ = " << oldRects_[i].elevation_;
-            std::cout << "contour.elevation_ = " << contour.elevation_ << std::endl;
-            std::cout << "dist = " << dist << std::endl;
+//            std::cout << "oldRects_[" << i << "].elevation_ = " << oldRects_[i].elevation_;
+//            std::cout << "contour.elevation_ = " << contour.elevation_ << std::endl;
+//            std::cout << "dist = " << dist << std::endl;
             // is distz small enough to suggest that this point cloud represents the next iteration of an existing frame?
               if(dist < threshold){
   //              distance = pcl::euclideanDistance(oldStairs[i].centroid, plane.centroid);
@@ -79,7 +79,7 @@ int Tracker2D::get_contour_id(planeseg::contour contour){
             ++totalIds;
         }
     }
-    std::cout << "id = " << id << std::endl;
+//    std::cout << "id = " << id << std::endl;
     return id;
 }
 

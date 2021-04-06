@@ -26,7 +26,7 @@ void StepCreator::go(){
         maskElevation(mask);
         rectangles_[i].elevation_ = medianMat(elevation_masked_.image);
 
-        std::cout << medianMat(elevation_masked_.image) << std::endl;
+//        std::cout << medianMat(elevation_masked_.image) << std::endl;
     }
 
     std::vector<std::vector<cv::Point>> v;

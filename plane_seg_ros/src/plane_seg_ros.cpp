@@ -621,7 +621,7 @@ void Pass::publishRectangles(){
         double g = visualizer_.getG(ids[i]);
         double b = visualizer_.getB(ids[i]);
 
-        std::cout << stepcreator_.rectangles_[i].elevation_ << std::endl;
+//        std::cout << stepcreator_.rectangles_[i].elevation_ << std::endl;
 
         planeseg::contour contour = stepcreator_.rectangles_[i];
 
@@ -720,7 +720,7 @@ void Pass::imageProcessing(grid_map::GridMap &gridmap){
     convertGridmapToFloatImage(gridmap, "slope", imgprocessor_.original_img_, true);
 
     imgprocessor_.process();;
-
+    getContourData();
 
     grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(imgprocessor_.final_img_.image, "mask", gridmap);
 
@@ -729,6 +729,7 @@ void Pass::imageProcessing(grid_map::GridMap &gridmap){
         multiplyLayers(gridmap.get("elevation"), gridmap.get("mask"), gridmap.get("product"));
         replaceZeroToNan(gridmap.get("product"));
     }
+
 
     // Publish updated grid map.
     grid_map_msgs::GridMap output_msg;
@@ -750,11 +751,43 @@ void Pass::stepCreation(grid_map::GridMap &gridmap){
     stepcreator_.go();
     tracking2D_.reset();
     tracking2D_.assignIDs(stepcreator_.rectangles_);
-    tracking2D_.printIds();
+//    tracking2D_.printIds();
 //    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(stepcreator_.elevation_masked_.image, "reconstructed", gridmap);
     publishRectangles();
 //    tracking2D_.reset();
 }
+
+void Pass::getContourData(){
+    // Retrieve information about contours from image processor
+    for (size_t i = 0; i < imgprocessor_.ip_elongations_.size(); ++i){
+        all_elongations_.push_back(imgprocessor_.ip_elongations_[i]);
+    }
+    for (size_t j = 0; j < imgprocessor_.ip_convexities_.size(); ++j){
+        all_convexities_.push_back(imgprocessor_.ip_convexities_[j]);
+    }
+    for (size_t k = 0; k < imgprocessor_.ip_rectangularities_.size(); ++k){
+        all_rectangularities_.push_back(imgprocessor_.ip_rectangularities_[k]);
+    }
+
+    std::cout << "All elongations:" << std::endl;
+    for(size_t i = 0; i < all_elongations_.size(); ++i){
+        std::cout << all_elongations_[i] << ", ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "All convexities:" << std::endl;
+    for(size_t i = 0; i < all_convexities_.size(); ++i){
+        std::cout << all_convexities_[i] << ", ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "All rectangularities:" << std::endl;
+    for(size_t i = 0; i < all_rectangularities_.size(); ++i){
+        std::cout << all_rectangularities_[i] << ", ";
+    }
+    std::cout << std::endl;
+}
+
 
 void Pass::reset(){
     gm_position_.clear();
