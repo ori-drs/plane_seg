@@ -15,6 +15,7 @@ void contours::filterMinConvexity(int min_convexity){
     std::vector<std::vector<cv::Point>> temp;
     temp = contours_;
     contours_.clear();
+    convexities_.clear();
 
     for (size_t p = 0; p < temp.size(); ++p){
         std::vector<cv::Point> hull;
@@ -26,11 +27,14 @@ void contours::filterMinConvexity(int min_convexity){
         hull_perimeter = cv::arcLength(hull, true);
         contour_perimeter = cv::arcLength(temp[p], true);
         convexity = hull_perimeter / contour_perimeter;
+        convexities_.push_back(convexity);
 
         if (convexity >= min_convexity){
             contours_.push_back(temp[p]);
         }
     }
+
+//    print(convexities_);
 }
 
 void contours::filterMinElongation(int min_elongation){
@@ -38,6 +42,7 @@ void contours::filterMinElongation(int min_elongation){
     std::vector<std::vector<cv::Point>> temp;
     temp = contours_;
     contours_.clear();
+    elongations_.clear();
 
     for (size_t r = 0; r < temp.size(); ++r){
         double elongation;
@@ -47,10 +52,14 @@ void contours::filterMinElongation(int min_elongation){
         double minor_axis = std::min(minarea_rect.size.height, minarea_rect.size.width);
         elongation = major_axis / minor_axis;
 
+        elongations_.push_back(elongation);
+
         if (elongation >= min_elongation){
             contours_.push_back(temp[r]);
         }
     }
+
+//    print(elongations_);
 }
 
 void contours::filterMinRectangularity(int min_rectangularity){
@@ -58,6 +67,7 @@ void contours::filterMinRectangularity(int min_rectangularity){
     std::vector<std::vector<cv::Point>> temp;
     temp = contours_;
     contours_.clear();
+    rectangularities_.clear();
 
     for (size_t r = 0; r < temp.size(); ++r){
         double rectangularity, contour_area;
@@ -66,10 +76,13 @@ void contours::filterMinRectangularity(int min_rectangularity){
         contour_area = cv::contourArea(temp[r]);
         rectangularity = contour_area / minarea_rect.size.area();
 
+        rectangularities_.push_back(rectangularity);
+
         if (rectangularity >= min_rectangularity){
             contours_.push_back(temp[r]);
         }
     }
+//    print(rectangularities_);
 }
 
 void contours::approxAsPoly(){
@@ -141,71 +154,16 @@ void contours::fitSquare(){
     }
 }
 
-/*
-void contours::setColors(){
-    colors_ = {
-        1, 1, 1, // 42
-        255, 255, 120,
-        1, 120, 1,
-        1, 225, 1,
-        120, 255, 1,
-        1, 255, 255,
-        120, 1, 1,
-        255, 120, 255,
-        120, 1, 255,
-        1, 1, 120,
-        255, 255, 255,
-        120, 120, 1,
-        120, 120, 120,
-        1, 1, 255,
-        255, 1, 255,
-        120, 120, 255,
-        120, 255, 120,
-        1, 120, 120,
-        1, 1, 255,
-        255, 1, 1,
-        155, 1, 120,
-        120, 1, 120,
-        255, 120, 1,
-        1, 120, 255,
-        255, 120, 120,
-        1, 255, 120,
-        255, 255, 1};
-}
 
-void contours::assignIDs(){
-    for (size_t i = 0; i < contours_.size(); ++i){
-        ids[i] = i;
+void contours::print(std::vector<double> property){
+
+    for(size_t i = 0; i < property.size(); ++i){
+        std::cout << property[i] << ", ";
     }
+    std::cout << std::endl;
 }
 
-void contours::assignColors(){
-    setColors();
-    for (size_t i = 0; i < contours_.size(); ++i){
-        contour_colours_[i].r = getR(ids[i]);
-        contour_colours_[i].g = getG(ids[i]);
-        contour_colours_[i].b = getB(ids[i]);
-    }
-}
 
-double contours::getR(int id){
-    double j;
-    j = id % (colors_.size()/3);
-    return colors_[3*j];
-}
-
-double contours::getG(int id){
-    unsigned j;
-    j = id % (colors_.size()/3);
-    return colors_[3*j+1];
-}
-
-double contours::getB(int id){
-    unsigned j;
-    j = id % (colors_.size()/3);
-    return colors_[3*j+2];
-}
-*/
 ImageProcessor::ImageProcessor(){
 }
 
@@ -213,7 +171,13 @@ ImageProcessor::~ImageProcessor(){}
 
 void ImageProcessor::process(){
 
+
+    ip_convexities_.clear();
+    ip_elongations_.clear();
+    ip_rectangularities_.clear();
+
 //    displayImage("original", original_img_.image, 0);
+//    saveImage(original_img_.image);
 //    histogram(original_img_);
     thresholdImage(0.3);
 
@@ -223,32 +187,44 @@ void ImageProcessor::process(){
     erodeImage(1);
     dilateImage(2);
     erodeImage(1);
-//    displayImage("erode/dilate", processed_img_.image, 2);
+//    displayImage("morphological", processed_img_.image, 2);
 
     extractContours();
     splitContours();
 
+//    drawContoursIP(med_contours_, "med_contours", 3);
+//    drawContoursIP(large_contours_, "large_contours", 4);
+    std::cout << "Convexities: " << std::endl;
     med_contours_.filterMinConvexity(0.9); // have another look at the threshold for convexity
+    ip_convexities_ = med_contours_.convexities_;
 //    drawContoursIP(med_contours_, "filtered by convexity", 6);
+    std::cout << "Elongations: " << std::endl;
     med_contours_.filterMinElongation(3);
+    ip_elongations_ = med_contours_.elongations_;
 //    drawContoursIP(med_contours_, "filtered by elongation", 7);
+    std::cout << "Rectangularities: " << std::endl;
     med_contours_.filterMinRectangularity(0.6);
+    ip_rectangularities_ = med_contours_.rectangularities_;
 //    drawContoursIP(med_contours_, "filtered by rectangularity", 8);
     med_contours_.fitMinAreaRect();
     large_contours_.approxAsPoly();
 //    large_contours_.filterMinRectangularity(0.6);
 //    large_contours_.fitSquare();
+//    drawContoursIP(med_contours_, "med_filtered", 5);
+//    drawContoursIP(large_contours_, "large_approx", 6);
     mergeContours();
 //    all_contours_.assignIDs();
 //    all_contours_.assignColors();
 
     displayResult();
-/*
-    int p = cv::waitKey(0);
-    if (p == 's'){
+
+
+
+//    int p = cv::waitKey(0);
+/*    if (p == 's'){
         saveImage(final_img_);
     }
-    */
+   */
 }
 
 void ImageProcessor::copyOrigToProc(){
@@ -260,6 +236,7 @@ void ImageProcessor::displayImage(std::string process, cv::Mat img, int n) {
     cv::namedWindow(process, cv::WINDOW_AUTOSIZE);
     cv::moveWindow(process, 100 + img.cols * n, 50);
     cv::imshow(process, img);
+//    saveImage(img);
 }
 
 void ImageProcessor::displayResult(){
@@ -279,16 +256,16 @@ void ImageProcessor::displayResult(){
     }
 
     final_img_ = rect_img_;
-//    displayImage("final", colour_img_.image, 9);
+//    displayImage("final", colour_img_.image, 7);
 }
 
-void ImageProcessor::saveImage(cv_bridge::CvImage image_){
+void ImageProcessor::saveImage(cv::Mat image_){
     std::string imagename;
     std::cout << "Enter filename to save image (don't forget .png!): " << std::endl;
     std::cin >> imagename;
     std::string homedir = getenv("HOME");
     if(!homedir.empty()){
-      boost::filesystem::path output_path(homedir + "/rosbags/image_processing/");
+      boost::filesystem::path output_path(homedir + "/git/4YP/Figures/");
       if(!boost::filesystem::is_directory(output_path)){
         if(boost::filesystem::create_directory(output_path)){
           std::cout << "Creating directory " << output_path.string() << " ... " << std::endl;
@@ -297,7 +274,7 @@ void ImageProcessor::saveImage(cv_bridge::CvImage image_){
           return;
         }
       }
-      cv::imwrite(output_path.string() + imagename, image_.image);
+      cv::imwrite(output_path.string() + imagename, image_);
     } else {
       std::cerr << "ERROR: the $HOME variable is empty!" << std::endl;
       return;
@@ -412,6 +389,7 @@ void ImageProcessor::histogram(cv_bridge::CvImage img){
     cv::imshow("original_img_ histogram", histImage);
     cv::waitKey(0);
 }
+
 
 void ImageProcessor::reset(){
     original_img_.image = cv::Mat();

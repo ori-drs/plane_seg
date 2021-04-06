@@ -73,3 +73,4 @@ install(DIRECTORY include/${PROJECT_NAME}/
 
 install(TARGETS block_fitter plane_seg_test plane_seg_test2
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+

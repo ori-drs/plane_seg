@@ -20,6 +20,10 @@ struct contours{
     void approxAsPoly();
     void fitSquare();
     bool isSquare(std::vector<cv::Point> contour_);
+    void print(std::vector<double> property);
+    std::vector<double> elongations_;
+    std::vector<double> convexities_;
+    std::vector<double> rectangularities_;
 
 /*
     void setColors();
@@ -42,7 +46,7 @@ public:
     void process();
     void copyOrigToProc();
     void displayImage(std::string process, cv::Mat img, int n = 0);
-    void saveImage(cv_bridge::CvImage image);
+    void saveImage(cv::Mat image);
     void erodeImage(int erode_size);
     void thresholdImage(float threshold_value);
     void dilateImage(int dilate_size);
@@ -66,6 +70,10 @@ public:
     contours all_contours_;
     contours large_contours_;
     contours med_contours_;
+
+    std::vector<double> ip_elongations_;
+    std::vector<double> ip_convexities_;
+    std::vector<double> ip_rectangularities_;
 
 private:
 

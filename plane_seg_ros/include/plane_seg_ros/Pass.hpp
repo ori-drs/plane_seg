@@ -16,7 +16,7 @@
 #include <chrono>
 #include <tf_conversions/tf_eigen.h>
 #include <tf/transform_listener.h>
-#include <filters/filter_chain.h>
+#include <filters/filter_chain.hpp>
 #include <grid_map_core/GridMap.hpp>
 
 namespace planeseg {
@@ -62,6 +62,10 @@ class Pass{
     bool convertGridmapToFloatImage(const grid_map::GridMap& gridMap, const std::string& layer, cv_bridge::CvImage& cvImage, bool negative);
     bool toImageWithNegatives(const grid_map::GridMap& gridMap, const std::string& layer, const int encoding, const float lowerValue, const float upperValue, cv::Mat& image);
     void setupSubscribers();
+    void getContourData();
+    std::vector<double> all_elongations_;
+    std::vector<double> all_convexities_;
+    std::vector<double> all_rectangularities_;
 
   private:
     ros::NodeHandle& node_;

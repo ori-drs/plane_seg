@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6.0)
+cmake_minimum_required(VERSION 3.0.2)
 
 project(plane_seg_ros)
 
@@ -17,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 
-find_package(OpenCV 3.0 REQUIRED COMPONENTS core highgui imgproc imgcodecs)
+find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc imgcodecs)
 
 catkin_package(INCLUDE_DIRS include
                LIBRARIES ${PROJECT_NAME}
