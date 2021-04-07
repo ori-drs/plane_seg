@@ -16,7 +16,7 @@
 #include <chrono>
 #include <tf_conversions/tf_eigen.h>
 #include <tf/transform_listener.h>
-#include <filters/filter_chain.hpp>
+#include <filters/filter_chain.h>
 #include <grid_map_core/GridMap.hpp>
 
 namespace planeseg {
