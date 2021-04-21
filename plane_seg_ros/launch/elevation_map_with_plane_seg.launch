@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+
+<!-- rviz needs to be told that the rosbag happened in the past so it doesn't run in real time -->
+<param name="use_sim_time" value="true" /> 
+
+<!-- loads the configuration settings for the elevation map (eg. resolution etc) -->
+<node name="rooster_elevation_mapping" type="elevation_mapping" pkg="elevation_mapping" output="screen">
+  <rosparam command="load" file="$(find plane_seg)/config/rooster_elevation_mapping.yaml" />
+</node>
+
+
+<!-- run plane_seg on the elevation map 
+<node name="plane_seg" pkg="plane_seg_ros" type="plane_seg_ros" output="screen">
+  <remap from="/plane_seg/pose" to="/state_estimator/pose_in_odom"/>
+  <param name="/run_test_program" value="false" />
+</node> -->
+
+<!-- load the transformations between the various parts of the rooster -->
+  <include file="$(find rooster_description)/launch/load.launch">
+    <arg name="simulation" value="false" />
+  </include>
+
+<!-- calculate the forward kinematics of the rooster -->
+<node name="rooster_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+<!-- create an identity links between points on the tf tree -->
+<!--node pkg="tf2_ros" type="static_transform_publisher" name="ground_camera_static_tf_publisher" args="0 0 0 0 0 0 1 ground_camera_link camera_link" /-->
+<node pkg="tf2_ros" type="static_transform_publisher" name="base_static_tf_publisher" args="0 0 0 0 0 0 1 base_vilens base" />
+<!--node pkg="tf2_ros" type="static_transform_publisher" name="odom_static_tf_publisher" args="0 0 0 0 0 0 1 odom odom_vilens" /-->
+
+
+<!-- Launch rviz -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find plane_seg_ros)/config/elevation_map_plane_seg_config.rviz">
+	</node>
+
+
+</launch>

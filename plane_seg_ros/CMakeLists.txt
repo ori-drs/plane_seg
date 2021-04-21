@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6.0)
+cmake_minimum_required(VERSION 3.0.2)
 
 project(plane_seg_ros)
 
@@ -16,21 +16,57 @@ find_package(catkin REQUIRED COMPONENTS
   plane_seg
 )
 
-find_package(OpenCV 3.0 QUIET)
 
-catkin_package(
-  INCLUDE_DIRS
-    #include
-  CATKIN_DEPENDS eigen_conversions pcl_conversions tf_conversions pcl_ros plane_seg
-)
+find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc imgcodecs)
+
+catkin_package(INCLUDE_DIRS include
+               LIBRARIES ${PROJECT_NAME}
+               CATKIN_DEPENDS eigen_conversions
+                              pcl_conversions
+                              tf_conversions
+                              pcl_ros
+                              plane_seg
+                              grid_map_msgs)
+
+
 
 
 include_directories(
-#  include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
+add_library(${PROJECT_NAME} SHARED src/${PROJECT_NAME}.cpp
+                                   src/geometry_utils.cpp
+                                   src/Visualizer.cpp
+                                   )
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES})
 
-set(APP_NAME plane_seg_ros)
+
+set(APP_NAME ${PROJECT_NAME}_node)
 add_executable(${APP_NAME} src/${APP_NAME}.cpp)
-target_link_libraries(${APP_NAME} boost_system ${catkin_LIBRARIES})
+target_link_libraries(${APP_NAME} ${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(${APP_NAME} ${PROJECT_NAME} ${OpenCV_LIBRARIES})
+
+install(TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+)
+
+install(TARGETS ${APP_NAME}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
+install(DIRECTORY launch/
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
+
+install(DIRECTORY data/
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/data)
+
+install(DIRECTORY config/
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config)

@@ -9,7 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
 )
 
-find_package(OpenCV REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc imgcodecs features2d)
 
 catkin_package(
   INCLUDE_DIRS
@@ -34,9 +34,14 @@ add_library(${LIB_NAME} SHARED
   src/PlaneSegmenter.cpp
   src/RectangleFitter.cpp
   src/BlockFitter.cpp
+  src/Tracker.cpp
+  src/ImageProcessor.cpp
+  src/StepCreator.cpp
+  src/Tracker2D.cpp
 )
 add_dependencies(plane_seg ${catkin_EXPORTED_TARGETS})
 target_link_libraries(plane_seg ${catkin_LIBRARIES})
+target_link_libraries(plane_seg ${OpenCV_LIBRARIES})
 
 
 # standalone lcm-based block fitter
@@ -63,5 +68,9 @@ install(TARGETS plane_seg
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 
-# Mark header files for installation
-install(DIRECTORY include/${PROJECT_NAME}/ DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+install(DIRECTORY include/${PROJECT_NAME}/
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
+install(TARGETS block_fitter plane_seg_test plane_seg_test2
+        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+

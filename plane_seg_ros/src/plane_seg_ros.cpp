@@ -2,121 +2,155 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <ros/package.h>
+#include <ros/time.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
+#include <numeric>
 
+#include "plane_seg/ImageProcessor.hpp"
+#include "plane_seg/BlockFitter.hpp"
+#include "plane_seg/Tracker.hpp"
+//#include "plane_seg/StepCreator.hpp"
+
+#include <grid_map_cv/grid_map_cv.hpp>
+#include <grid_map_cv/GridMapCvConverter.hpp>
 
 #include <eigen_conversions/eigen_msg.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
+#include <pcl/common/impl/centroid.hpp>
 
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <visualization_msgs/Marker.h>
-#include <sensor_msgs/PointCloud2.h>
+#include <visualization_msgs/MarkerArray.h>
 
-#include <grid_map_msgs/GridMap.h>
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_ros/GridMapRosConverter.hpp>
+#include <grid_map_core/grid_map_core.hpp>
+#include <image_transport/image_transport.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <grid_map_msgs/GridMap.h>
 
-#include "plane_seg/BlockFitter.hpp"
+#include <opencv2/highgui/highgui.hpp>
 
+#include <boost/foreach.hpp>
+#include <boost/variant.hpp>
 
-// convenience methods
-auto vecToStr = [](const Eigen::Vector3f& iVec) {
-  std::ostringstream oss;
-  oss << iVec[0] << ", " << iVec[1] << ", " << iVec[2];
-  return oss.str();
-};
-auto rotToStr = [](const Eigen::Matrix3f& iRot) {
-  std::ostringstream oss;
-  Eigen::Quaternionf q(iRot);
-  oss << q.w() << ", " << q.x() << ", " << q.y() << ", " << q.z();
-  return oss.str();
-};
+#include "plane_seg_ros/Pass.hpp"
+#include "plane_seg_ros/geometry_utils.hpp"
 
 
-class Pass{
-  public:
-    Pass(ros::NodeHandle node_);
-    
-    ~Pass(){
-    }
+#define foreach BOOST_FOREACH
 
-    void elevationMapCallback(const grid_map_msgs::GridMap& msg);
-    void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr &msg);
-    void robotPoseCallBack(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg);
 
-    void processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f origin, Eigen::Vector3f lookDir);
-    void processFromFile(int test_example);
+using namespace planeseg;
 
-    void publishHullsAsCloud(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_ptrs,
-                                 int secs, int nsecs);
-
-    void publishHullsAsMarkers(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_ptrs,
-                                 int secs, int nsecs);
-    void printResultAsJson();
-    void publishResult();
-
-  private:
-    ros::NodeHandle node_;
-    std::vector<double> colors_;
-
-    ros::Subscriber point_cloud_sub_, grid_map_sub_, pose_sub_;
-    ros::Publisher received_cloud_pub_, hull_cloud_pub_, hull_markers_pub_, look_pose_pub_;
-
-    Eigen::Isometry3d last_robot_pose_;
-    planeseg::BlockFitter::Result result_;
-};
-
-Pass::Pass(ros::NodeHandle node_):
-    node_(node_){
+Pass::Pass(ros::NodeHandle& node):
+    node_(node),
+    filter_chain_("grid_map::GridMap")
+{
 
   std::string input_body_pose_topic;
-  node_.getParam("input_body_pose_topic", input_body_pose_topic);
-
-  grid_map_sub_ = node_.subscribe("/elevation_mapping/elevation_map", 100,
-                                    &Pass::elevationMapCallback, this);
-  point_cloud_sub_ = node_.subscribe("/plane_seg/point_cloud_in", 100,
-                                    &Pass::pointCloudCallback, this);
-  pose_sub_ = node_.subscribe("/state_estimator/pose_in_odom", 100,
-                                    &Pass::robotPoseCallBack, this);
+  if(!node_.getParam("input_body_pose_topic", input_body_pose_topic)){
+   ROS_WARN_STREAM("Couldn't get parameter: input_body_pose_topic");
+  }
 
   received_cloud_pub_ = node_.advertise<sensor_msgs::PointCloud2>("/plane_seg/received_cloud", 10);
   hull_cloud_pub_ = node_.advertise<sensor_msgs::PointCloud2>("/plane_seg/hull_cloud", 10);
   hull_markers_pub_ = node_.advertise<visualization_msgs::Marker>("/plane_seg/hull_markers", 10);
   look_pose_pub_ = node_.advertise<geometry_msgs::PoseStamped>("/plane_seg/look_pose", 10);
+  elev_map_pub_ = node_.advertise<grid_map_msgs::GridMap>("/rooster_elevation_mapping/elevation_map", 1);
+  pose_pub_ = node_.advertise<geometry_msgs::PoseWithCovarianceStamped>("/vilens/pose", 1);
+  id_strings_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/id_strings", 10);
+  centroids_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/centroids", 10);
+  hulls_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/hulls", 10);
+  linestrips_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/linestrips", 10);
+  filtered_map_pub_ = node_.advertise<grid_map_msgs::GridMap>("/rooster_elevation_mapping/filtered_map", 1, true);
+  rectangles_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/opencv/rectangles", 100);
+  test_pub_ = node_.advertise<visualization_msgs::Marker>("/opencv/test", 10);
 
   last_robot_pose_ = Eigen::Isometry3d::Identity();
 
+  tracking_ = planeseg::Tracker3D();
+  tracking2D_ = planeseg::Tracker2D();
+  visualizer_ = planeseg::Visualizer();
+  imgprocessor_ = planeseg::ImageProcessor();
+  stepcreator_ = planeseg::StepCreator();
+
+  if(!node_.param("algorithm", algorithm_, std::string("A"))){
+    ROS_WARN_STREAM("Couldn't get parameter: algorithm");
+  }
+  ROS_INFO("ALGORITHM %s", algorithm_.c_str());
+
+  if(!node_.getParam("input_topic", elevation_map_topic_)){
+    ROS_WARN_STREAM("Couldn't get parameter: input_topic");
+  }
+  if(!node_.getParam("erode_radius", erode_radius_)){
+    ROS_WARN_STREAM("Couldn't get parameter: erode_radius");
+  }
+  ROS_INFO("Erode Radius [%f]", erode_radius_);
+  if(!node_.getParam("traversability_threshold", traversability_threshold_)){
+    ROS_WARN_STREAM("Couldn't get parameter: traversability_threshold");
+  }
+  ROS_INFO("traversability_threshold [%f]", traversability_threshold_);
+  if(!node_.getParam("verbose_timer", verbose_timer_)){
+    ROS_WARN_STREAM("Couldn't get parameter: verbose_timer");
+  }
+  if(!node_.getParam("verbose_timer", verbose_timer_)){
+    ROS_WARN_STREAM("Couldn't get parameter: verbose_timer");
+  }
+  if(!node_.getParam("grid_map_sub_topic", grid_map_sub_topic_)){
+    ROS_WARN_STREAM("Couldn't get parameter: grid_map_sub_topic");
+  }
+  if(!node_.getParam("point_cloud_sub_topic", point_cloud_sub_topic_)){
+    ROS_WARN_STREAM("Couldn't get parameter: point_cloud_sub_topic");
+  }
+  if(!node_.getParam("pose_sub_topic", pose_sub_topic_)){
+      ROS_WARN_STREAM("Couldn't get parameter: pose_sub_topic");
+    }
+
+  std::string param_name = "grid_map_filters";
+  XmlRpc::XmlRpcValue config;
+  if(!node_.getParam(param_name, config)) {
+    ROS_ERROR("Could not load the filter chain configuration from parameter %s, are you sure it was pushed to the parameter server? Assuming that you meant to leave it empty.", param_name.c_str());
+    return;
+  }
+
+  // Setup filter chain
+  if (!filter_chain_.configure(param_name, node_)){
+      std::cout << "couldn't configure filter chain" << std::endl;
+      return;
+  }
+
   colors_ = {
-       51/255.0, 160/255.0, 44/255.0,  //0
-       166/255.0, 206/255.0, 227/255.0,
-       178/255.0, 223/255.0, 138/255.0,//6
-       31/255.0, 120/255.0, 180/255.0,
-       251/255.0, 154/255.0, 153/255.0,// 12
-       227/255.0, 26/255.0, 28/255.0,
-       253/255.0, 191/255.0, 111/255.0,// 18
-       106/255.0, 61/255.0, 154/255.0,
-       255/255.0, 127/255.0, 0/255.0, // 24
-       202/255.0, 178/255.0, 214/255.0,
-       1.0, 0.0, 0.0, // red // 30
-       0.0, 1.0, 0.0, // green
-       0.0, 0.0, 1.0, // blue// 36
-       1.0, 1.0, 0.0,
-       1.0, 0.0, 1.0, // 42
-       0.0, 1.0, 1.0,
-       0.5, 1.0, 0.0,
-       1.0, 0.5, 0.0,
-       0.5, 0.0, 1.0,
-       1.0, 0.0, 0.5,
-       0.0, 0.5, 1.0,
-       0.0, 1.0, 0.5,
-       1.0, 0.5, 0.5,
-       0.5, 1.0, 0.5,
-       0.5, 0.5, 1.0,
-       0.5, 0.5, 1.0,
-       0.5, 1.0, 0.5,
-       0.5, 0.5, 1.0};
+      1, 1, 1, // 42
+      255, 255, 120,
+      1, 120, 1,
+      225, 120, 1,
+      1, 255, 1,
+      1, 255, 255,
+      120, 1, 1,
+      255, 120, 255,
+      120, 1, 255,
+      1, 1, 120,
+      255, 255, 255,
+      120, 120, 1,
+      120, 120, 120,
+      1, 1, 255,
+      255, 1, 255,
+      120, 120, 255,
+      120, 255, 120,
+      1, 120, 120,
+      120, 255, 255,
+      255, 1, 1,
+      155, 1, 120,
+      120, 1, 120,
+      255, 120, 1,
+      1, 120, 255,
+      255, 120, 120,
+      1, 255, 120,
+      255, 255, 1};
 
 }
 
@@ -126,48 +160,53 @@ void Pass::robotPoseCallBack(const geometry_msgs::PoseWithCovarianceStampedConst
 }
 
 
-void quat_to_euler(const Eigen::Quaterniond& q, double& roll, double& pitch, double& yaw) {
-  const double q0 = q.w();
-  const double q1 = q.x();
-  const double q2 = q.y();
-  const double q3 = q.z();
-  roll = atan2(2.0*(q0*q1+q2*q3), 1.0-2.0*(q1*q1+q2*q2));
-  pitch = asin(2.0*(q0*q2-q3*q1));
-  yaw = atan2(2.0*(q0*q3+q1*q2), 1.0-2.0*(q2*q2+q3*q3));
-}
-
-Eigen::Vector3f convertRobotPoseToSensorLookDir(Eigen::Isometry3d robot_pose){
-
-  Eigen::Quaterniond quat = Eigen::Quaterniond( robot_pose.rotation() );
-  double r,p,y;
-  quat_to_euler(quat, r, p, y);
-  //std::cout << r*180/M_PI << ", " << p*180/M_PI << ", " << y*180/M_PI << " rpy in Degrees\n";
-
-  double yaw = y;
-  double pitch = -p;
-  double xDir = cos(yaw)*cos(pitch);
-  double yDir = sin(yaw)*cos(pitch);
-  double zDir = sin(pitch);
-  return Eigen::Vector3f(xDir, yDir, zDir);
-}
-
-
 void Pass::elevationMapCallback(const grid_map_msgs::GridMap& msg){
-  //std::cout << "got grid map / ev map\n";
+  std::cout << "got grid map / ev map\n";
 
   // convert message to GridMap, to PointCloud to LabeledCloud
   grid_map::GridMap map;
   grid_map::GridMapRosConverter::fromMessage(msg, map);
+  std::vector<std::string> layers;
+  layers = map.getLayers();
+  for (size_t k = 0; k < layers.size(); ++k){
+      std::cout << layers[k] << std::endl;
+  };
+
+  if (algorithm_ == "C"){
+      std::cout << "C" << std::endl;
+      gridMapFilterChain(map);
+      imageProcessing(map);
+      stepCreation(map);
+      reset();
+      return;
+  }
+
+  if (algorithm_ == "B"){
+      std::cout << "B" << std::endl;
+      gridMapFilterChain(map);
+      imageProcessing(map);
+      reset();
+  }
+
   sensor_msgs::PointCloud2 pointCloud;
-  grid_map::GridMapRosConverter::toPointCloud(map, "elevation", pointCloud);
+
+  if (algorithm_ == "A"){
+      std::cout << "A end" << std::endl;
+      grid_map::GridMapRosConverter::toPointCloud(map, "elevation", pointCloud); // takes "elevation" for legacy algorithm
+  } else {
+      std::cout << "B end" << std::endl;
+      grid_map::GridMapRosConverter::toPointCloud(map, "product", pointCloud); // takes "product" for masking algorithm
+  }
+
   planeseg::LabeledCloud::Ptr inCloud(new planeseg::LabeledCloud());
-  pcl::fromROSMsg(pointCloud,*inCloud);
+  pcl::fromROSMsg(pointCloud, *inCloud);
 
   Eigen::Vector3f origin, lookDir;
   origin << last_robot_pose_.translation().cast<float>();
   lookDir = convertRobotPoseToSensorLookDir(last_robot_pose_);
 
   processCloud(inCloud, origin, lookDir);
+
 }
 
 
@@ -243,9 +282,71 @@ void Pass::processFromFile(int test_example){
   processCloud(inCloud, origin, lookDir);
 }
 
+void Pass::stepThroughFile(std::string filename){
+
+    std::cout << filename <<std::endl;
+    int frame = -1;
+    rosbag::Bag bag;
+    bag.open(filename, rosbag::bagmode::Read);
+    std::vector<std::string> topics;
+    topics.push_back(std::string("/rooster_elevation_mapping/elevation_map"));
+    topics.push_back(std::string("/vilens/pose"));
+
+    rosbag::View view(bag, rosbag::TopicQuery(topics));
+    std::vector<double> timing_vector;
+
+    foreach(rosbag::MessageInstance const m, view){
+        grid_map_msgs::GridMap::ConstPtr s = m.instantiate<grid_map_msgs::GridMap>();
+
+        if (s != NULL){
+            std::cin.get();
+            tic();
+
+            ++frame;
+
+            std::cout << "frames = " << frame << std::endl;
+//            std::cout << "received gridmap at time " << m.getTime().toNSec() << " with resolution:" <<   s->info.resolution << "and time: " << s->info.header.stamp << std::endl;
+            std::cout << "rosbag time: " << s->info.header.stamp << std::endl;
+            elevationMapCallback(*s);
+
+            std::cout << "Press [Enter] to continue to next gridmap message" << std::endl;
+            double frame_time;
+            frame_time = toc().count();
+            std::cout << frame_time << " ms: frame_" << frame << std::endl;
+            timing_vector.push_back(frame_time);
+            elev_map_pub_.publish(*s);
+        }
+
+        geometry_msgs::PoseWithCovarianceStamped::ConstPtr i = m.instantiate<geometry_msgs::PoseWithCovarianceStamped>();
+        if (i !=NULL){
+      //      std::cout << "position (x, y, z): " << i->pose.pose.position.x << ", " << i->pose.pose.position.y << ", "  << i->pose.pose.position.z << std::endl;
+            robotPoseCallBack(i);
+            pose_pub_.publish(*i);
+            }
+    }
+
+    std::cout << "Timings: " << std::endl;
+    for (size_t k = 0; k < timing_vector.size(); ++k){
+        std::cout << timing_vector[k] << ", ";
+    }
+    std::cout << std::endl;
+    bag.close();
+
+
+    double average = 0.0;
+    double sum = 0.0;
+    for (size_t k = 0; k < timing_vector.size(); ++k){
+        sum = sum + timing_vector[k];
+    }
+    average = sum / timing_vector.size();
+//    average = std::accumulate(timing_vector.begin(), timing_vector.end(), 0.0)/timing_vector.size();
+    std::cout << "The average time per frame is" << average << std::endl;
+}
+
 
 void Pass::processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f origin, Eigen::Vector3f lookDir){
 
+  std::cout << "entered processCloud" << std::endl;
   planeseg::BlockFitter fitter;
   fitter.setSensorPose(origin, lookDir);
   fitter.setCloud(inCloud);
@@ -257,7 +358,9 @@ void Pass::processCloud(planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f or
   fitter.setMaxAngleOfPlaneSegmenter(10);
 
   result_ = fitter.go();
-
+  tracking_.reset();
+  tracking_.convertResult(result_);
+//  tracking_.printIds();
 
   Eigen::Vector3f rz = lookDir;
   Eigen::Vector3f rx = rz.cross(Eigen::Vector3f::UnitZ());
@@ -339,15 +442,17 @@ void Pass::publishResult(){
     cloud_ptrs.push_back(cloud_ptr);
   }
 
+  publishIdsAsStrings();
+  publishCentroidsAsSpheres();
+  publishHullsAsMarkers();
+  publishLineStrips();
   publishHullsAsCloud(cloud_ptrs, 0, 0);
-  publishHullsAsMarkers(cloud_ptrs, 0, 0);
 
   //pcl::PCDWriter pcd_writer_;
   //pcd_writer_.write<pcl::PointXYZ> ("/home/mfallon/out.pcd", cloud, false);
   //std::cout << "blocks: " << result_.mBlocks.size() << " blocks\n";
   //std::cout << "cloud: " << cloud.points.size() << " pts\n";
 }
-
 
 // combine the individual clouds into one, with a different each
 void Pass::publishHullsAsCloud(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_ptrs,
@@ -381,123 +486,468 @@ void Pass::publishHullsAsCloud(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr 
 }
 
 
-void Pass::publishHullsAsMarkers(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_ptrs,
-                                 int secs, int nsecs){
+
+
+void Pass::publishIdsAsStrings(){
+    visualization_msgs::MarkerArray strings_array;
+    for (size_t i = 0; i < tracking_.newStairs.size(); ++i){
+        visualization_msgs::Marker id_marker;
+        id_marker = visualizer_.displayString(tracking_.newStairs[i]);
+        id_marker.frame_locked = true;
+        strings_array.markers.push_back(id_marker);
+    }
+    id_strings_pub_.publish(strings_array);
+}
+
+void Pass::publishCentroidsAsSpheres(){
+    visualization_msgs::MarkerArray centroids_array;
+    for (size_t i = 0; i < tracking_.newStairs.size(); ++i){
+        visualization_msgs::Marker centroid_marker;
+        centroid_marker = visualizer_.displayCentroid(tracking_.newStairs[i]);
+        centroid_marker.frame_locked = true;
+        centroids_array.markers.push_back(centroid_marker);
+    }
+    centroids_pub_.publish(centroids_array);
+}
+
+void Pass::publishHullsAsMarkers(){
+
+    std::vector<pcl::PointCloud<pcl::PointXYZ>> clouds;
+    for (size_t k = 0; k < tracking_.newStairs.size(); ++k){
+        clouds.push_back(tracking_.newStairs[k].cloud);
+    }
+
+    std::vector<int> ids;
+    for (size_t m = 0; m < tracking_.newStairs.size(); ++m){
+        ids.push_back(tracking_.newStairs[m].id);
+    }
+
   geometry_msgs::Point point;
   std_msgs::ColorRGBA point_color;
-  visualization_msgs::Marker marker;
+  visualization_msgs::Marker hullMarker;
   std::string frameID;
 
   // define markers
-  marker.header.frame_id = "odom";
-  marker.header.stamp = ros::Time(secs, nsecs);
-  marker.ns = "hull lines";
-  marker.id = 0;
-  marker.type = visualization_msgs::Marker::LINE_LIST; //visualization_msgs::Marker::POINTS;
-  marker.action = visualization_msgs::Marker::ADD;
-  marker.pose.position.x = 0;
-  marker.pose.position.y = 0;
-  marker.pose.position.z = 0;
-  marker.pose.orientation.x = 0.0;
-  marker.pose.orientation.y = 0.0;
-  marker.pose.orientation.z = 0.0;
-  marker.pose.orientation.w = 1.0;
-  marker.scale.x = 0.03;
-  marker.scale.y = 0.03;
-  marker.scale.z = 0.03;
-  marker.color.a = 1.0;
+  hullMarker.header.frame_id = "odom";
+  hullMarker.header.stamp = ros::Time(0, 0);
+  hullMarker.ns = "hull lines";
+  hullMarker.id = 0;
+  hullMarker.type = visualization_msgs::Marker::LINE_LIST; //visualization_msgs::Marker::POINTS;
+  hullMarker.action = visualization_msgs::Marker::ADD;
+  hullMarker.pose.position.x = 0;
+  hullMarker.pose.position.y = 0;
+  hullMarker.pose.position.z = 0;
+  hullMarker.pose.orientation.x = 0.0;
+  hullMarker.pose.orientation.y = 0.0;
+  hullMarker.pose.orientation.z = 0.0;
+  hullMarker.pose.orientation.w = 1.0;
+  hullMarker.scale.x = 0.03;
+  hullMarker.scale.y = 0.03;
+  hullMarker.scale.z = 0.03;
+  hullMarker.color.a = 1.0;
 
-  for (size_t i = 0; i < cloud_ptrs.size (); i++){
+  for (size_t i = 0; i < clouds.size (); i++){
 
-    int nColor = i % (colors_.size()/3);
-    double r = colors_[nColor*3]*255.0;
-    double g = colors_[nColor*3+1]*255.0;
-    double b = colors_[nColor*3+2]*255.0;
+      double r = visualizer_.getR(ids[i]);
+      double g = visualizer_.getG(ids[i]);
+      double b = visualizer_.getB(ids[i]);
 
-    for (size_t j = 1; j < cloud_ptrs[i]->points.size (); j++){
-      point.x = cloud_ptrs[i]->points[j-1].x;
-      point.y = cloud_ptrs[i]->points[j-1].y;
-      point.z = cloud_ptrs[i]->points[j-1].z;
+    for (size_t j = 1; j < clouds[i].points.size (); j++){
+      point.x = clouds[i].points[j-1].x;
+      point.y = clouds[i].points[j-1].y;
+      point.z = clouds[i].points[j-1].z;
       point_color.r = r;
       point_color.g = g;
       point_color.b = b;
       point_color.a = 1.0;
-      marker.colors.push_back(point_color);
-      marker.points.push_back(point);
+      hullMarker.colors.push_back(point_color);
+      hullMarker.points.push_back(point);
 
       //
-      point.x = cloud_ptrs[i]->points[j].x;
-      point.y = cloud_ptrs[i]->points[j].y;
-      point.z = cloud_ptrs[i]->points[j].z;
+      point.x = clouds[i].points[j].x;
+      point.y = clouds[i].points[j].y;
+      point.z = clouds[i].points[j].z;
       point_color.r = r;
       point_color.g = g;
       point_color.b = b;
       point_color.a = 1.0;
-      marker.colors.push_back(point_color);
-      marker.points.push_back(point);
+      hullMarker.colors.push_back(point_color);
+      hullMarker.points.push_back(point);
     }
 
     // start to end line:
-    point.x = cloud_ptrs[i]->points[0].x;
-    point.y = cloud_ptrs[i]->points[0].y;
-    point.z = cloud_ptrs[i]->points[0].z;
+    point.x = clouds[i].points[0].x;
+    point.y = clouds[i].points[0].y;
+    point.z = clouds[i].points[0].z;
     point_color.r = r;
     point_color.g = g;
     point_color.b = b;
     point_color.a = 1.0;
-    marker.colors.push_back(point_color);
-    marker.points.push_back(point);
+    hullMarker.colors.push_back(point_color);
+    hullMarker.points.push_back(point);
 
-    point.x = cloud_ptrs[i]->points[ cloud_ptrs[i]->points.size()-1 ].x;
-    point.y = cloud_ptrs[i]->points[ cloud_ptrs[i]->points.size()-1 ].y;
-    point.z = cloud_ptrs[i]->points[ cloud_ptrs[i]->points.size()-1 ].z;
+    point.x = clouds[i].points[ clouds[i].points.size()-1 ].x;
+    point.y = clouds[i].points[ clouds[i].points.size()-1 ].y;
+    point.z = clouds[i].points[ clouds[i].points.size()-1 ].z;
     point_color.r = r;
     point_color.g = g;
     point_color.b = b;
     point_color.a = 1.0;
-    marker.colors.push_back(point_color);
-    marker.points.push_back(point);
+    hullMarker.colors.push_back(point_color);
+    hullMarker.points.push_back(point);
   }
-  marker.frame_locked = true;
-  hull_markers_pub_.publish(marker);
+  hullMarker.frame_locked = true;
+  hull_markers_pub_.publish(hullMarker);
 }
 
 
-int main( int argc, char** argv ){
-  // Turn off warning message about labels
-  // TODO: look into how labels are used
-  pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS);
+void Pass::publishLineStrips(){
+    visualization_msgs::MarkerArray linestrips_array;
+    for (size_t i = 0; i < tracking_.newStairs.size(); ++i){
+        visualization_msgs::Marker linestrip_marker;
+        linestrip_marker = visualizer_.displayLineStrip(tracking_.newStairs[i]);
+        linestrip_marker.frame_locked = true;
+        linestrips_array.markers.push_back(linestrip_marker);
+    }
+    linestrips_pub_.publish(linestrips_array);
+}
+
+void Pass::publishRectangles(){
+    std::cout << "Entered publishRectangles" << std::endl;
+    visualization_msgs::MarkerArray rectangles_array;
+
+    std::vector<int> ids;
+    for (size_t m = 0; m < tracking2D_.newRects_.size(); ++m){
+        ids.push_back(tracking2D_.newRects_[m].id_);
+    }
+
+    std::cout << "Elevation values: " << std::endl;
+    for (size_t i = 0; i < stepcreator_.rectangles_.size(); ++i){
+
+        double r = visualizer_.getR(ids[i]);
+        double g = visualizer_.getG(ids[i]);
+        double b = visualizer_.getB(ids[i]);
+
+//        std::cout << stepcreator_.rectangles_[i].elevation_ << std::endl;
+
+        planeseg::contour contour = stepcreator_.rectangles_[i];
+
+        visualization_msgs::Marker rectMarker;
+        rectMarker.header.frame_id = "odom";
+        rectMarker.header.stamp = ros::Time::now();
+        rectMarker.ns = "rectangles";
+        rectMarker.id = i;
+        rectMarker.type = visualization_msgs::Marker::LINE_STRIP;
+        rectMarker.action = visualization_msgs::Marker::ADD;
+        rectMarker.pose.orientation.w = 0.0;
+        rectMarker.scale.x = 0.05;
+        rectMarker.color.r = r;
+        rectMarker.color.g = g;
+        rectMarker.color.b = b;
+        rectMarker.color.a = 1;
+        std::vector<geometry_msgs::Point> pointsGM(contour.points_.size()+1);
+        int count;
+
+        for (size_t r = 0; r < contour.points_.size(); ++r){
+
+            float x, y, z;
+            x = (static_cast<float>(contour.points_[r].x) * gm_resolution_); //contour.points_[0].x
+            y = (static_cast<float>(contour.points_[r].y) * gm_resolution_); //contour.points_[0].y
+            z = static_cast<float>(contour.elevation_);
+
+            pointsGM[r].x = -y + ((imgprocessor_.final_img_.image.rows / 2) * gm_resolution_) + gm_position_[0];
+            pointsGM[r].y = -x + ((imgprocessor_.final_img_.image.cols / 2) * gm_resolution_) + gm_position_[1];
+            pointsGM[r].z = z;
+            count = r;
+        }
+
+        // re-add first point to close the loop
+        float x, y, z;
+        x = (static_cast<float>(contour.points_[0].x) * gm_resolution_);
+        y = (static_cast<float>(contour.points_[0].y) * gm_resolution_);
+        z = static_cast<float>(contour.elevation_);
+
+        pointsGM[count+1].x = -y + ((imgprocessor_.final_img_.image.rows / 2) * gm_resolution_) + gm_position_[0];
+        pointsGM[count+1].y = -x + ((imgprocessor_.final_img_.image.cols / 2) * gm_resolution_) + gm_position_[1];
+        pointsGM[count+1].z = z;
+
+        rectMarker.points = pointsGM;
+        rectMarker.frame_locked = true;
+        rectangles_array.markers.push_back(rectMarker);
+    }
+
+    std::cout << "3" << std::endl;
+    rectangles_pub_.publish(rectangles_array);
+
+}
+
+void Pass::extractNthCloud(std::string filename, int n){
+
+    std::cout << filename <<std::endl;
+    int frame = -1;
+    rosbag::Bag bag;
+    bag.open(filename, rosbag::bagmode::Read);
+    std::vector<std::string> topics;
+    topics.push_back(std::string("/rooster_elevation_mapping/elevation_map"));
+    topics.push_back(std::string("/vilens/pose"));
+
+    rosbag::View view(bag, rosbag::TopicQuery(topics));
+
+    foreach(rosbag::MessageInstance const m, view){
+        grid_map_msgs::GridMap::ConstPtr s = m.instantiate<grid_map_msgs::GridMap>();
+
+        if (s != NULL){
+            ++frame;
+            if (frame == n){
+                std::cin.get();
+                tic();
+                elevationMapCallback(*s);
+                std::cout << toc().count() << " ms: frame_" << frame << std::endl;
+            }
+        }
+
+        geometry_msgs::PoseWithCovarianceStamped::ConstPtr i = m.instantiate<geometry_msgs::PoseWithCovarianceStamped>();
+        if (i !=NULL){
+            if (frame == n){
+                robotPoseCallBack(i);
+                pose_pub_.publish(*i);
+            }
+        }
+    }
 
 
-  ros::init(argc, argv, "plane_seg");
-  ros::NodeHandle nh("~");
-  std::unique_ptr<Pass> app = std::make_unique<Pass>(nh);
+bag.close();
+}
 
-  ROS_INFO_STREAM("plane_seg ros ready");
-  ROS_INFO_STREAM("=============================");
+void Pass::imageProcessing(grid_map::GridMap &gridmap){
 
-  bool run_test_program = false;
-  nh.param("/plane_seg/run_test_program", run_test_program, false); 
-  std::cout << "run_test_program: " << run_test_program << "\n";
+    const float nanValue = 1;
+    replaceNan(gridmap.get("slope"), nanValue);
+
+    convertGridmapToFloatImage(gridmap, "slope", imgprocessor_.original_img_, true);
+
+    imgprocessor_.process();;
+//    getContourData();
+
+    std::cout << "got to here" << std::endl;
+
+    if (algorithm_ == "B"){
+
+        grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(imgprocessor_.final_img_.image, "mask", gridmap);
+
+        gridmap.add("product");
+        multiplyLayers(gridmap.get("elevation"), gridmap.get("mask"), gridmap.get("product"));
+        replaceZeroToNan(gridmap.get("product"));
+    }
 
 
-  // Enable this to run the test programs
-  if (run_test_program){
-    std::cout << "Running test examples\n";
-    app->processFromFile(0);
-    app->processFromFile(1);
-    app->processFromFile(2);
-    app->processFromFile(3);
-    // RACE examples don't work well
-    //app->processFromFile(4);
-    //app->processFromFile(5);
+    // Publish updated grid map.
+    grid_map_msgs::GridMap output_msg;
+    grid_map::GridMapRosConverter::toMessage(gridmap, output_msg);
+    filtered_map_pub_.publish(output_msg);
+}
 
-    std::cout << "Finished!\n";
-    exit(-1);
+void Pass::stepCreation(grid_map::GridMap &gridmap){
+
+    std::cout << "Gridmap resolution = " << gridmap.getResolution() << std::endl;
+    std::cout << "Gridmap position = " << gridmap.getPosition()[0] << ", " << gridmap.getPosition()[1] << std::endl;
+    gm_resolution_ = gridmap.getResolution();
+    gm_position_.push_back(gridmap.getPosition()[0]);
+    gm_position_.push_back(gridmap.getPosition()[1]);
+
+    convertGridmapToFloatImage(gridmap, "elevation", stepcreator_.elevation_, true);
+    stepcreator_.pnts_ = imgprocessor_.all_contours_.contours_rect_;
+    stepcreator_.processed_ = imgprocessor_.final_img_;
+    stepcreator_.go();
+    tracking2D_.reset();
+    tracking2D_.assignIDs(stepcreator_.rectangles_);
+//    tracking2D_.printIds();
+//    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(stepcreator_.elevation_masked_.image, "reconstructed", gridmap);
+    publishRectangles();
+//    tracking2D_.reset();
+}
+
+void Pass::getContourData(){
+    // Retrieve information about contours from image processor
+    for (size_t i = 0; i < imgprocessor_.ip_elongations_.size(); ++i){
+        all_elongations_.push_back(imgprocessor_.ip_elongations_[i]);
+    }
+    for (size_t j = 0; j < imgprocessor_.ip_convexities_.size(); ++j){
+        all_convexities_.push_back(imgprocessor_.ip_convexities_[j]);
+    }
+    for (size_t k = 0; k < imgprocessor_.ip_rectangularities_.size(); ++k){
+        all_rectangularities_.push_back(imgprocessor_.ip_rectangularities_[k]);
+    }
+
+    std::cout << "All elongations:" << std::endl;
+    for(size_t i = 0; i < all_elongations_.size(); ++i){
+        std::cout << all_elongations_[i] << ", ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "All convexities:" << std::endl;
+    for(size_t i = 0; i < all_convexities_.size(); ++i){
+        std::cout << all_convexities_[i] << ", ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "All rectangularities:" << std::endl;
+    for(size_t i = 0; i < all_rectangularities_.size(); ++i){
+        std::cout << all_rectangularities_[i] << ", ";
+    }
+    std::cout << std::endl;
+}
+
+
+void Pass::reset(){
+    gm_position_.clear();
+    imgprocessor_.reset();
+    stepcreator_.reset();
+//    tracking_.reset();
+//    tracking2D_.reset();
+}
+
+void Pass::tic(){
+  last_time_ = std::chrono::high_resolution_clock::now();
+}
+
+std::chrono::duration<double> Pass::toc(){
+  auto now_time = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - last_time_);
+  last_time_ = now_time;
+  // std::cout << elapsedTime.count() << "ms elapsed" << std::endl;
+  return elapsed_time;
+}
+
+void Pass::gridMapFilterChain(grid_map::GridMap& input_map){
+//  tic();
+
+  // Apply filter chain.
+  grid_map::GridMap output_map;
+  if (!filter_chain_.update(input_map, output_map)) {
+    std::cout << "couldn't update the grid map filter chain" << std::endl;
+    grid_map_msgs::GridMap failmessage;
+    grid_map::GridMapRosConverter::toMessage(input_map, failmessage);
+    return;
+  }
+/*
+  if (verbose_timer_) {
+    std::cout << toc().count() << " ms: filter chain\n";
   }
 
-  ROS_INFO_STREAM("Waiting for ROS messages");
-  ros::spin();
+  tic();
+*/
+  // Publish filtered output grid map.
+  grid_map_msgs::GridMap output_msg;
+  grid_map::GridMapRosConverter::toMessage(output_map, output_msg);
+  filtered_map_pub_.publish(output_msg);
 
-  return 1;
+  input_map = output_map;
+}
+
+void Pass::saveGridMapMsgAsPCD(const grid_map_msgs::GridMap& msg, int frame){
+    grid_map::GridMap grid_map;
+    grid_map::GridMapRosConverter::fromMessage(msg, grid_map);
+    sensor_msgs::PointCloud2 pointCloud_sensor_msg;
+    grid_map::GridMapRosConverter::toPointCloud(grid_map, "elevation", pointCloud_sensor_msg);
+    pcl::PointCloud<pcl::PointXYZ> point_cloud;
+    pcl::fromROSMsg(pointCloud_sensor_msg, point_cloud);
+
+    std::string pcd_filename;
+    pcd_filename = "/home/christos/rosbags/pcd_by_frame/pcd_frame_" + std::to_string(frame) + ".pcd";
+
+    pcl::io::savePCDFile(pcd_filename, point_cloud);
+    std::cout << "Saved " << point_cloud.size () << " data points to " << pcd_filename << std::endl;
+}
+
+void Pass::replaceNan(grid_map::GridMap::Matrix& m, const double newValue){
+
+  for(int r = 0; r < m.rows(); r++)
+  {
+    for(int c = 0; c < m.cols(); c++)
+    {
+      if (std::isnan(m(r,c)))
+      {
+        m(r,c) = newValue;
+      }
+    }
+  }
+}
+
+void Pass::replaceZeroToNan(grid_map::GridMap::Matrix& m){
+
+  for(int r = 0; r < m.rows(); r++)
+  {
+    for(int c = 0; c < m.cols(); c++)
+    {
+      if (m(r,c) == 0)
+      {
+        m(r,c) = NAN;
+      }
+    }
+  }
+}
+
+void Pass::multiplyLayers(grid_map::GridMap::Matrix& factor1, grid_map::GridMap::Matrix& factor2, grid_map::GridMap::Matrix& result){
+
+  for(int r = 0; r < result.rows(); r++)
+  {
+    for(int c = 0; c < result.cols(); c++)
+    {
+        result(r,c) = factor1(r,c) * factor2(r,c);
+    }
+  }
+}
+
+bool Pass::convertGridmapToFloatImage(const grid_map::GridMap& gridMap, const std::string& layer, cv_bridge::CvImage& cvImage, bool negative){
+    std::cout << "Entered convertGridmapToFloatImage" << std::endl;
+    cvImage.header.stamp.fromNSec(gridMap.getTimestamp());
+    cvImage.header.frame_id = gridMap.getFrameId();
+    cvImage.encoding = CV_32F;
+
+    if (negative == false) {
+        return grid_map::GridMapCvConverter::toImage<float, 1>(gridMap, layer, CV_32F, 0, 1, cvImage.image);
+    } else {
+    return toImageWithNegatives(gridMap, layer, CV_32F, 0, 1, cvImage.image);
+    }
+}
+
+bool Pass::toImageWithNegatives(const grid_map::GridMap& gridMap, const std::string& layer, const int encoding, const float lowerValue, const float upperValue, cv::Mat& image){
+
+  // Initialize image.
+  if (gridMap.getSize()(0) > 0 && gridMap.getSize()(1) > 0) {
+    image = cv::Mat::zeros(gridMap.getSize()(0), gridMap.getSize()(1), encoding);
+  } else {
+    std::cerr << "Invalid grid map?" << std::endl;
+    return false;
+  }
+
+  // Get max image value.
+  float imageMax;
+  imageMax = 1;
+
+  grid_map::GridMap map = gridMap;
+  const grid_map::Matrix& data = map[layer];
+
+  for (grid_map::GridMapIterator iterator(map); !iterator.isPastEnd(); ++iterator) {
+    const grid_map::Index index(*iterator);
+    const float& value = data(index(0), index(1));
+    if (std::isfinite(value)) {
+      const float imageValue = (float)(((value - lowerValue) / (upperValue - lowerValue)) * (float)imageMax);
+      const grid_map::Index imageIndex(iterator.getUnwrappedIndex());
+      unsigned int channel = 0;
+      image.at<cv::Vec<float, 1>>(imageIndex(0), imageIndex(1))[channel] = imageValue;
+    }
+  }
+
+  return true;
+}
+
+void Pass::setupSubscribers(){
+    grid_map_sub_ = node_.subscribe(grid_map_sub_topic_, 100,
+                                      &Pass::elevationMapCallback, this);
+    point_cloud_sub_ = node_.subscribe(point_cloud_sub_topic_, 100,
+                                      &Pass::pointCloudCallback, this);
+    pose_sub_ = node_.subscribe(pose_sub_topic_, 100,
+                                      &Pass::robotPoseCallBack, this);
 }
