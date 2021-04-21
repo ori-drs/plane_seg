@@ -338,7 +338,7 @@ go() {
     results.push_back(result);
   }
 
-  if (mDebug) {
+  if (true) { // Used to be mDebug
     std::ofstream ofs("boxes.txt");
     for (int i = 0; i < (int)results.size(); ++i) {
       auto& res = results[i];
@@ -383,7 +383,7 @@ go() {
     block.mPose = res.mPose;
     block.mPose.translation() -=
       block.mPose.rotation().col(2)*mBlockDimensions[2]/2;
-    block.mHull = res.mConvexHull;
+    block.mHull = res.mPolygon; // USED TO BE res.mConvexHull
     result.mBlocks.push_back(block);
   }
   if (mDebug) {

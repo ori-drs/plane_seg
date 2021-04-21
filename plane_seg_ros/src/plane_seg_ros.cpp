@@ -314,6 +314,7 @@ void Pass::stepThroughFile(std::string filename){
             frame_time = toc().count();
             std::cout << frame_time << " ms: frame_" << frame << std::endl;
             timing_vector.push_back(frame_time);
+            elev_map_pub_.publish(*s);
         }
 
         geometry_msgs::PoseWithCovarianceStamped::ConstPtr i = m.instantiate<geometry_msgs::PoseWithCovarianceStamped>();
@@ -324,6 +325,11 @@ void Pass::stepThroughFile(std::string filename){
             }
     }
 
+    std::cout << "Timings: " << std::endl;
+    for (size_t k = 0; k < timing_vector.size(); ++k){
+        std::cout << timing_vector[k] << ", ";
+    }
+    std::cout << std::endl;
     bag.close();
 
 
@@ -721,11 +727,14 @@ void Pass::imageProcessing(grid_map::GridMap &gridmap){
     convertGridmapToFloatImage(gridmap, "slope", imgprocessor_.original_img_, true);
 
     imgprocessor_.process();;
-    getContourData();
+//    getContourData();
 
-    grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(imgprocessor_.final_img_.image, "mask", gridmap);
+    std::cout << "got to here" << std::endl;
 
     if (algorithm_ == "B"){
+
+        grid_map::GridMapCvConverter::addLayerFromImage<unsigned char, 1>(imgprocessor_.final_img_.image, "mask", gridmap);
+
         gridmap.add("product");
         multiplyLayers(gridmap.get("elevation"), gridmap.get("mask"), gridmap.get("product"));
         replaceZeroToNan(gridmap.get("product"));

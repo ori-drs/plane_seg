@@ -76,7 +76,7 @@ void contours::filterMinRectangularity(int min_rectangularity){
         contour_area = cv::contourArea(temp[r]);
         rectangularity = contour_area / minarea_rect.size.area();
 
-        rectangularities_.push_back(rectangularity);
+//        rectangularities_.push_back(rectangularity);
 
         if (rectangularity >= min_rectangularity){
             contours_.push_back(temp[r]);
@@ -196,15 +196,15 @@ void ImageProcessor::process(){
 //    drawContoursIP(large_contours_, "large_contours", 4);
     std::cout << "Convexities: " << std::endl;
     med_contours_.filterMinConvexity(0.9); // have another look at the threshold for convexity
-    ip_convexities_ = med_contours_.convexities_;
+//    ip_convexities_ = med_contours_.convexities_;
 //    drawContoursIP(med_contours_, "filtered by convexity", 6);
     std::cout << "Elongations: " << std::endl;
     med_contours_.filterMinElongation(3);
-    ip_elongations_ = med_contours_.elongations_;
+//    ip_elongations_ = med_contours_.elongations_;
 //    drawContoursIP(med_contours_, "filtered by elongation", 7);
     std::cout << "Rectangularities: " << std::endl;
     med_contours_.filterMinRectangularity(0.6);
-    ip_rectangularities_ = med_contours_.rectangularities_;
+//    ip_rectangularities_ = med_contours_.rectangularities_;
 //    drawContoursIP(med_contours_, "filtered by rectangularity", 8);
     med_contours_.fitMinAreaRect();
     large_contours_.approxAsPoly();
@@ -219,12 +219,11 @@ void ImageProcessor::process(){
     displayResult();
 
 
-
 //    int p = cv::waitKey(0);
-/*    if (p == 's'){
-        saveImage(final_img_);
-    }
-   */
+//    if (p == 's'){
+//        saveImage(original_img_.image);
+//    }
+
 }
 
 void ImageProcessor::copyOrigToProc(){
@@ -251,15 +250,18 @@ void ImageProcessor::displayResult(){
 //        cv::drawContours(processed_img_.image, all_contours_.contours_, i, cv::Scalar(255), cv::FILLED);
     }
     for(size_t j = 0; j < all_contours_.contours_rect_.size(); ++j){
-        cv::drawContours(colour_img_.image, all_contours_.contours_rect_, j, cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
+//        cv::drawContours(colour_img_.image, all_contours_.contours_rect_, j, cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
         cv::drawContours(rect_img_.image, all_contours_.contours_rect_, j, cv::Scalar(255), cv::FILLED);
     }
 
     final_img_ = rect_img_;
-//    displayImage("final", colour_img_.image, 7);
+//    displayImage("final", rect_img_.image, 7);
 }
 
 void ImageProcessor::saveImage(cv::Mat image_){
+    cv::Mat CV_8U_img;
+    image_.convertTo(CV_8U_img, CV_8U);
+
     std::string imagename;
     std::cout << "Enter filename to save image (don't forget .png!): " << std::endl;
     std::cin >> imagename;
@@ -274,7 +276,7 @@ void ImageProcessor::saveImage(cv::Mat image_){
           return;
         }
       }
-      cv::imwrite(output_path.string() + imagename, image_);
+      cv::imwrite(output_path.string() + imagename, CV_8U_img);
     } else {
       std::cerr << "ERROR: the $HOME variable is empty!" << std::endl;
       return;
@@ -366,7 +368,7 @@ void ImageProcessor::drawContoursIP(contours contour, std::string process, int n
 void ImageProcessor::histogram(cv_bridge::CvImage img){
     int bins = 30;
     int histSize = bins;
-    float range[] = {0, 1};
+    float range[] = {0, 2};
     const float* histRange = { range };
     bool uniform = true, accumulate = false;
     cv::Mat hist, mask;
@@ -374,6 +376,12 @@ void ImageProcessor::histogram(cv_bridge::CvImage img){
     mask.convertTo(mask, CV_8U);
     std::cout << "Mask type: " << mask.type() << std::endl;
     cv::calcHist(&img.image, 1, 0, mask, hist, 1, &histSize, &histRange, uniform, accumulate);
+
+    std::cout << "Start Histogram: " << std::endl;
+    for (int m = 0; m < histSize ; ++m){
+        std::cout << hist.at<float>(m) << ", ";
+    }
+    std::cout << "END Histogram" << std::endl;
 
     int hist_w = 512, hist_h = 400;
     int bin_w = cvRound( (double) hist_w/bins );
@@ -384,10 +392,9 @@ void ImageProcessor::histogram(cv_bridge::CvImage img){
     for (int i = 1; i < histSize; i++){
         cv::line(histImage, cv::Point(bin_w*(i-1), hist_h - cvRound(hist.at<float>(i-1))), cv::Point(bin_w*(i), hist_h - cvRound(hist.at<float>(i))), cv::Scalar(255, 0, 0), 2, 8, 0);
     }
-    std::cout << hist << std::endl;
 
-    cv::imshow("original_img_ histogram", histImage);
-    cv::waitKey(0);
+//    cv::imshow("original_img_ histogram", histImage);
+//    cv::waitKey(0);
 }
 
 
@@ -417,7 +424,7 @@ cv::Mat ImageProcessor::createMask(cv_bridge::CvImage img){
         }
     }
 
-    displayImage("mask", mask_, 8);
+//    displayImage("mask", mask_, 8);
     std::cout << "Exited displayImage()" << std::endl;
 
     return mask_;
