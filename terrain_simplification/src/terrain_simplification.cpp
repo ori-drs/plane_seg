@@ -130,12 +130,12 @@ TerrainSimplification::simplifyGridMap () {
   img_elevation.m = img_inpainted_;
   applyDirectionalGaussianBlurToCvImage(img_elevation.m, img_simplified.m);                             // takes 1-10 ms
   applyFirstOrderDerivativesToCvImage(img_simplified.m, img_simplified.f, 3, false);
-  applyFirstAndSecondOrderDerivativesToCvImage(img_elevation.m, img_elevation, 3, true);
+  // applyFirstAndSecondOrderDerivativesToCvImage(img_elevation.m, img_elevation, 3, true);
 
-  convertCvImagesOfFirstOrderDerivativesToGridMap("simplified", img_simplified.f, map_simplified_wo_traversability);
-  convertCvImagesOfFirstAndSecondOrderDerivativesToGridMap("elevation", img_elevation, map_simplified_wo_traversability);
+  // convertCvImagesOfFirstOrderDerivativesToGridMap("simplified", img_simplified.f, map_simplified_wo_traversability);
+  // convertCvImagesOfFirstAndSecondOrderDerivativesToGridMap("elevation_inpainted", img_elevation, map_simplified_wo_traversability);
   convertCvImageToGridMap("simplified", img_simplified.m, map_simplified_wo_traversability); // takes 1-2 ms
-  convertCvImageToGridMap("elevation", img_elevation.m, map_simplified_wo_traversability); // takes 1-2 ms
+  convertCvImageToGridMap("elevation_inpainted", img_elevation.m, map_simplified_wo_traversability); // takes 1-2 ms
   mutex_.lock(); // to write and img_simplified_
   img_simplified_ = img_simplified;
   img_elevation_ = img_elevation;
