@@ -2,20 +2,21 @@
 
 <launch>
   <!-- ############ Default Parameters ############ -->
-  <arg name="gdb"                   default="" />
+  <arg name="gdb"                   default=""/>
+  <arg name="tf"                    default="false"/>
 
   <rosparam file="$(find terrain_simplification_ros)/config/config.yaml" subst_value="true"/>
-  <rosparam file="$(find terrain_simplification_ros)/config/filter_chain.yaml" subst_value="true"/>
   
   <!-- ############ Main Node ############ -->
   <node 
-    name="terrain_simplification_ros_node"
+    name="terrain_simplification"
     pkg="terrain_simplification_ros"
     type="terrain_simplification_ros_node"
     output="screen"
     launch-prefix="$(arg gdb)"
     required="true"
     >
+    <rosparam command="load" file="$(find terrain_simplification_ros)/config/filter_chain.yaml" />
   </node>
 </launch>
 
