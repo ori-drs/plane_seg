@@ -37,7 +37,8 @@ bool TerrainSimplificationRos::run(
     std_srvs::Empty::Request& request,
     std_srvs::Empty::Response& response) {
   terr_simp_->setRun(true);
-  return true;
+  is_run_ = true;
+  return is_run_;
 }
 
 bool TerrainSimplificationRos::stop(
@@ -50,7 +51,10 @@ bool TerrainSimplificationRos::stop(
 bool TerrainSimplificationRos::pub(
     std_srvs::Empty::Request& request,
     std_srvs::Empty::Response& response) {
-  if (terr_simp_->isReady()) {
+  if (!is_run_) {
+    ROS_WARN_STREAM("TerrainSimplification is not running. "
+                      "It must be started via the /run service call. ");
+  } else if (terr_simp_->isReady()) {
     pubSimplifiedGridMap();
   } else {
     if (!terr_simp_->isReceived()) {
@@ -58,8 +62,7 @@ bool TerrainSimplificationRos::pub(
                       "It either must be published on topic = " << topic_elevation_map_ <<
                       " or manually provided via setGridMap().");
     } else {
-      ROS_WARN_STREAM("TerrainSimplification is not running. "
-                      "It must be started via the /run service call. ");
+      ROS_WARN_STREAM("The simplification process has not finished; the gridmap is not ready.");
     }
   }
   return true;

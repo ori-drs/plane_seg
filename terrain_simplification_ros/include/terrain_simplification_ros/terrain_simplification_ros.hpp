@@ -165,6 +165,8 @@ private:
   std::string topic_robot_state_;           ///< topic name of the robot state
   std::string topic_map_simplified_;        ///< topic name of the simplified map
 
+  bool is_run_ = true;                     ///< flag indicating that the terrain simplification has been commanded to run
+
   std::shared_ptr<filters::FilterChain<grid_map::GridMap> > filter_chain_; ///< filter chain for traversability layer
   std::string filter_chain_parameters_name_; ///< parameters for the filter chain
 
