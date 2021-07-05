@@ -1,6 +1,7 @@
 #include <terrain_simplification/terrain_simplification.hpp>
 
 #include <opencv2/core/core.hpp>
+#include <opencv2/photo.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <grid_map_cv/GridMapCvConverter.hpp>
@@ -8,6 +9,7 @@
 #include <ros/ros.h>
 #include <iostream>
 
+#include <chrono>
 
 namespace terrain_simplification {
 
@@ -56,8 +58,9 @@ void
 TerrainSimplification::setGridMap(
     const grid_map::GridMap& map,
     const Eigen::Isometry3d& o_T_pco) {
-  std::lock_guard<std::mutex> lock(mutex_); // to write map_full_ and received_
+  mutex_.lock(); // to write map_full_pco_
   map_full_pco_ = map;
+  mutex_.unlock();
   o_T_pco_ = o_T_pco;
   received_ = true;
 }
@@ -90,7 +93,7 @@ TerrainSimplification::simplifyGridMap () {
   mutex_state_.unlock();
 
   mutex_.lock(); // to read map_full_pco_
-  map_full_ = map_full_pco_.getTransformedMap(o_T_pco_, "elevation", "odom", 0.0);
+  map_full_ = map_full_pco_.getTransformedMap(o_T_pco_, "elevation_inpainted", "odom", 0.5);
 
   // check that robot position is inside the map
   if (std::pow(std::pow(robot_position[0] - map_full_.getPosition()[0], 2.), 0.5) > map_full_.getLength()[0]/2. ||
@@ -113,17 +116,18 @@ TerrainSimplification::simplifyGridMap () {
   map_simplified_wo_traversability.setPosition(robot_position);
 
   // Copy original layers
-  std::vector<std::string> layers = {"elevation"};
-  if (!map_simplified_wo_traversability.addDataFrom(map_sub_, false, true, false, layers)) { // NOTE: use "false, true, false" to keep the same size, overwrite data, add just "layers"
+  std::vector<std::string> layers = {"elevation", "elevation_inpainted"};
+  if (!map_simplified_wo_traversability.addDataFrom(map_sub_, false, true, true, layers)) { // NOTE: use "false, true, false" to keep the same size, overwrite data, add just "layers"
     ROS_ERROR("Could not add data from map_sub_ to map_simplified_wo_traversability.");
     return;
   }
 
   // Simplify the terrain
-  convertGridMapToCvImage("elevation", map_sub_, img_raw_);             // takes 0.5 ms
+  // convertGridMapToCvImage("elevation", map_sub_, img_raw_);             // takes 0.5 ms
+  convertGridMapToCvImage("elevation_inpainted", map_sub_, img_inpainted_);             // takes 0.5 ms
   MD img_simplified;
   MDD img_elevation;
-  img_elevation.m = img_raw_;
+  img_elevation.m = img_inpainted_;
   applyDirectionalGaussianBlurToCvImage(img_elevation.m, img_simplified.m);                             // takes 1-10 ms
   applyFirstOrderDerivativesToCvImage(img_simplified.m, img_simplified.f, 3, false);
   applyFirstAndSecondOrderDerivativesToCvImage(img_elevation.m, img_elevation, 3, true);
@@ -138,30 +142,36 @@ TerrainSimplification::simplifyGridMap () {
   mutex_.unlock();
 
   // Apply the filter chain to create a separate map with a traversability layer
-  grid_map::GridMap map_simplified({"simplified"});
-  if (apply_filter_chain_) {
-    applyFilterChain(map_simplified_wo_traversability, map_simplified);                       // takes ~100-200 ms
+  // grid_map::GridMap map_simplified({"simplified"});
+  // if (apply_filter_chain_) {
+  //   applyFilterChain(map_simplified_wo_traversability, map_simplified);                       // takes ~100-200 ms
    
-    mutex_.lock(); // to write map_simplified_wo_traversability_ and map_simplified_
-    map_simplified_wo_traversability_ = map_simplified_wo_traversability;
-    map_simplified_ = map_simplified;
-    ready_ = true;
-    mutex_.unlock();
-  } else {
-    mutex_.lock(); // to write  and map_simplified_
-    map_simplified_ = map_simplified_wo_traversability;
-    ready_ = true;
-    mutex_.unlock();
-  }
+  //   mutex_.lock(); // to write map_simplified_wo_traversability_ and map_simplified_
+  //   map_simplified_wo_traversability_ = map_simplified_wo_traversability;
+  //   map_simplified_ = map_simplified;
+  //   ready_ = true;
+  //   mutex_.unlock();
+  // } else {
+  //   mutex_.lock(); // to write  and map_simplified_
+  //   map_simplified_ = map_simplified_wo_traversability;
+  //   ready_ = true;
+  //   mutex_.unlock();
+  // }
+  mutex_.lock(); // to write  and map_simplified_
+  map_simplified_ = map_simplified_wo_traversability;
+  ready_ = true;
+  mutex_.unlock();
 }
 
 void
 TerrainSimplification::convertGridMapToCvImage (
     const std::string& layer_name,
     const grid_map::GridMap& map,
-    cv::Mat& image) {
+    cv::Mat& image,
+    const float lower_value,
+    const float upper_value) {
   grid_map::GridMapCvConverter::toImage<unsigned short, 1>(
-        map, layer_name, CV_16UC1, 0.0, 1.0, image);
+        map, layer_name, CV_16UC1, lower_value, upper_value, image);
 
 }
 
@@ -200,8 +210,11 @@ void
 TerrainSimplification::convertCvImageToGridMap (
     const std::string& layer_name,
     const cv::Mat& image,
-    grid_map::GridMap& map) {
-  if (!grid_map::GridMapCvConverter::addLayerFromImage<unsigned short, 1>(image, layer_name, map)) {
+    grid_map::GridMap& map,
+    const float lower_value,
+    const float upper_value) {
+  if (!grid_map::GridMapCvConverter::addLayerFromImage<unsigned short, 1>(
+      image, layer_name, map, lower_value, upper_value)) {
     mutex_.lock(); // to read map_size_
     std::cerr << "[TerrainSimplification::convertCvImageToGridMap] The size of the image (" << image.rows << ", " << image.cols
               << ") does not correspond to grid map size (" << map.getSize()(0) << ", " << map.getSize()(1)

@@ -189,7 +189,10 @@ TerrainSimplificationRos::setGridMap(
     ROS_ERROR_STREAM("Couldn't find transform from frame [" << "point_cloud_odom" << "] to base frame [" << "odom" << "]. " << e.what());
   }
 
-  terr_simp_->setGridMap(map, o_T_pco);
+  grid_map::GridMap map_filtered;
+  filter_chain_->update(map, map_filtered);
+
+  terr_simp_->setGridMap(map_filtered, o_T_pco);
 }
 
 void

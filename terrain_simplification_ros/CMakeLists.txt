@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   grid_map_core
   grid_map_filters
   grid_map_cv
+  grid_map_filters_drs
   message_generation
   terrain_simplification
   tf_conversions
@@ -48,6 +49,7 @@ catkin_package(
   grid_map_core
   grid_map_filters
   grid_map_cv
+  grid_map_filters_drs
   message_runtime
   std_msgs
   geometry_msgs

@@ -116,7 +116,9 @@ public:
   void convertGridMapToCvImage(
       const std::string& layer_name,
       const grid_map::GridMap& map,
-      cv::Mat& image);
+      cv::Mat& image,
+      const float lower_value = 0.0,
+      const float upper_value = 1.0);
 
   /**
    * @brief Converts images of first- and second-order derivatives to layers of a gridmap
@@ -160,7 +162,9 @@ public:
   void convertCvImageToGridMap(
       const std::string& layer_name,
       const cv::Mat& image,
-      grid_map::GridMap& map);
+      grid_map::GridMap& map,
+      const float lower_value = 0.0,
+      const float upper_value = 1.0);
 
   /**
    * @brief Filters an image using OpenCV filters by applying directional blur
@@ -348,6 +352,7 @@ private:
   grid_map::GridMap map_full_pco_;          ///< submap of the full elevation map in point_cloud_odom frame
   grid_map::GridMap map_full_;              ///< full elevation map
   grid_map::GridMap map_sub_;               ///< submap of the full elevation map
+  grid_map::GridMap map_sub_inpainted_;     ///< inpainted submap of the full elevation map
   grid_map::GridMap map_simplified_wo_traversability_;  ///< filtered submap, without the Filter Chain applied (because the class is multi-threaded and applying the filter takes significant time)
   grid_map::GridMap map_simplified_;        ///< filtered submap, with the Filter Chain applied
   grid_map::GridMap map_simplified_scaled_; ///< scaled filtered submap, with the Filter Chain applied
@@ -361,6 +366,7 @@ private:
 
   // Images
   cv::Mat img_raw_;                         ///< image of the raw elevation map
+  cv::Mat img_inpainted_;                   ///< image of the inpainted elevation map
   MD img_simplified_;                       ///< images of the simplified map and its first-order derivatives
   MD img_simplified_scaled_;                ///< scaled images of the simplified map and its first-order derivatives
   MDD img_elevation_;                       ///< images of the elevation map and its second-order derivatives
