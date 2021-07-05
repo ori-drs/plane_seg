@@ -18,5 +18,12 @@
     >
     <rosparam command="load" file="$(find terrain_simplification_ros)/config/filter_chain.yaml" />
   </node>
-</launch>
 
+  <group if="$(eval tf)">
+    <node 
+      pkg="tf"
+      type="static_transform_publisher"
+      name="odom_to_point_cloud_odom"
+      args="0 0 0 0 0 0 1 odom point_cloud_odom 100" />
+  </group>
+</launch>
