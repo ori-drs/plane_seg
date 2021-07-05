@@ -22,7 +22,7 @@
 #include <std_msgs/Float64.h>
 #include <std_msgs/Header.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <filters/filter_chain.h>
+#include <filters/filter_chain.hpp>
 #include <tf/transform_listener.h>
 #include <tf_conversions/tf_eigen.h>
 

@@ -17,7 +17,7 @@
 
 #include <grid_map_core/grid_map_core.hpp>
 #include <grid_map_ros/grid_map_ros.hpp>
-#include <filters/filter_chain.h>
+#include <filters/filter_chain.hpp>
 
 #include <thread>
 #include <atomic>
