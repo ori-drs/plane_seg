@@ -20,6 +20,8 @@ TerrainSimplificationRos::TerrainSimplificationRos(ros::NodeHandle& nh)
   tf_listener_ = std::make_shared<tf::TransformListener>();  // TODO: Upgrade to tf2_ros::TransformListener
 
   terr_simp_->setFilterChain(filter_chain_);
+  terr_simp_->setNameOfInputLayer(layer_);
+  terr_simp_->setNameOfInputLayerFiltered(layer_filtered_);
 
   // ROS
   ros_sub_robot_pose_ = ros_nh_.subscribe(topic_robot_state_, 2, &TerrainSimplificationRos::subRobotPose, this);
@@ -131,6 +133,8 @@ TerrainSimplificationRos::readParameters() {
     return false;
   }
 
+  ros_nh_.param<std::string>("/terrain_simplification/layer",            layer_,           "elevation");
+  ros_nh_.param<std::string>("/terrain_simplification/layer_filtered",   layer_filtered_,  "elevation_inpainted");
   ros_nh_.param("/terrain_simplification/gridmap_size_x",   map_size_.x(),    2.5);
   ros_nh_.param("/terrain_simplification/gridmap_size_y",   map_size_.y(),    2.5);
   ros_nh_.param("/terrain_simplification/h_nominal",        h_nominal_,       0.53);

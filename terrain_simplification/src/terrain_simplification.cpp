@@ -93,7 +93,12 @@ TerrainSimplification::simplifyGridMap () {
   mutex_state_.unlock();
 
   mutex_.lock(); // to read map_full_pco_
-  map_full_ = map_full_pco_.getTransformedMap(o_T_pco_, "elevation_inpainted", "odom", 0.5);
+
+  if (apply_filter_chain_) {
+    map_full_ = map_full_pco_.getTransformedMap(o_T_pco_, layer_filtered_, "odom", 0.5);
+  } else {
+    map_full_ = map_full_pco_.getTransformedMap(o_T_pco_, layer_, "odom", 0.5);
+  }
 
   // check that robot position is inside the map
   if (std::pow(std::pow(robot_position[0] - map_full_.getPosition()[0], 2.), 0.5) > map_full_.getLength()[0]/2. ||
@@ -116,15 +121,15 @@ TerrainSimplification::simplifyGridMap () {
   map_simplified_wo_traversability.setPosition(robot_position);
 
   // Copy original layers
-  std::vector<std::string> layers = {"elevation", "elevation_inpainted"};
+  std::vector<std::string> layers = { layer_, layer_filtered_ };
   if (!map_simplified_wo_traversability.addDataFrom(map_sub_, false, true, true, layers)) { // NOTE: use "false, true, false" to keep the same size, overwrite data, add just "layers"
     ROS_ERROR("Could not add data from map_sub_ to map_simplified_wo_traversability.");
     return;
   }
 
   // Simplify the terrain
-  // convertGridMapToCvImage("elevation", map_sub_, img_raw_);             // takes 0.5 ms
-  convertGridMapToCvImage("elevation_inpainted", map_sub_, img_inpainted_);             // takes 0.5 ms
+  // convertGridMapToCvImagelayer_, map_sub_, img_raw_);             // takes 0.5 ms
+  convertGridMapToCvImage(layer_filtered_, map_sub_, img_inpainted_);             // takes 0.5 ms
   MD img_simplified;
   MDD img_elevation;
   img_elevation.m = img_inpainted_;
@@ -133,9 +138,9 @@ TerrainSimplification::simplifyGridMap () {
   // applyFirstAndSecondOrderDerivativesToCvImage(img_elevation.m, img_elevation, 3, true);
 
   // convertCvImagesOfFirstOrderDerivativesToGridMap("simplified", img_simplified.f, map_simplified_wo_traversability);
-  // convertCvImagesOfFirstAndSecondOrderDerivativesToGridMap("elevation_inpainted", img_elevation, map_simplified_wo_traversability);
+  // convertCvImagesOfFirstAndSecondOrderDerivativesToGridMap(layer_filtered_, img_elevation, map_simplified_wo_traversability);
   convertCvImageToGridMap("simplified", img_simplified.m, map_simplified_wo_traversability); // takes 1-2 ms
-  convertCvImageToGridMap("elevation_inpainted", img_elevation.m, map_simplified_wo_traversability); // takes 1-2 ms
+  convertCvImageToGridMap(layer_filtered_, img_elevation.m, map_simplified_wo_traversability); // takes 1-2 ms
   mutex_.lock(); // to write and img_simplified_
   img_simplified_ = img_simplified;
   img_elevation_ = img_elevation;
@@ -406,8 +411,8 @@ TerrainSimplification::getSimplifiedGridMap(
     convertCvImageToGridMap("traversability", img_traversability_scaled_, map_simplified_scaled_);
     convertCvImageToGridMap("simplified", img_simplified_scaled_.m, map_simplified_scaled_);
     convertCvImagesOfFirstOrderDerivativesToGridMap("simplified", img_simplified_scaled_.f, map_simplified_scaled_);
-    convertCvImagesOfFirstAndSecondOrderDerivativesToGridMap("elevation", img_elevation_scaled_, map_simplified_scaled_);
-    convertCvImageToGridMap("elevation", img_elevation_scaled_.m, map_simplified_scaled_); // takes 1-2 ms
+    convertCvImagesOfFirstAndSecondOrderDerivativesToGridMap(layer_, img_elevation_scaled_, map_simplified_scaled_);
+    convertCvImageToGridMap(layer_, img_elevation_scaled_.m, map_simplified_scaled_); // takes 1-2 ms
 
     simplified_map = map_simplified_scaled_;
   } else {

@@ -317,6 +317,20 @@ public:
   void setApplyFilterChain(bool apply_filter_chain) { apply_filter_chain_ = apply_filter_chain; }
 
   /**
+   * @brief Set the name of the input layer
+   */
+  void setNameOfInputLayer(const std::string& layer) {
+    layer_ = layer;
+  }
+
+  /**
+   * @brief Set the name of the input layer, if filter chain were applied
+   */
+  void setNameOfInputLayerFiltered(const std::string& layer_filtered) {
+    layer_filtered_ = layer_filtered;
+  }
+
+  /**
    * @brief The advance function for the TerrainSimplification.
    * It can be stopped by a rosservice call which sets the stop_ flag.
    * @return true if successful
@@ -347,6 +361,12 @@ private:
 
   // Transformations
   Eigen::Isometry3d o_T_pco_;     ///< a transformation from point_cloud_odom to odom frame
+
+  // Layers
+  std::string layer_ = "elevation";  ///< name of the elevation layer in the
+                                        ///< incoming elevation map
+  std::string layer_filtered_ = "elevation";  ///< name of the filtered elevation layer
+                                              ///< in the incoming elevation map
 
   // Gridmaps
   grid_map::GridMap map_full_pco_;          ///< submap of the full elevation map in point_cloud_odom frame

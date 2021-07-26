@@ -183,6 +183,11 @@ private:
   grid_map::GridMap map_sub_;               ///< submap (of size map_size_) of the elevation map
   grid_map::GridMap map_simplified_;        ///< the simplified map
 
+  // Layers
+  std::string layer_;                       ///< name of the elevation layer in the incoming elevation map
+  std::string layer_filtered_;              ///< name of the filtered elevation layer
+                                            ///< in the incoming elevation map
+
 };
 }
 
