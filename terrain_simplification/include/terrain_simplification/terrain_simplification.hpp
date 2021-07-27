@@ -17,7 +17,17 @@
 
 #include <grid_map_core/grid_map_core.hpp>
 #include <grid_map_ros/grid_map_ros.hpp>
+
+#if defined(__GNUG__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#endif
+
 #include <filters/filter_chain.hpp>
+
+#if defined(__GNUG__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #include <thread>
 #include <atomic>
