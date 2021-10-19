@@ -47,7 +47,6 @@ class Pass{
 
     void elevationMapCallback(const grid_map_msgs::GridMap& msg);
     void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr &msg);
-    void robotPoseCallBack(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg);
 
     void processCloud(const std::string& cloudFrame, planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f origin, Eigen::Vector3f lookDir);
     void processFromFile(int test_example);
