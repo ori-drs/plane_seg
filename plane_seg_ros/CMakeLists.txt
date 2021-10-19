@@ -1,14 +1,16 @@
-cmake_minimum_required(VERSION 2.6.0)
+cmake_minimum_required(VERSION 3.0.2)
 
 project(plane_seg_ros)
 
-add_compile_options(-std=c++1y -Wall)
-#add_definitions(-std=c++1y -Wall)
+set(CMAKE_CXX_STANDARD 14)
+add_compile_options(-Wall -Wextra -Wpedantic)
 
 find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   pcl_conversions
   tf_conversions
+  tf2_eigen
+  tf2_ros
   pcl_ros
   grid_map_core
   grid_map_ros
@@ -30,7 +32,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+add_executable(${PROJECT_NAME} src/${PROJECT_NAME}.cpp)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${catkin_LIBRARIES})
 
-set(APP_NAME plane_seg_ros)
-add_executable(${APP_NAME} src/${APP_NAME}.cpp)
-target_link_libraries(${APP_NAME} boost_system ${catkin_LIBRARIES})
+# TODO: Install

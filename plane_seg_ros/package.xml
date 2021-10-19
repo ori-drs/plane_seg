@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
-<package format="2">
+<package format="3">
   <name>plane_seg_ros</name>
   <version>0.0.0</version>
   <description>The plane seg package</description>
 
   <maintainer email="mfallon@todo.todo">mfallon</maintainer>
 
-  <license>TODO</license>
+  <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
   <depend>eigen_conversions</depend>
@@ -18,7 +18,6 @@
   <depend>grid_map_ros</depend>
   <depend>grid_map_msgs</depend>
 
-
-  <export>
-  </export>
+  <depend>tf2_eigen</depend>
+  <depend>tf2_ros</depend>
 </package>
