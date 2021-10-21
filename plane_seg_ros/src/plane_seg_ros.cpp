@@ -12,6 +12,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <sensor_msgs/PointCloud2.h>
 
 #include <grid_map_msgs/GridMap.h>
@@ -54,6 +55,7 @@ class Pass{
     void publishHullsAsCloud(const std::string& cloud_frame, std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_ptrs, int secs, int nsecs);
 
     void publishHullsAsMarkers(const std::string& cloud_frame, std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_ptrs, int secs, int nsecs);
+    void publishHullsAsMarkerArray(const std::string& cloud_frame, std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_ptrs, int secs, int nsecs);
     void printResultAsJson();
     void publishResult(const std::string& cloud_frame);
 
@@ -62,7 +64,7 @@ class Pass{
     std::vector<double> colors_;
 
     ros::Subscriber point_cloud_sub_, grid_map_sub_, pose_sub_;
-    ros::Publisher received_cloud_pub_, hull_cloud_pub_, hull_markers_pub_, look_pose_pub_;
+    ros::Publisher received_cloud_pub_, hull_cloud_pub_, hull_markers_pub_, look_pose_pub_, hull_marker_array_pub_;
 
     std::string fixed_frame_ = "odom";  // Frame in which all results are published. "odom" for backwards-compatibility. Likely should be "map".
 
@@ -84,6 +86,7 @@ Pass::Pass(ros::NodeHandle node_):
   received_cloud_pub_ = node_.advertise<sensor_msgs::PointCloud2>("/plane_seg/received_cloud", 10);
   hull_cloud_pub_ = node_.advertise<sensor_msgs::PointCloud2>("/plane_seg/hull_cloud", 10);
   hull_markers_pub_ = node_.advertise<visualization_msgs::Marker>("/plane_seg/hull_markers", 10);
+  hull_marker_array_pub_ = node_.advertise<visualization_msgs::MarkerArray>("/plane_seg/hull_marker_array", 10);
   look_pose_pub_ = node_.advertise<geometry_msgs::PoseStamped>("/plane_seg/look_pose", 10);
 
   colors_ = {
@@ -278,31 +281,34 @@ void Pass::processCloud(const std::string& cloudFrame, planeseg::LabeledCloud::P
 
   result_ = fitter.go();
 
-  Eigen::Vector3f rz = lookDir;
-  Eigen::Vector3f rx = rz.cross(Eigen::Vector3f::UnitZ());
-  Eigen::Vector3f ry = rz.cross(rx);
-  Eigen::Matrix3f rotation;
-  rotation.col(0) = rx.normalized();
-  rotation.col(1) = ry.normalized();
-  rotation.col(2) = rz.normalized();
-  Eigen::Isometry3f pose = Eigen::Isometry3f::Identity();
-  pose.linear() = rotation;
-  pose.translation() = origin;
-  Eigen::Isometry3d pose_d = pose.cast<double>();
+  if (look_pose_pub_.getNumSubscribers() > 0) {
+    Eigen::Vector3f rz = lookDir;
+    Eigen::Vector3f rx = rz.cross(Eigen::Vector3f::UnitZ());
+    Eigen::Vector3f ry = rz.cross(rx);
+    Eigen::Matrix3f rotation;
+    rotation.col(0) = rx.normalized();
+    rotation.col(1) = ry.normalized();
+    rotation.col(2) = rz.normalized();
+    Eigen::Isometry3f pose = Eigen::Isometry3f::Identity();
+    pose.linear() = rotation;
+    pose.translation() = origin;
+    Eigen::Isometry3d pose_d = pose.cast<double>();
 
-  geometry_msgs::PoseStamped msg;
-  msg.header.stamp = ros::Time(0, 0);
-  msg.header.frame_id = cloudFrame;
-  tf::poseEigenToMsg(pose_d, msg.pose);
-  look_pose_pub_.publish(msg);
+    geometry_msgs::PoseStamped msg;
+    msg.header.stamp = ros::Time(0, 0);
+    msg.header.frame_id = cloudFrame;
+    tf::poseEigenToMsg(pose_d, msg.pose);
+    look_pose_pub_.publish(msg);
+  }
 
-  sensor_msgs::PointCloud2 output;
-  pcl::toROSMsg(*inCloud, output);
-  output.header.stamp = ros::Time(0, 0);
-  output.header.frame_id = cloudFrame;
-  received_cloud_pub_.publish(output);
+  if (received_cloud_pub_.getNumSubscribers() > 0) {
+    sensor_msgs::PointCloud2 output;
+    pcl::toROSMsg(*inCloud, output);
+    output.header.stamp = ros::Time(0, 0);
+    output.header.frame_id = cloudFrame;
+    received_cloud_pub_.publish(output);
+  }
 
-  //printResultAsJson();
   publishResult(cloudFrame);
 }
 
@@ -344,6 +350,7 @@ void Pass::publishResult(const std::string& cloud_frame){
   for (size_t i=0; i<result_.mBlocks.size(); ++i){
     pcl::PointCloud<pcl::PointXYZ> cloud;
     const auto& block = result_.mBlocks[i];
+    cloud.points.reserve(block.mHull.size());
     for (size_t j =0; j < block.mHull.size(); ++j){
       pcl::PointXYZ pt;
       pt.x =block.mHull[j](0);
@@ -358,8 +365,9 @@ void Pass::publishResult(const std::string& cloud_frame){
     cloud_ptrs.push_back(cloud_ptr);
   }
 
-  publishHullsAsCloud(cloud_frame, cloud_ptrs, 0, 0);
-  publishHullsAsMarkers(cloud_frame, cloud_ptrs, 0, 0);
+  if (hull_cloud_pub_.getNumSubscribers() > 0) publishHullsAsCloud(cloud_frame, cloud_ptrs, 0, 0);
+  if (hull_markers_pub_.getNumSubscribers() > 0) publishHullsAsMarkers(cloud_frame, cloud_ptrs, 0, 0);
+  if (hull_marker_array_pub_.getNumSubscribers() > 0) publishHullsAsMarkerArray(cloud_frame, cloud_ptrs, 0, 0);
 
   //pcl::PCDWriter pcd_writer_;
   //pcd_writer_.write<pcl::PointXYZ> ("/home/mfallon/out.pcd", cloud, false);
@@ -404,7 +412,6 @@ void Pass::publishHullsAsMarkers(const std::string& cloud_frame,
   geometry_msgs::Point point;
   std_msgs::ColorRGBA point_color;
   visualization_msgs::Marker marker;
-  std::string frameID;
 
   // define markers
   marker.header.frame_id = cloud_frame;
@@ -479,6 +486,88 @@ void Pass::publishHullsAsMarkers(const std::string& cloud_frame,
   hull_markers_pub_.publish(marker);
 }
 
+void Pass::publishHullsAsMarkerArray(const std::string& cloud_frame,
+                                     std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_ptrs,
+                                     int secs, int nsecs){
+  geometry_msgs::Point point;
+  std_msgs::ColorRGBA point_color;
+  visualization_msgs::MarkerArray ma;
+
+  for (size_t i = 0; i < cloud_ptrs.size (); i++){
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = cloud_frame;
+    marker.header.stamp = ros::Time(secs, nsecs);
+    marker.ns = "hull_" + std::to_string(i);
+    marker.id = i;
+    marker.type = visualization_msgs::Marker::LINE_LIST;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.position.x = 0;
+    marker.pose.position.y = 0;
+    marker.pose.position.z = 0;
+    marker.pose.orientation.x = 0.0;
+    marker.pose.orientation.y = 0.0;
+    marker.pose.orientation.z = 0.0;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = 0.03;
+    marker.scale.y = 0.03;
+    marker.scale.z = 0.03;
+    marker.color.a = 1.0;
+
+    const int nColor = i % (colors_.size()/3);
+    const double r = colors_[nColor*3]*255.0;
+    const double g = colors_[nColor*3+1]*255.0;
+    const double b = colors_[nColor*3+2]*255.0;
+
+    marker.points.reserve(cloud_ptrs[i]->points.size());
+    marker.colors.reserve(cloud_ptrs[i]->points.size());
+    for (size_t j = 1; j < cloud_ptrs[i]->points.size(); j++){
+      point.x = cloud_ptrs[i]->points[j-1].x;
+      point.y = cloud_ptrs[i]->points[j-1].y;
+      point.z = cloud_ptrs[i]->points[j-1].z;
+      point_color.r = r;
+      point_color.g = g;
+      point_color.b = b;
+      point_color.a = 1.0;
+      marker.colors.push_back(point_color);
+      marker.points.push_back(point);
+
+      point.x = cloud_ptrs[i]->points[j].x;
+      point.y = cloud_ptrs[i]->points[j].y;
+      point.z = cloud_ptrs[i]->points[j].z;
+      point_color.r = r;
+      point_color.g = g;
+      point_color.b = b;
+      point_color.a = 1.0;
+      marker.colors.push_back(point_color);
+      marker.points.push_back(point);
+    }
+
+    // start to end line:
+    point.x = cloud_ptrs[i]->points[0].x;
+    point.y = cloud_ptrs[i]->points[0].y;
+    point.z = cloud_ptrs[i]->points[0].z;
+    point_color.r = r;
+    point_color.g = g;
+    point_color.b = b;
+    point_color.a = 1.0;
+    marker.colors.push_back(point_color);
+    marker.points.push_back(point);
+
+    point.x = cloud_ptrs[i]->points[ cloud_ptrs[i]->points.size()-1 ].x;
+    point.y = cloud_ptrs[i]->points[ cloud_ptrs[i]->points.size()-1 ].y;
+    point.z = cloud_ptrs[i]->points[ cloud_ptrs[i]->points.size()-1 ].z;
+    point_color.r = r;
+    point_color.g = g;
+    point_color.b = b;
+    point_color.a = 1.0;
+    marker.colors.push_back(point_color);
+    marker.points.push_back(point);
+
+    marker.frame_locked = true;
+    ma.markers.push_back(marker);
+  }
+  hull_marker_array_pub_.publish(ma);
+}
 
 int main( int argc, char** argv ){
   // Turn off warning message about labels

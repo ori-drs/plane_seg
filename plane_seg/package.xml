@@ -10,7 +10,4 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <depend>pcl_ros</depend>
-
-  <export>
-  </export>
 </package>
