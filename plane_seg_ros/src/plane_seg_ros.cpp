@@ -15,9 +15,25 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <sensor_msgs/PointCloud2.h>
 
+// GridMapRosConverter includes cv_bridge which includes OpenCV4 which uses _Atomic
+// We want to ignore this warning entirely.
+#if defined(__clang__)
+# pragma clang diagnostic push
+#endif
+
+#if defined(__clang__) && defined(__has_warning)
+# if __has_warning( "-Wc11-extensions" )
+#  pragma clang diagnostic ignored "-Wc11-extensions"
+# endif
+#endif
+
 #include <grid_map_msgs/GridMap.h>
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_ros/GridMapRosConverter.hpp>
+
+#if defined(__clang__)
+# pragma clang diagnostic pop
+#endif
 
 // tf
 #include <tf2_ros/transform_broadcaster.h>

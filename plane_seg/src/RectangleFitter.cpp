@@ -1,8 +1,28 @@
 #include "plane_seg/RectangleFitter.hpp"
 
+// PCL's octree_key.h (included from convex_hull.h) uses anonymous structs and nested anonymous unions.
+// These are GNU extensions - we want to ignore warnings about them, though.
+
+#if defined(__clang__)
+# pragma clang diagnostic push
+#endif
+
+#if defined(__clang__) && defined(__has_warning)
+# if __has_warning( "-Wgnu-anonymous-struct" )
+#  pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
+# endif
+# if __has_warning( "-Wnested-anon-types" )
+#  pragma clang diagnostic ignored "-Wnested-anon-types"
+# endif
+#endif
+
 #include <pcl/surface/convex_hull.h>
 #include <pcl/common/transforms.h>
 #include <pcl/common/common.h>
+
+#if defined(__clang__)
+# pragma clang diagnostic pop
+#endif
 
 using namespace planeseg;
 

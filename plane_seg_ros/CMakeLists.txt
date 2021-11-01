@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 
 project(plane_seg_ros)
 
+set(CMAKE_C_STANDARD 11)  # OpenCV4 is using _Atomic, a C11 extension
 set(CMAKE_CXX_STANDARD 14)
 add_compile_options(-Wall -Wextra -Wpedantic)
 
