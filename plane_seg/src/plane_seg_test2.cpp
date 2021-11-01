@@ -6,8 +6,6 @@
 
 #include "plane_seg/RobustNormalEstimator.hpp"
 
-#include <opencv2/opencv.hpp>
-
 int main() {
   // read pcd file
   std::string home_dir = getenv("HOME");

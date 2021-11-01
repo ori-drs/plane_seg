@@ -15,8 +15,6 @@
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/features/normal_3d.h>
 
-#include <opencv2/opencv.hpp>
-
 typedef pcl::PointCloud<pcl::Normal> NormalCloud;
 typedef pcl::PointCloud<pcl::PointXYZL> LabeledCloud;
 

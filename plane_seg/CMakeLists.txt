@@ -9,8 +9,6 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
 )
 
-find_package(OpenCV REQUIRED)
-
 catkin_package(
   INCLUDE_DIRS
     include
