@@ -26,6 +26,12 @@
 
 #include "plane_seg/BlockFitter.hpp"
 
+// #define WITH_TIMING
+
+#ifdef WITH_TIMING
+#include <chrono>
+#endif
+
 
 // convenience methods
 auto vecToStr = [](const Eigen::Vector3f& iVec) {
@@ -268,6 +274,9 @@ void Pass::processFromFile(int test_example){
 
 
 void Pass::processCloud(const std::string& cloudFrame, planeseg::LabeledCloud::Ptr& inCloud, Eigen::Vector3f origin, Eigen::Vector3f lookDir){
+#ifdef WITH_TIMING
+  auto tic = std::chrono::high_resolution_clock::now();
+#endif
 
   planeseg::BlockFitter fitter;
   fitter.setSensorPose(origin, lookDir);
@@ -280,6 +289,9 @@ void Pass::processCloud(const std::string& cloudFrame, planeseg::LabeledCloud::P
   fitter.setMaxAngleOfPlaneSegmenter(10);
 
   result_ = fitter.go();
+#ifdef WITH_TIMING
+  auto toc_1 = std::chrono::high_resolution_clock::now();
+#endif
 
   if (look_pose_pub_.getNumSubscribers() > 0) {
     Eigen::Vector3f rz = lookDir;
@@ -310,6 +322,13 @@ void Pass::processCloud(const std::string& cloudFrame, planeseg::LabeledCloud::P
   }
 
   publishResult(cloudFrame);
+
+#ifdef WITH_TIMING
+  auto toc_2 = std::chrono::high_resolution_clock::now();
+
+  std::cout << "[BlockFitter] took " << 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(toc_1 - tic).count() << "ms" << std::endl;
+  // std::cout << "[Publishing] took " << 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(toc_2 - toc_1).count() << "ms" << std::endl;
+#endif
 }
 
 
