@@ -3,10 +3,31 @@
 #include <chrono>
 #include <fstream>
 
+// PCL's octree_key.h (included from convex_hull.h) uses anonymous structs and nested anonymous unions.
+// These are GNU extensions - we want to ignore warnings about them, though.
+
+#if defined(__clang__)
+# pragma clang diagnostic push
+#endif
+
+#if defined(__clang__) && defined(__has_warning)
+# if __has_warning( "-Wgnu-anonymous-struct" )
+#  pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
+# endif
+# if __has_warning( "-Wnested-anon-types" )
+#  pragma clang diagnostic ignored "-Wnested-anon-types"
+# endif
+#endif
+
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/common/common.h>
 #include <pcl/surface/convex_hull.h>
 #include <pcl/io/pcd_io.h>
+
+#if defined(__clang__)
+# pragma clang diagnostic pop
+#endif
+
 
 #include "plane_seg/PlaneFitter.hpp"
 #include "plane_seg/RobustNormalEstimator.hpp"
@@ -157,6 +178,7 @@ go() {
       maxZ = minZ + 0.5;
     }
     LabeledCloud::Ptr tempCloud(new LabeledCloud());
+    tempCloud->reserve(cloud->size());
     for (int i = 0; i < (int)cloud->size(); ++i) {
       const Eigen::Vector3f& p = cloud->points[i].getVector3fMap();
       if ((p[2] < minZ) || (p[2] > maxZ)) continue;
@@ -198,6 +220,7 @@ go() {
       result.mGroundPlane = groundPlane;
       {
         tempCloud.reset(new LabeledCloud());
+        tempCloud->reserve(cloud->size());
         for (int i = 0; i < (int)cloud->size(); ++i) {
           Eigen::Vector3f p = cloud->points[i].getVector3fMap();
           float dist = groundPlane.head<3>().dot(p) + groundPlane[3];
@@ -219,6 +242,7 @@ go() {
 
       // remove points below or near ground
       tempCloud.reset(new LabeledCloud());
+      tempCloud->reserve(cloud->size());
       for (int i = 0; i < (int)cloud->size(); ++i) {
         Eigen::Vector3f p = cloud->points[i].getVector3fMap();
         float dist = p.dot(groundPlane.head<3>()) + groundPlane[3];
@@ -257,10 +281,12 @@ go() {
   const float maxNormalAngle = mMaxAngleFromHorizontal*M_PI/180;
   LabeledCloud::Ptr tempCloud(new LabeledCloud());
   NormalCloud::Ptr tempNormals(new NormalCloud());
+  tempCloud->reserve(normals->size());
+  tempNormals->reserve(normals->size());
   for (int i = 0; i < (int)normals->size(); ++i) {
-    const auto& norm = normals->points[i];
-    Eigen::Vector3f normal(norm.normal_x, norm.normal_y, norm.normal_z);
-    float angle = std::acos(normal[2]);
+    // const auto& norm = normals->points[i];
+    // Eigen::Vector3f normal(norm.normal_x, norm.normal_y, norm.normal_z);
+    float angle = std::acos(normals->points[i].normal_z);  //std::acos(normal[2]);
     if (angle > maxNormalAngle) continue;
     tempCloud->push_back(cloud->points[i]);
     tempNormals->push_back(normals->points[i]);
@@ -329,6 +355,7 @@ go() {
   }
 
   std::vector<RectangleFitter::Result> results;
+  results.reserve(planes.size());
   for (auto& plane : planes) {
     RectangleFitter fitter;
     fitter.setDimensions(mBlockDimensions.head<2>());

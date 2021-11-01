@@ -15,8 +15,6 @@
 #include <pcl/common/transforms.h>
 #include <pcl/common/common.h>
 
-#include <opencv2/opencv.hpp>
-
 typedef pcl::PointCloud<pcl::Normal> NormalCloud;
 typedef pcl::PointCloud<pcl::PointXYZL> LabeledCloud;
 typedef Eigen::Matrix<float,Eigen::Dynamic,3> MatrixX3f;

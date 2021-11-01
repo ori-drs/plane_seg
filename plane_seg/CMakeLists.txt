@@ -2,32 +2,26 @@ cmake_minimum_required(VERSION 3.0.2)
 
 project(plane_seg)
 
-add_compile_options(-std=c++1y -Wall)
-#add_definitions(-std=c++1y -Wall)
+set(CMAKE_CXX_STANDARD 14)
+add_compile_options(-Wall -Wextra -Wpedantic)
 
 find_package(catkin REQUIRED COMPONENTS
   pcl_ros
 )
 
-find_package(OpenCV REQUIRED)
-
 catkin_package(
-  INCLUDE_DIRS
-    include
+  INCLUDE_DIRS include
   LIBRARIES plane_seg
-  CATKIN_DEPENDS  pcl_ros
+  CATKIN_DEPENDS pcl_ros
 )
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
 )
 
-
 # create library
-set(LIB_NAME plane_seg)
-add_library(${LIB_NAME} SHARED
+add_library(${PROJECT_NAME} SHARED
   src/PlaneFitter.cpp
   src/RobustNormalEstimator.cpp
   src/IncrementalPlaneEstimator.cpp
@@ -36,7 +30,7 @@ add_library(${LIB_NAME} SHARED
   src/BlockFitter.cpp
 )
 add_dependencies(plane_seg ${catkin_EXPORTED_TARGETS})
-target_link_libraries(plane_seg ${catkin_LIBRARIES})
+target_link_libraries(plane_seg PUBLIC ${catkin_LIBRARIES})
 
 
 # standalone lcm-based block fitter
@@ -54,7 +48,7 @@ target_link_libraries(${APP_NAME} boost_system ${catkin_LIBRARIES} plane_seg)
 # fit single block
 set(APP_NAME plane_seg_test2)
 add_executable(${APP_NAME} src/plane_seg_test2.cpp)
-target_link_libraries(${APP_NAME} boost_system ${catkin_LIBRARIES} plane_seg ${OpenCV_LIBS})
+target_link_libraries(${APP_NAME} boost_system ${catkin_LIBRARIES} plane_seg)
 
 
 # install

@@ -87,8 +87,8 @@ tryPoint(const Eigen::Vector3f& iPoint, const Eigen::Vector3f& iNormal,
       std::cos(iMaxAngle)) return false;
 
   std::vector<float> prevErrors2 = computeErrors(getCurrentPlane(), mPoints);
-  float prevTotalError2 =
-    std::accumulate(prevErrors2.begin(), prevErrors2.end(), 0.0f);
+  // NB: Using Eigen's sum redux is significantly faster than std::accumulate
+  float prevTotalError2 = Eigen::Map<Eigen::VectorXf>(prevErrors2.data(), prevErrors2.size()).sum();
 
   std::vector<float> errors2 = computeErrors(plane, mPoints);
   errors2.push_back(computeError(plane, iPoint));
