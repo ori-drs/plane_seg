@@ -349,7 +349,7 @@ struct State {
   */
 };
 
-int main(const int iArgc, const char** iArgv) {
+int main(const int /*iArgc*/, const char** /*iArgv*/) {
 
   std::string sizeString("");
   std::string triggerChannel;

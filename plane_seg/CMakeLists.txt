@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.0.2)
 
 project(plane_seg)
 
-add_compile_options(-std=c++1y -Wall)
-#add_definitions(-std=c++1y -Wall)
+set(CMAKE_CXX_STANDARD 14)
+add_compile_options(-Wall -Wextra -Wpedantic)
 
 find_package(catkin REQUIRED COMPONENTS
   pcl_ros
