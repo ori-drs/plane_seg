@@ -34,9 +34,9 @@ target_link_libraries(plane_seg PUBLIC ${catkin_LIBRARIES})
 
 
 # standalone lcm-based block fitter
-set(APP_NAME block_fitter)
-add_executable(${APP_NAME} src/block-fitter.cpp)
-target_link_libraries(${APP_NAME} boost_system ${catkin_LIBRARIES})
+#set(APP_NAME block_fitter)
+#add_executable(${APP_NAME} src/block-fitter.cpp)
+#target_link_libraries(${APP_NAME} boost_system ${catkin_LIBRARIES})
 
 
 # test program
@@ -59,3 +59,4 @@ install(TARGETS plane_seg
 
 # Mark header files for installation
 install(DIRECTORY include/${PROJECT_NAME}/ DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+

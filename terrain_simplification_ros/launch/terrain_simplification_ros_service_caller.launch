@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+  <!-- ############ Default Parameters ############ -->
+  <arg name="gdb"                   default="" />
+  
+  <!-- ############ Throttled signal ############ -->
+  <node pkg="topic_tools" type="throttle" name="throttle_terrain_simplification" output="screen"
+    args="messages /terrain_simplification/map_simplified 2.0 /terrain_simplification/map_simplified_throttle" />
+
+  <!-- ############ Main Node ############ -->
+  <node 
+    name="terrain_simplification_ros_service_caller"
+    pkg="terrain_simplification_ros"
+    type="terrain_simplification_ros_service_caller"
+    output="screen"
+    launch-prefix="$(arg gdb)"
+    required="true"
+    >
+
+   <param name="rate"               value="10." />
+  </node>
+</launch>
+

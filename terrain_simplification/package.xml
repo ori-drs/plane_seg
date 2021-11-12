@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>terrain_simplification</name>
+  <version>1.0.0</version>
+  <description>
+    A module that simplifies the observed terrain, represented as a gridmap, by applying a low-pass filter to extract the high-level geometry and qualify its irregularity.
+  </description>
+
+  <author>Oliwier Melon</author>
+  <maintainer email="omelon@robots.ox.ac.uk">Oliwier Melon</maintainer>
+  <license>BSD</license>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>grid_map_core</depend>
+  <depend>grid_map_cv</depend>
+  <depend>grid_map_filters</depend>
+</package>

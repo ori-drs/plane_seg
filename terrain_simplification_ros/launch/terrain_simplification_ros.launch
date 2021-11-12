@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+  <!-- ############ Default Parameters ############ -->
+  <arg name="gdb"                   default=""/>
+  <arg name="tf"                    default="false"/>
+
+  <rosparam file="$(find terrain_simplification_ros)/config/config.yaml" subst_value="true"/>
+  
+  <!-- ############ Main Node ############ -->
+  <node 
+    name="terrain_simplification"
+    pkg="terrain_simplification_ros"
+    type="terrain_simplification_ros_node"
+    output="screen"
+    launch-prefix="$(arg gdb)"
+    required="true"
+    >
+    <rosparam command="load" file="$(find terrain_simplification_ros)/config/filter_chain.yaml" />
+  </node>
+
+  <group if="$(eval tf)">
+    <node 
+      pkg="tf"
+      type="static_transform_publisher"
+      name="odom_to_point_cloud_odom"
+      args="0 0 0 0 0 0 1 odom point_cloud_odom 100" />
+  </group>
+</launch>
